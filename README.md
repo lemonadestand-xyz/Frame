@@ -60,6 +60,27 @@ When the next session starts, these files are read automatically. The agent pick
 
 > **The practical implication:** commit often. Small, intentional commits aren't just good git hygiene — in Frame, they're how context stays accurate and agents stay oriented.
 
+### Spec-Driven Development
+
+For features that won't fit in one session, Frame ships a built-in spec workflow. Each spec is four markdown files on disk:
+
+```
+.frame/specs/<slug>/
+  spec.md      what we're building
+  plan.md      how we'll build it
+  tasks.md     broken-down work
+  outcome.md   what actually shipped
+```
+
+Describe what you want and the AI drafts the spec. `/spec.plan` produces an implementation plan. `/spec.tasks` breaks the plan into discrete tasks that import into `tasks.json` (tagged with `source: "spec:<slug>:T<n>"`). `/spec.implement` walks them one by one — and after each task, the agent appends 2-3 sentences to `outcome.md`: what shipped, what diverged from the plan, what to follow up on.
+
+That last file is the move that makes the rest worth doing. Plans tell you intent. Code tells you reality. `outcome.md` tells you the *story* between them, written while the agent's memory was fresh — the kind of context that's normally lost the moment a session ends.
+
+Two principles shaped this:
+
+- **Files over databases.** Markdown is canonical. Any AI tool can read it without Frame, any teammate can grep it, git versions it, PRs review it.
+- **Optional, never forced.** Spec-driven dev isn't every project's shape. Frame asks once when you open the Specs panel; you opt in or skip. Existing `tasks.json` workflows are untouched.
+
 ### Fast File Lookup
 
 Instead of scanning the entire codebase, Frame's `intentIndex` maps concepts to files:
@@ -92,6 +113,7 @@ Switch between AI tools without leaving Frame:
 
 ### Project Management
 - **Task Panel** — visual task tracking with filters, status management, and "Send to Claude" integration
+- **Specs Panel** — spec-driven workflow with phase lifecycle (spec → plan → tasks → outcome) and slash-command handoff to your AI tool
 - **GitHub Panel** — issues, PRs, branches, and labels directly in the sidebar
 - **Git Branches** — view, switch, create, and manage branches and worktrees
 - **Plugins Panel** — browse, enable/disable, and install Claude Code plugins
@@ -211,6 +233,7 @@ Pre-built binaries available on the [releases page](https://github.com/kaanozhan
 - [x] Plugins panel
 - [x] Overview / structure map panel
 - [x] Pre-commit hooks for automatic structure updates
+- [x] Spec-driven development — spec / plan / tasks / outcome markdown workflow with auto-import to tasks.json
 - [x] Light / dark theme
 
 ### In Progress
