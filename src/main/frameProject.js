@@ -10,6 +10,7 @@ const { IPC } = require('../shared/ipcChannels');
 const { FRAME_DIR, FRAME_CONFIG_FILE, FRAME_FILES, FRAME_BIN_DIR } = require('../shared/frameConstants');
 const templates = require('../shared/frameTemplates');
 const workspace = require('./workspace');
+const structureBootstrap = require('./structureBootstrap');
 
 let mainWindow = null;
 
@@ -270,7 +271,7 @@ function initializeFrameProject(projectPath, projectName) {
     path.join(projectPath, FRAME_FILES.GEMINI_SYMLINK)
   );
 
-  createFileIfNotExists(
+  const structureWasCreated = createFileIfNotExists(
     path.join(projectPath, FRAME_FILES.STRUCTURE),
     templates.getStructureTemplate(name)
   );
@@ -302,10 +303,25 @@ function initializeFrameProject(projectPath, projectName) {
     fs.writeFileSync(codexWrapperPath, templates.getCodexWrapperTemplate(), { mode: 0o755 });
   }
 
+  // Bootstrap STRUCTURE.json auto-fill: ship parser scripts to .frame/bin/,
+  // install pre-commit hook (with safe detection for husky/lefthook/custom),
+  // and run a one-time full scan if STRUCTURE.json was just created.
+  // All steps are non-fatal — a failure here must not block the init.
+  let structureBootstrapSummary = null;
+  try {
+    structureBootstrapSummary = structureBootstrap.bootstrapStructure(
+      projectPath,
+      structureWasCreated
+    );
+    console.log('[frame] structure bootstrap:', JSON.stringify(structureBootstrapSummary, null, 2));
+  } catch (err) {
+    console.warn('[frame] structure bootstrap failed (non-fatal):', err.message);
+  }
+
   // Update workspace to mark as Frame project
   workspace.updateProjectFrameStatus(projectPath, true);
 
-  return config;
+  return { ...config, _structureBootstrap: structureBootstrapSummary };
 }
 
 // ─── Spec-Driven Development opt-in (Slice 1.5) ──────────────

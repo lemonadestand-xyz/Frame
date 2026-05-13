@@ -15,7 +15,11 @@
 const fs = require('fs');
 const path = require('path');
 
-const STRUCTURE_FILE = path.join(__dirname, '..', 'STRUCTURE.json');
+// FRAME_PROJECT_ROOT lets the same script run from .frame/bin/ inside a user
+// project. Frame's own callers don't set it — behavior is unchanged.
+const STRUCTURE_FILE = process.env.FRAME_PROJECT_ROOT
+  ? path.join(path.resolve(process.env.FRAME_PROJECT_ROOT), 'STRUCTURE.json')
+  : path.join(__dirname, '..', 'STRUCTURE.json');
 
 function loadStructure() {
   try {

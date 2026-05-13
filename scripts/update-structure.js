@@ -15,7 +15,12 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const ROOT_DIR = path.join(__dirname, '..');
+// FRAME_PROJECT_ROOT lets the same script run from .frame/bin/ inside a user
+// project. Frame's own pre-commit hook doesn't set it, so behavior is identical
+// to before; only callers who explicitly opt in get the override.
+const ROOT_DIR = process.env.FRAME_PROJECT_ROOT
+  ? path.resolve(process.env.FRAME_PROJECT_ROOT)
+  : path.join(__dirname, '..');
 const STRUCTURE_FILE = path.join(ROOT_DIR, 'STRUCTURE.json');
 const SRC_DIR = path.join(ROOT_DIR, 'src');
 

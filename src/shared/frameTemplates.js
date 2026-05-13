@@ -520,6 +520,52 @@ fi
 `;
 }
 
+/**
+ * Pre-commit hook snippet that keeps STRUCTURE.json in sync with staged JS
+ * changes. Designed to be safe in any environment:
+ *   - Silently no-op if node is missing (never blocks a commit)
+ *   - Silently no-op if .frame/bin/update-structure.js is missing
+ *   - Parser errors don't fail the commit (|| true)
+ *   - FRAME_PROJECT_ROOT tells the bundled parser where the project root is
+ *
+ * The MARKER lines wrap the block so we can detect/append/remove idempotently
+ * when installing into husky/lefthook/existing hooks.
+ */
+const FRAME_HOOK_MARKER_START = '# >>> frame:structure (managed) >>>';
+const FRAME_HOOK_MARKER_END = '# <<< frame:structure (managed) <<<';
+
+function getStructureHookSnippet() {
+  return `${FRAME_HOOK_MARKER_START}
+# Keep STRUCTURE.json in sync with staged JS changes. Safe to remove if you
+# don't want Frame to manage your STRUCTURE.json file.
+if command -v node >/dev/null 2>&1; then
+  FRAME_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+  if [ -n "$FRAME_ROOT" ] && [ -f "$FRAME_ROOT/.frame/bin/update-structure.js" ]; then
+    FRAME_PROJECT_ROOT="$FRAME_ROOT" node "$FRAME_ROOT/.frame/bin/update-structure.js" --changed || true
+    if [ -f "$FRAME_ROOT/STRUCTURE.json" ]; then
+      git add "$FRAME_ROOT/STRUCTURE.json" || true
+    fi
+  fi
+fi
+${FRAME_HOOK_MARKER_END}
+`;
+}
+
+/**
+ * Full pre-commit hook file content for the "no existing hook" case.
+ * Husky/lefthook get the snippet appended into their own files instead.
+ */
+function getStructurePreCommitHookTemplate() {
+  return `#!/bin/sh
+# Frame pre-commit hook
+# Auto-installed by Frame on project initialization. You can edit or delete
+# this file freely — Frame will not overwrite it on subsequent inits.
+
+${getStructureHookSnippet()}
+exit 0
+`;
+}
+
 module.exports = {
   getAgentsTemplate,
   getStructureTemplate,
@@ -529,5 +575,9 @@ module.exports = {
   getFrameConfigTemplate,
   SPEC_DRIVEN_SECTION,
   getCodexWrapperTemplate,
-  getGenericWrapperTemplate
+  getGenericWrapperTemplate,
+  getStructureHookSnippet,
+  getStructurePreCommitHookTemplate,
+  FRAME_HOOK_MARKER_START,
+  FRAME_HOOK_MARKER_END
 };
