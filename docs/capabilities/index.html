@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frame — Capability Specification Sheet, v2.2.2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..900,0..100,0..1;1,9..144,300..900,0..100,0..1&family=JetBrains+Mono:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:        #ede2c8;
+    --paper-2:      #e3d6b6;
+    --paper-edge:   #d6c69d;
+    --ink:          #1a1410;
+    --ink-soft:     #3a2e22;
+    --ink-mute:     #7a6a52;
+    --rust:         #a8503c;
+    --rust-deep:    #7a3526;
+    --tan:          #c8945a;
+    --olive:        #5a6b3a;
+    --paper-warm:   #f4ebd4;
+    --rule:         #1a14101a;
+    --rule-strong:  #1a141033;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-weight: 400;
+    font-size: 13px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Paper grain — fine SVG noise */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.35;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.10 0 0 0 0 0.08 0 0 0 0 0.06 0 0 0 0.16 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* Subtle vignette on the page edge */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 998;
+    background: radial-gradient(ellipse 90% 80% at 50% 50%, transparent 55%, rgba(80, 50, 30, 0.16) 100%);
+  }
+
+  .page {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 56px 64px 96px;
+    position: relative;
+  }
+
+  /* ─── Top classification strip ─── */
+  .strip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 38px;
+  }
+  .strip span + span::before { content: '·'; margin: 0 12px; opacity: 0.4; }
+  .strip-r { display: flex; align-items: center; }
+  .strip-dot {
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%; background: var(--rust);
+    margin-right: 10px; box-shadow: 0 0 0 2px rgba(168,80,60,0.25);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(168,80,60,0.25); }
+    50%      { box-shadow: 0 0 0 5px rgba(168,80,60,0.05); }
+  }
+
+  /* ─── Masthead ─── */
+  .masthead {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 22px;
+    margin-bottom: 8px;
+  }
+  .wordmark {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: clamp(96px, 14vw, 188px);
+    line-height: 0.84;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+    font-variation-settings: "opsz" 144, "SOFT" 0, "WONK" 1;
+  }
+  .wordmark .i-1 { font-style: italic; font-weight: 400; color: var(--rust); }
+  .meta {
+    text-align: right;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    line-height: 1.7;
+    color: var(--ink-soft);
+    padding-bottom: 10px;
+  }
+  .meta b { color: var(--ink); font-weight: 700; }
+
+  .subline {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 24px;
+    margin-top: 14px;
+    padding-bottom: 28px;
+    border-bottom: 1px dashed var(--rule-strong);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .subline b { display: block; color: var(--ink); font-weight: 700; margin-bottom: 4px; }
+
+  /* ─── Hero quote ─── */
+  .hero {
+    margin: 56px 0 64px;
+    display: grid;
+    grid-template-columns: 80px 1fr 160px;
+    gap: 36px;
+    align-items: start;
+  }
+  .hero-mark {
+    font-family: 'Fraunces', serif;
+    font-size: 96px;
+    line-height: 0.7;
+    font-weight: 200;
+    color: var(--rust);
+    font-style: italic;
+  }
+  .hero-q {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-style: italic;
+    font-size: clamp(34px, 4.6vw, 60px);
+    line-height: 1.04;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+  }
+  .hero-q em {
+    font-style: normal;
+    color: var(--rust);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 8px;
+  }
+  .hero-note {
+    border-left: 1px solid var(--ink);
+    padding-left: 16px;
+    font-size: 10px;
+    line-height: 1.7;
+    letter-spacing: 0.04em;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+  }
+  .hero-note b { color: var(--rust); font-weight: 700; }
+
+  /* ─── Three pillars ─── */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 64px;
+  }
+  .pillar {
+    padding: 28px 28px 32px;
+    border-right: 1px solid var(--rule-strong);
+    position: relative;
+    background: linear-gradient(180deg, rgba(255,250,235,0.4), transparent);
+  }
+  .pillar:last-child { border-right: 0; }
+  .pillar-num {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--rust);
+    letter-spacing: 0.08em;
+    margin-bottom: 18px;
+  }
+  .pillar-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 28px;
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    margin-bottom: 14px;
+    color: var(--ink);
+  }
+  .pillar-title i { font-style: italic; color: var(--rust); }
+  .pillar-body {
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+  }
+
+  /* ─── Specification matrix ─── */
+  .section {
+    margin-bottom: 56px;
+  }
+  .section-head {
+    display: grid;
+    grid-template-columns: 60px 1fr auto;
+    gap: 20px;
+    align-items: baseline;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--ink);
+    margin-bottom: 0;
+  }
+  .section-no {
+    font-family: 'Fraunces', serif;
+    font-weight: 200;
+    font-style: italic;
+    font-size: 44px;
+    line-height: 1;
+    color: var(--rust);
+    letter-spacing: -0.02em;
+  }
+  .section-title {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 30px;
+    line-height: 1;
+    letter-spacing: -0.015em;
+  }
+  .section-title i { font-style: italic; }
+  .section-meta {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    text-align: right;
+    line-height: 1.5;
+  }
+  .section-meta b { color: var(--ink); font-weight: 700; }
+
+  /* feature rows */
+  .rows {
+    border-bottom: 1px solid var(--rule-strong);
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 60px 1.4fr 2.2fr 0.9fr;
+    gap: 20px;
+    padding: 16px 0 14px;
+    border-top: 1px solid var(--rule);
+    align-items: start;
+    transition: background 180ms ease;
+  }
+  .row:hover {
+    background: rgba(168, 80, 60, 0.04);
+  }
+  .row .id {
+    font-size: 11px;
+    color: var(--ink-mute);
+    letter-spacing: 0.1em;
+    padding-top: 3px;
+  }
+  .row .name {
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    line-height: 1.15;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .row .name i { font-style: italic; color: var(--rust); }
+  .row .desc {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--ink-soft);
+  }
+  .row .tag {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    text-align: right;
+    padding-top: 4px;
+  }
+  .row .tag b {
+    display: inline-block;
+    padding: 2px 8px;
+    border: 1px solid var(--ink);
+    background: var(--paper-warm);
+    color: var(--ink);
+    font-weight: 700;
+    margin-left: 4px;
+  }
+  .row .tag .hot { background: var(--rust); color: var(--paper); border-color: var(--rust); }
+  .row .tag .new { background: var(--olive); color: var(--paper); border-color: var(--olive); }
+
+  /* ─── Architecture diagram ─── */
+  .diagram {
+    margin: 88px 0 80px;
+    padding: 32px 36px 40px;
+    background: var(--paper-warm);
+    border: 1px solid var(--ink);
+    box-shadow: 6px 6px 0 var(--ink);
+    position: relative;
+  }
+  .diagram-corner {
+    position: absolute;
+    top: -1px; left: -1px;
+    width: 18px; height: 18px;
+    border-top: 3px solid var(--rust);
+    border-left: 3px solid var(--rust);
+  }
+  .diagram-corner.tr { left: auto; right: -1px; border-left: 0; border-right: 3px solid var(--rust); }
+  .diagram-corner.bl { top: auto; bottom: -1px; border-top: 0; border-bottom: 3px solid var(--rust); }
+  .diagram-corner.br { top: auto; bottom: -1px; left: auto; right: -1px; border-top: 0; border-left: 0; border-right: 3px solid var(--rust); border-bottom: 3px solid var(--rust); }
+
+  .diagram-h {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    margin-bottom: 18px;
+  }
+  .diagram-h b { color: var(--ink); font-weight: 700; }
+  .ascii {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .ascii .c-rust { color: var(--rust); font-weight: 600; }
+  .ascii .c-mute { color: var(--ink-mute); }
+  .ascii .c-olive { color: var(--olive); font-weight: 600; }
+
+  /* ─── Stats ─── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+    margin: 56px 0 64px;
+  }
+  .stat {
+    padding: 22px 18px 26px;
+    border-right: 1px dashed var(--rule-strong);
+    text-align: left;
+  }
+  .stat:last-child { border-right: 0; }
+  .stat-n {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: 56px;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    font-variation-settings: "opsz" 144;
+  }
+  .stat-n sup {
+    font-size: 18px;
+    color: var(--rust);
+    vertical-align: super;
+    letter-spacing: 0;
+    font-style: italic;
+  }
+  .stat-l {
+    margin-top: 8px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    line-height: 1.4;
+  }
+
+  /* ─── Roadmap strip ─── */
+  .roadmap {
+    margin-bottom: 64px;
+  }
+  .roadmap-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--ink);
+    margin-bottom: 18px;
+  }
+  .roadmap-title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+  }
+  .roadmap-title i { font-style: italic; color: var(--rust); }
+  .roadmap-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 36px;
+  }
+  .ritem {
+    display: grid;
+    grid-template-columns: 18px 1fr auto;
+    gap: 10px;
+    align-items: baseline;
+    padding: 6px 0;
+    font-size: 12px;
+    border-bottom: 1px dotted var(--rule);
+  }
+  .ritem .box {
+    width: 12px; height: 12px;
+    border: 1px solid var(--ink);
+    display: inline-block;
+    position: relative;
+  }
+  .ritem .box.done {
+    background: var(--ink);
+  }
+  .ritem .box.done::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    background: var(--rust);
+  }
+  .ritem .stat-l-small {
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .ritem .stat-l-small.due { color: var(--rust); }
+
+  /* ─── Footer ─── */
+  footer {
+    margin-top: 72px;
+    padding-top: 26px;
+    border-top: 2px solid var(--ink);
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 32px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+    line-height: 1.7;
+  }
+  footer b { color: var(--ink); font-weight: 700; display: block; margin-bottom: 6px; }
+  footer .sig {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 16px;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--ink);
+    line-height: 1.3;
+  }
+
+  /* Decorative side rule */
+  .rule-mark {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--rule-strong) 0,
+      var(--rule-strong) 4px,
+      transparent 4px,
+      transparent 10px
+    );
+  }
+  .rule-mark.l { left: 28px; }
+  .rule-mark.r { right: 28px; }
+
+  /* Stagger reveal */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .section, .pillars, .hero, .stats, .diagram, .roadmap, footer {
+    animation: rise 700ms cubic-bezier(.2,.7,.3,1) both;
+  }
+  .section { animation-delay: 0.15s; }
+  .pillars { animation-delay: 0.1s; }
+  .hero { animation-delay: 0.05s; }
+  .stats { animation-delay: 0.25s; }
+  .diagram { animation-delay: 0.2s; }
+  .roadmap { animation-delay: 0.3s; }
+  footer { animation-delay: 0.35s; }
+
+  /* Mobile fallback */
+  @media (max-width: 900px) {
+    .page { padding: 24px 20px 64px; }
+    .subline { grid-template-columns: 1fr 1fr; }
+    .hero { grid-template-columns: 1fr; }
+    .hero-mark { font-size: 64px; }
+    .hero-note { border-left: 0; border-top: 1px solid var(--ink); padding: 14px 0 0; }
+    .pillars { grid-template-columns: 1fr; }
+    .pillar { border-right: 0; border-bottom: 1px solid var(--rule-strong); }
+    .row { grid-template-columns: 50px 1fr; gap: 12px; }
+    .row .desc, .row .tag { grid-column: 2; }
+    .row .tag { text-align: left; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .stat { border-right: 0; border-bottom: 1px dashed var(--rule-strong); }
+    .roadmap-list { grid-template-columns: 1fr; }
+    footer { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="rule-mark l"></div>
+  <div class="rule-mark r"></div>
+
+  <!-- Top strip -->
+  <div class="strip">
+    <div>
+      <span>Specification Sheet</span>
+      <span>Document 002</span>
+      <span>Revision 2.2.2</span>
+      <span>2026-05-13</span>
+    </div>
+    <div class="strip-r"><span class="strip-dot"></span><span>Status: Shipping</span></div>
+  </div>
+
+  <!-- Masthead -->
+  <header class="masthead">
+    <h1 class="wordmark">F<span class="i-1">r</span>ame</h1>
+    <div class="meta">
+      <b>Frame.cool</b><br>
+      Electron · macOS · Win · Linux<br>
+      MIT · Open Source<br>
+      Maintainer · Kaan Özhan
+    </div>
+  </header>
+
+  <div class="subline">
+    <div><b>Category</b>Agentic Development IDE</div>
+    <div><b>Surface</b>Terminal-first · Native</div>
+    <div><b>Compatibility</b>Claude · Codex · Gemini</div>
+    <div><b>Standard</b>Files, not databases</div>
+  </div>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-mark">¶</div>
+    <p class="hero-q">
+      A workshop for working <em>alongside</em> AI agents.<br>
+      Frame brings structure, context, and<br>
+      memory to the way you ship code with<br>
+      <em>Claude</em>, <em>Codex</em>, and <em>Gemini</em>.
+    </p>
+    <div class="hero-note">
+      <b>NB.</b><br>
+      Designed around one premise — that the git commit is the only reliable moment to capture what an agent just did.
+    </div>
+  </section>
+
+  <!-- Three pillars -->
+  <section class="pillars">
+    <div class="pillar">
+      <div class="pillar-num">— Principle I</div>
+      <h3 class="pillar-title">Git commit as the <i>context anchor</i></h3>
+      <p class="pillar-body">Sessions are fuzzy. Commits are real. Frame's entire context system hangs off the pre-commit moment — STRUCTURE.json refreshes, tasks reconcile, notes get the right boundary. Commit often, stay oriented.</p>
+    </div>
+    <div class="pillar">
+      <div class="pillar-num">— Principle II</div>
+      <h3 class="pillar-title">Files over <i>databases</i></h3>
+      <p class="pillar-body">Markdown and JSON on disk. Any AI can read it, any teammate can grep it, git versions it, PRs review it. No proprietary store, no vendor lock-in. Frame is a coordinator, not a silo.</p>
+    </div>
+    <div class="pillar">
+      <div class="pillar-num">— Principle III</div>
+      <h3 class="pillar-title">Optional, <i>never forced</i></h3>
+      <p class="pillar-body">Spec-driven mode is opt-in. Telemetry is opt-out. Plugins are off by default. Frame respects existing workflows — hooks append, templates merge, your config is never overwritten without consent.</p>
+    </div>
+  </section>
+
+  <!-- ════════ MATRIX ════════ -->
+
+  <!-- 01 Project Standardization -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">01</div>
+      <h2 class="section-title">Project <i>Standardization</i></h2>
+      <div class="section-meta">7 entries<br><b>Init · 5 sec</b></div>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <div class="id">01.01</div>
+        <div class="name">AGENTS.md</div>
+        <div class="desc">Single source of truth for project rules. Auto-symlinked as CLAUDE.md and GEMINI.md so every AI tool reads identical instructions.</div>
+        <div class="tag">Core <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">01.02</div>
+        <div class="name">STRUCTURE.json</div>
+        <div class="desc">Module map regenerated on every commit. Tracks exports, dependencies, IPC channels, and a queryable intentIndex of features.</div>
+        <div class="tag">Core <b class="hot">AUTO</b></div>
+      </div>
+      <div class="row">
+        <div class="id">01.03</div>
+        <div class="name">PROJECT_NOTES.md</div>
+        <div class="desc">Free-form journal for decisions and architecture rationale. Frame nudges you at the right moments — agent never invents a summary.</div>
+        <div class="tag">Core <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">01.04</div>
+        <div class="name">tasks.json</div>
+        <div class="desc">Structured task tracking with title, description, original user request, acceptance criteria, notes, status, and provenance.</div>
+        <div class="tag">Core <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">01.05</div>
+        <div class="name">.frame/bin/</div>
+        <div class="desc">Per-project tooling shipped at init: parser scripts, AI wrappers, and the fast-lookup binary. Lives inside the project, travels with it.</div>
+        <div class="tag">Infra <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">01.06</div>
+        <div class="name">Initialize on <i>existing</i> code</div>
+        <div class="desc">Detects existing CLAUDE.md / GEMINI.md / AGENTS.md, merges their content forward. Never overwrites — appends and asks.</div>
+        <div class="tag">Safety <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">01.07</div>
+        <div class="name">First-fill scan</div>
+        <div class="desc">After init, STRUCTURE.json is populated in one shot — modules, exports, IPC channels, and intent index ready before you type a thing.</div>
+        <div class="tag">Quality <b class="new">NEW</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 AI Orchestration -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">02</div>
+      <h2 class="section-title">AI Tool <i>Orchestration</i></h2>
+      <div class="section-meta">5 entries<br><b>3 tools native</b></div>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <div class="id">02.01</div>
+        <div class="name"><i>Claude Code</i> integration</div>
+        <div class="desc">Launches with CLAUDE.md context already wired. Usage tracking, session history, and Plugins panel built natively into the IDE.</div>
+        <div class="tag">Multi-AI <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">02.02</div>
+        <div class="name"><i>Codex CLI</i> wrapper</div>
+        <div class="desc">Wrapper script injects AGENTS.md as initial prompt. Codex behaves as if it natively understood Frame's standard.</div>
+        <div class="tag">Multi-AI <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">02.03</div>
+        <div class="name"><i>Gemini CLI</i> integration</div>
+        <div class="desc">GEMINI.md symlinked to AGENTS.md so Gemini reads your project rules without configuration.</div>
+        <div class="tag">Multi-AI <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">02.04</div>
+        <div class="name">AI Tool Selector</div>
+        <div class="desc">Hot-swap between agents from the sidebar. Menu adapts, shortcuts adapt, terminal context follows.</div>
+        <div class="tag">UI <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">02.05</div>
+        <div class="name">Prompt history logger</div>
+        <div class="desc">Every prompt you type into an AI session is captured with timestamp and project context. Searchable across sessions.</div>
+        <div class="tag">Memory <b>—</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 Terminal Workbench -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">03</div>
+      <h2 class="section-title">Terminal <i>Workbench</i></h2>
+      <div class="section-meta">6 entries<br><b>Up to 9 PTYs</b></div>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <div class="id">03.01</div>
+        <div class="name">Real PTY engine</div>
+        <div class="desc">node-pty backend with full VT100/ANSI support. Not a shell-out, not a shim — a proper terminal that runs anything zsh/bash can run.</div>
+        <div class="tag">Engine <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">03.02</div>
+        <div class="name">Up to <i>9 terminals</i></div>
+        <div class="desc">Tab view or 2×1, 2×2, 3×1, 3×2, 3×3 grid layouts. Resize borders by drag. One AI agent per pane is the canonical pattern.</div>
+        <div class="tag">Layout <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">03.03</div>
+        <div class="name">Project-aware sessions</div>
+        <div class="desc">Every new terminal opens in the active project directory. Switch projects → new terminals follow. No more cd-ing into nested folders.</div>
+        <div class="tag">UX <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">03.04</div>
+        <div class="name">Per-project terminal cap</div>
+        <div class="desc">The 9-terminal limit is scoped per project, not global. You can keep four projects open with four agents each running in parallel.</div>
+        <div class="tag">UX <b class="new">2.2.1</b></div>
+      </div>
+      <div class="row">
+        <div class="id">03.05</div>
+        <div class="name">Cheat sheet overlay</div>
+        <div class="desc">Quick keyboard-shortcut reference summoned on demand. Ctrl-K launches an AI, Ctrl-1..9 jumps between panes, Ctrl-Shift-G toggles grid.</div>
+        <div class="tag">UX <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">03.06</div>
+        <div class="name">Command palette</div>
+        <div class="desc">Spotlight-style launcher with a registry of project, terminal, git, and AI commands. Extensible — registries take new entries at runtime.</div>
+        <div class="tag">UX <b>—</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 Task & Spec -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">04</div>
+      <h2 class="section-title">Tasks <i>&amp;</i> Specifications</h2>
+      <div class="section-meta">7 entries<br><b>spec → plan → tasks → outcome</b></div>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <div class="id">04.01</div>
+        <div class="name">Tasks dashboard</div>
+        <div class="desc">Kanban-style board with pending / in-progress / completed columns. Drag cards across columns; order persists to tasks.json.</div>
+        <div class="tag">UI <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">04.02</div>
+        <div class="name"><i>Discuss</i> a task</div>
+        <div class="desc">One click opens a fresh AI terminal scoped to the task. Agent interviews you to flesh out empty fields, then writes back to tasks.json.</div>
+        <div class="tag">AI <b class="new">NEW</b></div>
+      </div>
+      <div class="row">
+        <div class="id">04.03</div>
+        <div class="name">Send-to-AI handoff</div>
+        <div class="desc">Per-card "Run" action drops a templated prompt into your AI of choice — task title, acceptance criteria, and notes pre-loaded.</div>
+        <div class="tag">AI <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">04.04</div>
+        <div class="name">Spec-driven workflow</div>
+        <div class="desc">Each spec is four markdown files: <i>spec · plan · tasks · outcome</i>. Auto-imports tasks into tasks.json tagged with provenance.</div>
+        <div class="tag">Method <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">04.05</div>
+        <div class="name">Outcome journaling</div>
+        <div class="desc">After each implemented task, the agent appends 2-3 sentences to outcome.md — what shipped, what diverged, what to follow up on.</div>
+        <div class="tag">Memory <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">04.06</div>
+        <div class="name">Phase lifecycle watcher</div>
+        <div class="desc">Status reconciles from filesystem state. Write spec.md → phase = specified. Write plan.md → planned. No manual state-flipping.</div>
+        <div class="tag">Infra <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">04.07</div>
+        <div class="name">Slash-command surface</div>
+        <div class="desc">/spec.new, /spec.plan, /spec.tasks, /spec.implement — natural-language gates between phases your AI agent already understands.</div>
+        <div class="tag">UX <b>—</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 Git & Source -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">05</div>
+      <h2 class="section-title">Git <i>&amp;</i> Source Control</h2>
+      <div class="section-meta">6 entries<br><b>commit = checkpoint</b></div>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <div class="id">05.01</div>
+        <div class="name">Pre-commit STRUCTURE sync</div>
+        <div class="desc">Hook regenerates STRUCTURE.json against staged changes and folds it into the same commit. Map is always exactly one commit fresh.</div>
+        <div class="tag">Auto <b class="hot">FLAGSHIP</b></div>
+      </div>
+      <div class="row">
+        <div class="id">05.02</div>
+        <div class="name">Safe hook installation</div>
+        <div class="desc">Detects husky, lefthook, custom vanilla hooks. Appends idempotently for husky, leaves config tools alone, never overwrites user content.</div>
+        <div class="tag">Safety <b class="new">NEW</b></div>
+      </div>
+      <div class="row">
+        <div class="id">05.03</div>
+        <div class="name">Branches panel</div>
+        <div class="desc">List, switch, create, delete branches from the sidebar. Live status indicator on the current branch.</div>
+        <div class="tag">UI <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">05.04</div>
+        <div class="name">Worktrees</div>
+        <div class="desc">Spin up a parallel worktree for an experiment, ship-blocker, or AI spike. Manage adds/removes without leaving Frame.</div>
+        <div class="tag">UI <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">05.05</div>
+        <div class="name">GitHub panel</div>
+        <div class="desc">Issues, pull requests, branches, and labels surfaced directly in the IDE. Open an issue → drop it into a fresh AI terminal in one click.</div>
+        <div class="tag">UI <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">05.06</div>
+        <div class="name">Git status indicator</div>
+        <div class="desc">Repo state polled and surfaced in the status bar — staged, modified, untracked counts always visible while you work.</div>
+        <div class="tag">UX <b>—</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 Navigation -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">06</div>
+      <h2 class="section-title">Navigation <i>&amp;</i> Memory</h2>
+      <div class="section-meta">5 entries<br><b>O(1) feature lookup</b></div>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <div class="id">06.01</div>
+        <div class="name">intentIndex</div>
+        <div class="desc">Concept-to-file mapping in STRUCTURE.json. Type a feature name, get the exact files instantly. No grep, no scan.</div>
+        <div class="tag">Speed <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">06.02</div>
+        <div class="name">find-module CLI</div>
+        <div class="desc">node .frame/bin/find-module &lt;keyword&gt; — designed for AI agents. Walks intentIndex, falls back to deep-search across descriptions and exports.</div>
+        <div class="tag">CLI <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">06.03</div>
+        <div class="name">Overview panel</div>
+        <div class="desc">Visual map of modules and their relationships drawn from STRUCTURE.json. See architecture at a glance, click a node to open the file.</div>
+        <div class="tag">UI <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">06.04</div>
+        <div class="name">File tree</div>
+        <div class="desc">Standard tree view rooted at project. Renders large repos with virtualization, syncs with editor.</div>
+        <div class="tag">UI <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">06.05</div>
+        <div class="name">Session notes capture</div>
+        <div class="desc">Agent watches for decision moments — "let's go with X", "we'll defer Y" — and asks once whether to log to PROJECT_NOTES.md.</div>
+        <div class="tag">Memory <b>—</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 Power Tools -->
+  <section class="section">
+    <div class="section-head">
+      <div class="section-no">07</div>
+      <h2 class="section-title">Power <i>Tools</i></h2>
+      <div class="section-meta">6 entries<br><b>Opt-in surfaces</b></div>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <div class="id">07.01</div>
+        <div class="name">Claude Code plugins</div>
+        <div class="desc">Browse, install, enable, and disable Claude Code plugins from a dedicated panel. Plugin discovery without leaving the IDE.</div>
+        <div class="tag">Ext <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">07.02</div>
+        <div class="name">Claude Code sessions</div>
+        <div class="desc">List and resume past Claude Code conversations. Every session in your project, indexed and reopenable.</div>
+        <div class="tag">Ext <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">07.03</div>
+        <div class="name">Usage tracking</div>
+        <div class="desc">Live token-burn meter for Claude Code. Know when a session is nearing the limit before it cuts off mid-task.</div>
+        <div class="tag">Insight <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">07.04</div>
+        <div class="name">Workspace manager</div>
+        <div class="desc">Multiple projects open simultaneously, each with its own isolated context, task list, and notes. Quick-switch via the sidebar.</div>
+        <div class="tag">Core <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">07.05</div>
+        <div class="name">Settings &amp; preferences</div>
+        <div class="desc">User-level overrides — preferred AI tool, telemetry opt-out, terminal defaults, panel layouts. Persisted across launches.</div>
+        <div class="tag">UX <b>—</b></div>
+      </div>
+      <div class="row">
+        <div class="id">07.06</div>
+        <div class="name">Update checker</div>
+        <div class="desc">Polls releases passively; surfaces a non-blocking dot when a new version ships. In-app auto-update on the roadmap.</div>
+        <div class="tag">Infra <b>—</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ ARCHITECTURE DIAGRAM ════════ -->
+  <section class="diagram">
+    <span class="diagram-corner"></span>
+    <span class="diagram-corner tr"></span>
+    <span class="diagram-corner bl"></span>
+    <span class="diagram-corner br"></span>
+    <div class="diagram-h">Fig. A — <b>system schematic</b> · main process / renderer / project filesystem</div>
+<pre class="ascii">
+   <span class="c-mute">┌─ MAIN  PROCESS  (Node.js) ───────────────────────────────────────────────┐</span>
+   <span class="c-mute">│</span>                                                                          <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">ptyManager</span>    <span class="c-rust">tasksManager</span>   <span class="c-rust">specManager</span>     <span class="c-rust">githubManager</span>          <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">aiToolManager</span> <span class="c-rust">frameProject</span>   <span class="c-rust">workspace</span>       <span class="c-rust">gitBranchesManager</span>     <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">fileTree</span>      <span class="c-rust">fileEditor</span>     <span class="c-rust">pluginsManager</span>  <span class="c-rust">claudeUsageManager</span>     <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">structureBootstrap</span> ◀──── new ── ships parser + hook to .frame/bin/      <span class="c-mute">│</span>
+   <span class="c-mute">│</span>                                                                          <span class="c-mute">│</span>
+   <span class="c-mute">└──┬───────────────────────────────────────────────────────────────────────┘</span>
+      <span class="c-mute">│</span>
+      <span class="c-mute">│</span>   <span class="c-olive">115+ IPC channels</span> · bidirectional · typed via shared/ipcChannels.js
+      <span class="c-mute">▼</span>
+   <span class="c-mute">┌─ RENDERER  (browser) ────────────────────────────────────────────────────┐</span>
+   <span class="c-mute">│</span>                                                                          <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">multiTerminalUI</span>  <span class="c-rust">terminalGrid</span>    <span class="c-rust">tasksDashboard</span>   <span class="c-rust">specsDashboard</span>    <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">githubPanel</span>      <span class="c-rust">overviewPanel</span>   <span class="c-rust">structureMap</span>     <span class="c-rust">historyPanel</span>      <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">commandPalette</span>   <span class="c-rust">aiToolSelector</span>  <span class="c-rust">pluginsPanel</span>     <span class="c-rust">cheatSheet</span>        <span class="c-mute">│</span>
+   <span class="c-mute">│</span>                                                                          <span class="c-mute">│</span>
+   <span class="c-mute">└──┬───────────────────────────────────────────────────────────────────────┘</span>
+      <span class="c-mute">│</span>
+      <span class="c-mute">▼</span>
+   <span class="c-mute">┌─ PROJECT  FILESYSTEM ────────────────────────────────────────────────────┐</span>
+   <span class="c-mute">│</span>   <span class="c-rust">AGENTS.md</span>            project rules · single source · symlinked          <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">STRUCTURE.json</span>       module map · intentIndex · auto-updated on commit  <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">tasks.json</span>           kanban state · with provenance + acceptance fields  <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">PROJECT_NOTES.md</span>     decision journal · agent-prompted, human-curated    <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">.frame/specs/&lt;slug&gt;/</span> spec · plan · tasks · outcome (markdown only)       <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">.frame/bin/</span>          parser scripts · find-module · ai wrappers          <span class="c-mute">│</span>
+   <span class="c-mute">│</span>   <span class="c-rust">.git/hooks/</span>          pre-commit · safe append-mode for husky/lefthook    <span class="c-mute">│</span>
+   <span class="c-mute">└──────────────────────────────────────────────────────────────────────────┘</span>
+</pre>
+  </section>
+
+  <!-- ════════ STATS ════════ -->
+  <section class="stats">
+    <div class="stat">
+      <div class="stat-n">49<sup>↗</sup></div>
+      <div class="stat-l">Features<br>Indexed</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n">69</div>
+      <div class="stat-l">Source<br>Modules</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n">115<sup>+</sup></div>
+      <div class="stat-l">IPC<br>Channels</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n">3</div>
+      <div class="stat-l">AI Tools<br>Supported</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n">9</div>
+      <div class="stat-l">Terminals<br>Per Project</div>
+    </div>
+  </section>
+
+  <!-- ════════ ROADMAP ════════ -->
+  <section class="roadmap">
+    <div class="roadmap-head">
+      <h3 class="roadmap-title">Shipped &amp; <i>in-flight</i></h3>
+      <div class="section-meta">Live snapshot<br><b>v2.2.2 · 2026-05</b></div>
+    </div>
+    <div class="roadmap-list">
+      <div class="ritem"><span class="box done"></span><span>Multi-terminal grid (up to 9 panes)</span><span class="stat-l-small">Shipped</span></div>
+      <div class="ritem"><span class="box done"></span><span>Spec-driven dev — spec · plan · tasks · outcome</span><span class="stat-l-small">Shipped</span></div>
+      <div class="ritem"><span class="box done"></span><span>Frame project standard (AGENTS, STRUCTURE…)</span><span class="stat-l-small">Shipped</span></div>
+      <div class="ritem"><span class="box done"></span><span>Plugins panel for Claude Code</span><span class="stat-l-small">Shipped</span></div>
+      <div class="ritem"><span class="box done"></span><span>Multi-AI: Claude Code, Codex, Gemini</span><span class="stat-l-small">Shipped</span></div>
+      <div class="ritem"><span class="box done"></span><span>Overview / visual structure map</span><span class="stat-l-small">Shipped</span></div>
+      <div class="ritem"><span class="box done"></span><span>STRUCTURE.json bootstrap for user projects</span><span class="stat-l-small">Shipped</span></div>
+      <div class="ritem"><span class="box done"></span><span>GitHub panel — issues, PRs, branches</span><span class="stat-l-small">Shipped</span></div>
+      <div class="ritem"><span class="box"></span><span>In-app auto-update via electron-updater</span><span class="stat-l-small due">Spec'd</span></div>
+      <div class="ritem"><span class="box"></span><span>Non-standard layouts (monorepo, TS, Python)</span><span class="stat-l-small due">Spec'd</span></div>
+      <div class="ritem"><span class="box"></span><span>Web platform (IPC → WebSocket migration)</span><span class="stat-l-small due">Planned</span></div>
+      <div class="ritem"><span class="box"></span><span>Drag-image into terminal for AI vision</span><span class="stat-l-small due">Discussed</span></div>
+    </div>
+  </section>
+
+  <!-- ════════ FOOTER ════════ -->
+  <footer>
+    <div>
+      <b>Stack</b>
+      Electron · node-pty<br>
+      xterm.js · esbuild<br>
+      Vanilla HTML / CSS / JS<br>
+      MIT license
+    </div>
+    <div>
+      <b>Platforms</b>
+      macOS (Apple Silicon &amp; Intel)<br>
+      Windows 10 / 11<br>
+      Linux (deb · rpm · AppImage)<br>
+      Pre-built binaries shipped per release
+    </div>
+    <div>
+      <b>Author</b>
+      <p class="sig">Frame, by <i>Kaan Özhan</i></p>
+      frame.cool · github.com/kaanozhan/Frame<br>
+      Status — accepting contributors<br>
+      Build — v2.2.2 · 2026-05-13
+    </div>
+  </footer>
+</div>
+</body>
+</html>
