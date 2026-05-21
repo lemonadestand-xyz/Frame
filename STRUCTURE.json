@@ -2900,6 +2900,7 @@
         "terminal",
         "fileTreeUI",
         "gitChangesPanel",
+        "diffViewer",
         "historyPanel",
         "tasksPanel",
         "tasksDashboard",
@@ -2929,26 +2930,26 @@
       ],
       "functions": {
         "init": {
-          "line": 40,
+          "line": 41,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 197,
+          "line": 201,
           "purpose": "Setup button click handlers"
         },
         "setupUpdateDot": {
-          "line": 308,
+          "line": 312,
           "purpose": "→ About → \"Dismiss this version\"). Both click open Settings → About."
         },
         "revealSidebarTab": {
-          "line": 339,
+          "line": 343,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 357,
+          "line": 361,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -5621,6 +5622,52 @@
         ],
         "emits": []
       }
+    },
+    "renderer/diffViewer": {
+      "file": "src/renderer/diffViewer.js",
+      "description": "Diff Viewer Overlay (read-only)",
+      "exports": [
+        "init",
+        "open"
+      ],
+      "depends": [
+        "electron",
+        "diff2html",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 24
+        },
+        "open": {
+          "line": 60,
+          "params": [
+            "opts"
+          ],
+          "purpose": "Open the diff viewer for the given file."
+        },
+        "close": {
+          "line": 107
+        },
+        "setMode": {
+          "line": 116,
+          "params": [
+            "mode"
+          ]
+        },
+        "renderCurrent": {
+          "line": 124
+        },
+        "showLoading": {
+          "line": 135
+        },
+        "showEmpty": {
+          "line": 141,
+          "params": [
+            "message"
+          ]
+        }
+      }
     }
   },
   "ipcChannels": {
@@ -6271,6 +6318,13 @@
         "module": "main/dialogs",
         "file": "src/main/dialogs.js",
         "description": "Dialogs Module"
+      }
+    ],
+    "diff-viewer": [
+      {
+        "module": "renderer/diffViewer",
+        "file": "src/renderer/diffViewer.js",
+        "description": "Diff Viewer Overlay (read-only)"
       }
     ],
     "editor": [

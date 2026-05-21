@@ -8,6 +8,7 @@ const { IPC } = require('../shared/ipcChannels');
 const terminal = require('./terminal');
 const fileTreeUI = require('./fileTreeUI');
 const gitChangesPanel = require('./gitChangesPanel');
+const diffViewer = require('./diffViewer');
 const historyPanel = require('./historyPanel');
 const tasksPanel = require('./tasksPanel');
 const tasksDashboard = require('./tasksDashboard');
@@ -76,6 +77,9 @@ function init() {
 
   // Initialize Git Changes panel (Changes sidebar tab)
   gitChangesPanel.init();
+
+  // Initialize Diff Viewer overlay (read-only, opened from Changes panel)
+  diffViewer.init();
 
   // Initialize editor with file tree refresh callback
   editor.init(() => {

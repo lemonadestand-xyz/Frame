@@ -1,0 +1,211 @@
+/* =========================
+   Diff Viewer Overlay (read-only)
+   Mirrors #editor-overlay layout; theme-overrides diff2html for dark mode.
+   ========================= */
+
+@import '../../../../node_modules/diff2html/bundles/css/diff2html.min.css';
+
+#diff-viewer-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+#diff-viewer-overlay.visible {
+  display: flex;
+}
+
+#diff-viewer-container {
+  width: 90%;
+  height: 90%;
+  max-width: 1400px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg), 0 0 0 1px var(--border-subtle);
+  overflow: hidden;
+}
+
+#diff-viewer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-xl);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+#diff-viewer-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 0;
+}
+
+#diff-viewer-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#diff-viewer-pill {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#diff-viewer-pill[data-pill="working"] {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+}
+
+#diff-viewer-pill[data-pill="staged"] {
+  background: var(--success-subtle);
+  color: var(--success);
+}
+
+#diff-viewer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+#diff-viewer-mode-toggle {
+  display: inline-flex;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  padding: 2px;
+}
+
+.btn-diff-mode {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: calc(var(--radius-md) - 2px);
+  cursor: pointer;
+}
+
+.btn-diff-mode:hover {
+  color: var(--text-primary);
+}
+
+.btn-diff-mode.active {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+}
+
+#diff-viewer-content {
+  flex: 1;
+  overflow: auto;
+  background: var(--bg-primary);
+}
+
+#diff-viewer-host {
+  padding: var(--space-md);
+}
+
+#diff-viewer-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+/* ----- diff2html dark-theme overrides ----- */
+#diff-viewer-host .d2h-wrapper {
+  background: transparent;
+}
+
+#diff-viewer-host .d2h-file-header,
+#diff-viewer-host .d2h-files-diff,
+#diff-viewer-host .d2h-file-wrapper {
+  background: var(--bg-secondary);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+#diff-viewer-host .d2h-file-name {
+  color: var(--text-primary);
+}
+
+#diff-viewer-host .d2h-tag,
+#diff-viewer-host .d2h-file-stats {
+  color: var(--text-secondary);
+}
+
+#diff-viewer-host .d2h-code-line,
+#diff-viewer-host .d2h-code-side-line,
+#diff-viewer-host .d2h-diff-table {
+  color: var(--text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+#diff-viewer-host .d2h-code-linenumber,
+#diff-viewer-host .d2h-code-side-linenumber {
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  border-color: var(--border-subtle);
+}
+
+#diff-viewer-host .d2h-ins,
+#diff-viewer-host .d2h-ins.d2h-change {
+  background: rgba(124, 179, 130, 0.12);
+  color: var(--text-primary);
+}
+
+#diff-viewer-host .d2h-ins .d2h-code-line-ctn,
+#diff-viewer-host .d2h-ins .d2h-code-side-line {
+  color: #cdebd0;
+}
+
+#diff-viewer-host .d2h-del,
+#diff-viewer-host .d2h-del.d2h-change {
+  background: rgba(212, 120, 120, 0.12);
+  color: var(--text-primary);
+}
+
+#diff-viewer-host .d2h-del .d2h-code-line-ctn,
+#diff-viewer-host .d2h-del .d2h-code-side-line {
+  color: #ecc3c3;
+}
+
+#diff-viewer-host .d2h-cntx,
+#diff-viewer-host .d2h-cntx .d2h-code-line-ctn,
+#diff-viewer-host .d2h-cntx .d2h-code-side-line {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+#diff-viewer-host .d2h-info {
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  border-color: var(--border-subtle);
+}
+
+#diff-viewer-host .d2h-code-line-prefix {
+  color: var(--text-tertiary);
+}
+
+#diff-viewer-host .d2h-emptyplaceholder,
+#diff-viewer-host .d2h-code-line.d2h-emptyplaceholder,
+#diff-viewer-host .d2h-code-side-line.d2h-emptyplaceholder {
+  background: var(--bg-deep);
+  border-color: var(--border-subtle);
+}

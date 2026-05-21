@@ -49,3 +49,6 @@
 
 /* 14. Git Changes Panel (Changes sidebar tab) */
 @import 'components/git-changes.css';
+
+/* 15. Diff Viewer Overlay (read-only) */
+@import 'components/diff-viewer.css';
