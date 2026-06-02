@@ -133,6 +133,7 @@ const IPC = {
   // Git Status (file tree decoration)
   WATCH_GIT_STATUS: 'watch-git-status',
   UNWATCH_GIT_STATUS: 'unwatch-git-status',
+  REFRESH_GIT_STATUS: 'refresh-git-status',
   GIT_STATUS_DATA: 'git-status-data',
   GET_GIT_DIFF: 'get-git-diff',
 

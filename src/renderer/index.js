@@ -156,7 +156,7 @@ function init() {
       // Start watching .frame/specs/ for the new project
       specPanel.startWatchingForProject(projectPath);
     } else {
-      fileTreeUI.clearFileTree();
+      fileTreeUI.clearFileTree({ unwatch: true });
       specPanel.stopWatching();
     }
   });
@@ -303,6 +303,7 @@ function setupButtonHandlers() {
       document.querySelectorAll('[data-sidebar-tab-content]').forEach(el => {
         el.style.display = el.dataset.sidebarTabContent === tab ? '' : 'none';
       });
+      if (tab === 'changes') ipcRenderer.send(IPC.REFRESH_GIT_STATUS);
     });
   });
 }
@@ -357,6 +358,7 @@ function revealSidebarTab(tabName) {
   document.querySelectorAll('[data-sidebar-tab-content]').forEach((el) => {
     el.style.display = el.dataset.sidebarTabContent === tabName ? '' : 'none';
   });
+  if (tabName === 'changes') ipcRenderer.send(IPC.REFRESH_GIT_STATUS);
 }
 
 /**

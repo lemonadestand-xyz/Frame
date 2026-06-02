@@ -158,14 +158,21 @@ function renderFileTree(files, parentElement, indent = 0) {
 
 /**
  * Clear file tree
+ *
+ * Called on every FILE_TREE_DATA render to reset the DOM/state before
+ * re-rendering, so it must NOT stop git-status watching by default —
+ * doing so would kill the poll loop right after loadFileTree() started it.
+ * Pass `{ unwatch: true }` only when truly leaving a project.
  */
-function clearFileTree() {
+function clearFileTree({ unwatch = false } = {}) {
   if (fileTreeElement) {
     fileTreeElement.innerHTML = '';
   }
   gitStatusFiles = {};
   gitStatusProjectPath = null;
-  ipcRenderer.send(IPC.UNWATCH_GIT_STATUS);
+  if (unwatch) {
+    ipcRenderer.send(IPC.UNWATCH_GIT_STATUS);
+  }
 }
 
 /**

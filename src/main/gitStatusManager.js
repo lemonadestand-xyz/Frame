@@ -1,27 +1,47 @@
 /**
  * Git Status Manager
  *
- * Polls `git status --porcelain=v1 -z` for the active project on a fixed
- * interval and pushes the parsed result to the renderer for file-tree
- * decoration.
+ * Watches the active project (event-driven, no polling) and pushes a fresh
+ * `git status --porcelain=v1 -z` snapshot to the renderer for file-tree
+ * decoration whenever something relevant changes.
+ *
+ * Two fs.watch watchers feed one debounced refresh:
+ *   • the working tree (recursive) — new/edited/deleted files, and
+ *   • the `.git` directory (recursive) — commit / stage / checkout / branch,
+ *     which only ever touch files inside `.git` (index, HEAD, refs/…) and are
+ *     missed by the worktree watcher on most platforms.
+ * On top of that we refresh on window focus and on explicit REFRESH_GIT_STATUS
+ * requests (e.g. the Changes tab being opened) as a safety net for any event a
+ * watcher dropped. The `lastSerialized` de-dupe means an unchanged status never
+ * reaches the renderer, so these extra triggers are silent when nothing moved.
  *
  * Diff viewer / staged-files panel / stage-discard actions are intentionally
  * out of scope here — those are separate features.
  */
 
 const { execFile } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 const { IPC } = require('../shared/ipcChannels');
 
-const POLL_INTERVAL_MS = 5000;
 const MAX_BUFFER = 10 * 1024 * 1024;
+const DEBOUNCE_MS = 200;
 
 let mainWindow = null;
-let pollTimer = null;
+let worktreeWatcher = null;
+let gitDirWatcher = null;
+let debounceTimer = null;
 let currentProjectPath = null;
 let lastSerialized = null; // de-dupe identical pushes
+let isFetching = false; // in-flight guard
+let pendingRefetch = false; // a trigger arrived mid-fetch
 
 function init(window) {
   mainWindow = window;
+  // Refocusing the app is a cheap moment to reconcile any event a watcher may
+  // have dropped while we were in the background. pushStatus() self-guards on
+  // currentProjectPath, so this is a no-op when nothing is being watched.
+  window.on('focus', () => pushStatus());
 }
 
 function setupIPC(ipcMain) {
@@ -32,6 +52,12 @@ function setupIPC(ipcMain) {
   ipcMain.on(IPC.UNWATCH_GIT_STATUS, () => {
     stopWatching();
   });
+
+  // On-demand refresh (e.g. the Changes tab was opened). Silent unless the
+  // status actually changed — see lastSerialized de-dupe in pushStatus().
+  ipcMain.on(IPC.REFRESH_GIT_STATUS, () => {
+    pushStatus();
+  });
 }
 
 function startWatching(projectPath) {
@@ -39,35 +65,114 @@ function startWatching(projectPath) {
   currentProjectPath = projectPath;
   if (!projectPath) return;
 
-  // Initial fetch (don't wait the full interval before showing decorations)
+  // Initial snapshot so decorations paint immediately.
   pushStatus();
 
-  pollTimer = setInterval(pushStatus, POLL_INTERVAL_MS);
+  // Working-tree watcher: new/edited/deleted files. Events under `.git/` are
+  // ignored here because the dedicated .git watcher handles those.
+  try {
+    worktreeWatcher = fs.watch(
+      projectPath,
+      { recursive: true, persistent: false },
+      (eventType, filename) => {
+        if (filename && isGitInternalPath(filename)) return;
+        scheduleRefresh();
+      }
+    );
+  } catch (err) {
+    console.error('gitStatusManager: worktree fs.watch failed', err);
+  }
+
+  // `.git` watcher: commit / stage / unstage / checkout / branch only ever
+  // mutate files inside `.git` (index, HEAD, refs/…). Only watch when `.git`
+  // is a real directory — for linked worktrees / submodules it's a file, in
+  // which case the worktree watcher alone is acceptable.
+  try {
+    const gitDir = path.join(projectPath, '.git');
+    const stat = fs.statSync(gitDir);
+    if (stat.isDirectory()) {
+      gitDirWatcher = fs.watch(
+        gitDir,
+        { recursive: true, persistent: false },
+        () => scheduleRefresh()
+      );
+    }
+  } catch (err) {
+    // Not a repo (no .git) or watch unsupported — fine, leave it unset.
+  }
 }
 
 function stopWatching() {
-  if (pollTimer) clearInterval(pollTimer);
-  pollTimer = null;
+  if (worktreeWatcher) {
+    try { worktreeWatcher.close(); } catch (_) { /* ignore */ }
+  }
+  worktreeWatcher = null;
+  if (gitDirWatcher) {
+    try { gitDirWatcher.close(); } catch (_) { /* ignore */ }
+  }
+  gitDirWatcher = null;
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
   currentProjectPath = null;
   lastSerialized = null;
+  pendingRefetch = false;
+}
+
+// True for paths that live inside the repo's `.git` directory, so the worktree
+// watcher can defer them to the dedicated .git watcher.
+function isGitInternalPath(filename) {
+  return filename === '.git' || filename.startsWith('.git' + path.sep) || filename.startsWith('.git/');
+}
+
+// Coalesce bursts (a checkout or `npm install` touches many files) into a
+// single git-status run.
+function scheduleRefresh() {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    debounceTimer = null;
+    pushStatus();
+  }, DEBOUNCE_MS);
 }
 
 async function pushStatus() {
   const projectPath = currentProjectPath;
   if (!projectPath || !mainWindow || mainWindow.isDestroyed()) return;
 
-  const result = await readGitStatus(projectPath);
+  // In-flight guard: never run two `git status` at once; remember that another
+  // trigger arrived so we reconcile once the current run finishes.
+  if (isFetching) {
+    pendingRefetch = true;
+    return;
+  }
+  isFetching = true;
 
-  // Skip if status is identical to the last push (avoids needless renderer work)
-  const serialized = JSON.stringify(result);
-  if (serialized === lastSerialized) return;
-  lastSerialized = serialized;
+  try {
+    const result = await readGitStatus(projectPath);
 
-  mainWindow.webContents.send(IPC.GIT_STATUS_DATA, {
-    projectPath,
-    isRepo: result.isRepo,
-    files: result.files
-  });
+    // Bail if watching stopped or the project changed mid-fetch.
+    if (currentProjectPath !== projectPath || !mainWindow || mainWindow.isDestroyed()) {
+      return;
+    }
+
+    // Skip if identical to the last push (avoids needless renderer work).
+    const serialized = JSON.stringify(result);
+    if (serialized !== lastSerialized) {
+      lastSerialized = serialized;
+      mainWindow.webContents.send(IPC.GIT_STATUS_DATA, {
+        projectPath,
+        isRepo: result.isRepo,
+        files: result.files
+      });
+    }
+  } finally {
+    isFetching = false;
+    if (pendingRefetch) {
+      pendingRefetch = false;
+      pushStatus();
+    }
+  }
 }
 
 function readGitStatus(projectPath) {

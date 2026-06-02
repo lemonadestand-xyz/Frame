@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-05-21",
+  "lastUpdated": "2026-06-02",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -690,48 +690,61 @@
       ],
       "depends": [
         "child_process",
+        "fs",
+        "path",
         "shared/ipcChannels"
       ],
       "functions": {
         "init": {
-          "line": 23,
+          "line": 39,
           "params": [
             "window"
           ]
         },
         "setupIPC": {
-          "line": 27,
+          "line": 47,
           "params": [
             "ipcMain"
           ]
         },
         "startWatching": {
-          "line": 37,
+          "line": 63,
           "params": [
             "projectPath"
           ]
         },
         "stopWatching": {
-          "line": 48
+          "line": 105
+        },
+        "isGitInternalPath": {
+          "line": 125,
+          "params": [
+            "filename"
+          ],
+          "purpose": "watcher can defer them to the dedicated .git watcher."
+        },
+        "scheduleRefresh": {
+          "line": 131,
+          "purpose": "single git-status run."
         },
         "pushStatus": {
-          "line": 55
+          "line": 139
         },
         "readGitStatus": {
-          "line": 73,
+          "line": 178,
           "params": [
             "projectPath"
           ]
         },
         "parsePorcelainV1": {
-          "line": 94,
+          "line": 199,
           "params": [
             "stdout"
           ],
           "purpose": "Format: \"XY <path>\\0\" with renamed/copied entries adding \"<oldpath>\\0\" after."
         },
         "classify": {
-          "line": 135,
+          "line": 240,
           "params": [
             "index",
             "worktree"
@@ -742,7 +755,8 @@
       "ipc": {
         "listens": [
           "WATCH_GIT_STATUS",
-          "UNWATCH_GIT_STATUS"
+          "UNWATCH_GIT_STATUS",
+          "REFRESH_GIT_STATUS"
         ],
         "emits": [
           "GIT_STATUS_DATA"
@@ -2489,67 +2503,70 @@
           "purpose": "Render file tree recursively"
         },
         "clearFileTree": {
-          "line": 162,
-          "purpose": "Clear file tree"
+          "line": 167,
+          "params": [
+            "{ unwatch = false } = {}"
+          ],
+          "purpose": "Pass `{ unwatch: true }` only when truly leaving a project."
         },
         "refreshFileTree": {
-          "line": 174,
+          "line": 181,
           "params": [
             "projectPath"
           ],
           "purpose": "Refresh file tree"
         },
         "loadFileTree": {
-          "line": 184,
+          "line": 191,
           "params": [
             "projectPath"
           ],
           "purpose": "Load file tree for path"
         },
         "setupIPC": {
-          "line": 192,
+          "line": 199,
           "purpose": "Setup IPC listeners"
         },
         "focus": {
-          "line": 213,
+          "line": 220,
           "purpose": "Focus file tree for keyboard navigation"
         },
         "getVisibleItems": {
-          "line": 243,
+          "line": 250,
           "purpose": "inside collapsed folders."
         },
         "handleKeydown": {
-          "line": 252,
+          "line": 259,
           "params": [
             "e"
           ],
           "purpose": "Handle keyboard navigation in file tree"
         },
         "blur": {
-          "line": 314,
+          "line": 321,
           "purpose": "Blur/unfocus file tree"
         },
         "setupSearch": {
-          "line": 324
+          "line": 331
         },
         "applyFilter": {
-          "line": 352,
+          "line": 359,
           "params": [
             "query"
           ]
         },
         "filterWrapper": {
-          "line": 365,
+          "line": 372,
           "params": [
             "wrapper",
             "query"
           ]
         },
         "setupContextMenu": {
-          "line": 401
+          "line": 408
         },
         "showContextMenu": {
-          "line": 425,
+          "line": 432,
           "params": [
             "x",
             "y",
@@ -2557,16 +2574,16 @@
           ]
         },
         "hideContextMenu": {
-          "line": 442
+          "line": 449
         },
         "handleContextMenuAction": {
-          "line": 448,
+          "line": 455,
           "params": [
             "action"
           ]
         },
         "applyGitStatusDecoration": {
-          "line": 465,
+          "line": 472,
           "purpose": "via a simple second pass."
         }
       },
@@ -2938,18 +2955,18 @@
           "purpose": "Setup button click handlers"
         },
         "setupUpdateDot": {
-          "line": 318,
+          "line": 319,
           "purpose": "→ About → \"Dismiss this version\"). Both click open Settings → About."
         },
         "revealSidebarTab": {
-          "line": 349,
+          "line": 350,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 367,
+          "line": 369,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -2959,7 +2976,9 @@
           "UPDATE_AVAILABLE"
         ],
         "emits": [
-          "CLONE_GITHUB_REPO"
+          "CLONE_GITHUB_REPO",
+          "REFRESH_GIT_STATUS",
+          "REFRESH_GIT_STATUS"
         ]
       }
     },
@@ -5885,6 +5904,11 @@
       },
       "GET_GIT_DIFF": {
         "name": "get-git-diff",
+        "direction": "",
+        "description": ""
+      },
+      "REFRESH_GIT_STATUS": {
+        "name": "refresh-git-status",
         "direction": "",
         "description": ""
       }

@@ -1,0 +1,10 @@
+{
+  "slug": "non-invasive-overlay",
+  "title": "Non-Invasive Frame Overlay (.frame-only, zero-touch)",
+  "phase": "specified",
+  "ai_tool": "claude-code",
+  "generated_task_ids": [],
+  "created_at": "2026-06-02T12:08:24.367Z",
+  "updated_at": "2026-06-02T12:14:39.963Z",
+  "last_phase_at": "2026-06-02T12:14:39.963Z"
+}
