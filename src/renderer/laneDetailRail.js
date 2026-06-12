@@ -12,7 +12,7 @@
  */
 
 const laneStatus = require('./laneStatus');
-const { formatRelativeTime, cleanCommand } = require('./laneBoard');
+const { formatRelativeTime, cleanCommand, assignmentIcon, assignmentText } = require('./laneBoard');
 const { PanelRightClose, PanelRightOpen, Terminal, Bot } = require('lucide');
 
 const STORAGE_KEY = 'frame-detail-lanes-rail';
@@ -159,6 +159,12 @@ function _renderInto() {
         <span class="lane-detail-item-status ${s.status}" title="${escapeHtml(s.commandLine || '')}">${escapeHtml(itemStatusText(s))}</span>
         <span class="lane-detail-item-time" data-ts="${s.lastActivityAt || ''}">${formatRelativeTime(s.lastActivityAt)}</span>
       </div>
+      ${t.assignment ? `
+      <div class="lane-rail-item-row">
+        <span class="lane-assignment-chip${s.agentName ? '' : ' dimmed'}" title="${escapeHtml(t.assignment.label)}">
+          ${lucideIcon(assignmentIcon(t.assignment), 10)}<span class="lane-assignment-chip-label">${escapeHtml(assignmentText(t.assignment))}</span>
+        </span>
+      </div>` : ''}
     `;
     item.addEventListener('click', () => {
       if (callbacks.onEnterLane) callbacks.onEnterLane(t.id);

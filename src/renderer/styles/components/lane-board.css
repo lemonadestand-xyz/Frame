@@ -184,6 +184,46 @@
   flex-shrink: 0;
 }
 
+/* What the lane is working on — Agent Dispatch label as a typed chip
+   (FileText = spec, CheckSquare = task). Shared by cards and the rail. */
+.lane-card-assignment {
+  display: flex;
+  min-width: 0;
+}
+
+.lane-assignment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-primary);
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent-border, rgba(212, 165, 116, 0.25));
+  border-radius: 99px;
+  padding: 2px 9px;
+  transition: opacity 0.25s ease;
+}
+
+.lane-assignment-chip svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.lane-assignment-chip-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Agent exited/killed: the chip stays as provenance but fades out until
+   a live agent owns the lane again (e.g. spec "continue" restarts it) */
+.lane-assignment-chip.dimmed {
+  opacity: 0.45;
+}
+
 .lane-card-footer {
   display: flex;
   align-items: center;
@@ -737,9 +777,94 @@
   flex-shrink: 0;
 }
 
+/* Persistent in_progress marker — steady on purpose: pulsing is reserved
+   for the live-activity dots (.spec-activity-dot), which only show while
+   an agent is actually working. */
 .lane-rail-task-dot.in-progress {
   background: var(--accent-primary);
-  animation: lane-pulse 1.2s ease-in-out infinite;
+  opacity: 0.65;
+}
+
+/* Workflow-status chip on task rows (persistent state, not live activity) */
+.task-status-chip {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+
+.task-status-chip.in-progress {
+  color: var(--accent-primary);
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent-border, rgba(212, 165, 116, 0.25));
+}
+
+/* Tasks section filter/sort controls — the dashboard's toolbar buttons +
+   popovers, compacted for the rail */
+.lane-rail-controls {
+  display: flex;
+  gap: 6px;
+  padding: 2px 4px 8px;
+}
+
+.lane-rail-ctl-wrap {
+  position: relative;
+}
+
+.lane-rail-ctl-btn {
+  font-size: 10px;
+  padding: 4px 9px;
+  gap: 5px;
+}
+
+.lane-rail-popover {
+  min-width: 200px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* Board rail layout: SPECS is content-sized but never exceeds 40% of the
+   rail; TASKS always absorbs everything SPECS leaves (60% minimum, more
+   when SPECS is short). Scrolling happens inside each section body, never
+   on the rail, so headers and controls stay pinned. Scoped to .board-rail
+   — the detail/section rails keep rail-level scrolling. */
+.lane-rail.board-rail:not(.collapsed) {
+  overflow-y: hidden;
+}
+
+.board-rail > .lane-rail-header {
+  flex-shrink: 0;
+}
+
+.board-rail .lane-rail-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* flex-shrink: 0 is the load-bearing part — with shrink allowed, a huge
+   TASKS list drags SPECS into the proportional-shrink phase and crushes
+   it to a sliver. SPECS must hold min(content, 40%) exactly. */
+.board-rail .lane-rail-section.rail-specs {
+  flex: 0 0 auto;
+  max-height: 40%;
+}
+
+.board-rail .lane-rail-section.rail-tasks {
+  flex: 1 1 auto;
+}
+
+.board-rail .lane-rail-section-header,
+.board-rail .lane-rail-controls {
+  flex-shrink: 0;
+}
+
+.board-rail .lane-rail-section-body {
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .lane-rail-empty {
@@ -841,6 +966,13 @@
 .lane-detail-item-status.agent-input    { color: var(--warning, #e5a50a); }
 .lane-detail-item-status.running        { color: var(--success, #23d18b); }
 .lane-detail-item-status.idle           { color: var(--text-secondary); }
+
+/* Rail variant of the assignment chip: smaller, aligned under the title */
+.lane-rail-item .lane-assignment-chip {
+  font-size: 10px;
+  padding: 1px 7px;
+  margin-left: 16px;
+}
 
 /* ─── Multi-cell detail layout (grid in detail view) ─────── */
 

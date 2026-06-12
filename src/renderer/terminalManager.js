@@ -343,7 +343,11 @@ class TerminalManager {
       customName: null,
       isActive: false,
       createdAt: Date.now(),
-      projectPath: options.projectPath !== undefined ? options.projectPath : this.currentProjectPath
+      projectPath: options.projectPath !== undefined ? options.projectPath : this.currentProjectPath,
+      // What this lane is working on (set by agentDispatch):
+      // { kind: 'task'|'spec', label, ref } — presentation metadata only,
+      // session-scoped, dies with the lane (never persisted).
+      assignment: null
     };
 
     this.terminals.set(terminalId, { terminal, fitAddon, element, state });
@@ -547,6 +551,19 @@ class TerminalManager {
     if (instance) {
       instance.state.customName = newName;
       instance.state.name = newName;
+      this._notifyStateChange();
+    }
+  }
+
+  /**
+   * Set what a lane is working on (most recent dispatch wins the label).
+   * @param {string} terminalId
+   * @param {{kind: 'task'|'spec', label: string, ref: string}|null} assignment
+   */
+  setAssignment(terminalId, assignment) {
+    const instance = this.terminals.get(terminalId);
+    if (instance) {
+      instance.state.assignment = assignment;
       this._notifyStateChange();
     }
   }

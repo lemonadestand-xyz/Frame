@@ -23,7 +23,6 @@ const {
 
 const STORAGE_KEY = 'frame-lane-rail';
 const MAX_SPECS = 5;
-const MAX_TASKS = 6;
 
 const SPEC_PHASE_ORDER = ['implementing', 'tasks_generated', 'planned', 'specified', 'draft', 'done'];
 const TASK_PRIORITY_ORDER = { high: 0, medium: 1, low: 2 };
@@ -50,14 +49,17 @@ function escapeHtml(text) {
 
 // ─── Persisted UI state ─────────────────────────────────────
 
+const UI_DEFAULTS = {
+  hidden: false, specsCollapsed: false, tasksCollapsed: false,
+  // Tasks section controls (mirror the dashboard's filter/sort dimensions)
+  taskPriority: 'all', taskCategory: 'all', taskSort: 'default'
+};
+
 function getUIState() {
   try {
-    return Object.assign(
-      { hidden: false, specsCollapsed: false, tasksCollapsed: false },
-      JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-    );
+    return Object.assign({}, UI_DEFAULTS, JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'));
   } catch {
-    return { hidden: false, specsCollapsed: false, tasksCollapsed: false };
+    return { ...UI_DEFAULTS };
   }
 }
 
@@ -83,6 +85,13 @@ function _initOnce() {
     allTasks = (tasks && Array.isArray(tasks.tasks)) ? tasks.tasks : [];
     _rerenderIfVisible();
   });
+
+  // Spec/task activity dots track the assigned Frames' live agent state
+  require('./agentDispatch').onSpecLaneActivity(() => _rerenderIfVisible());
+  require('./agentDispatch').onTaskLaneActivity(() => _rerenderIfVisible());
+
+  // Outside click closes any open filter/sort popover
+  document.addEventListener('click', () => _closeRailPopovers());
 }
 
 async function _fetchForProject(projectPath) {
@@ -127,7 +136,7 @@ function render(container, projectPath) {
 function _renderInto(container) {
   const ui = getUIState();
   container.innerHTML = '';
-  container.className = ui.hidden ? 'lane-rail collapsed' : 'lane-rail';
+  container.className = ui.hidden ? 'lane-rail board-rail collapsed' : 'lane-rail board-rail';
 
   if (ui.hidden) {
     container.appendChild(_renderCollapsedStrip());
@@ -194,7 +203,7 @@ function _sectionHeader({ title, count, collapsed, onToggle, onOpen, openTitle }
 
 function _renderSpecsSection(ui) {
   const section = document.createElement('div');
-  section.className = 'lane-rail-section';
+  section.className = 'lane-rail-section rail-specs';
 
   const active = specs
     .filter(s => s.phase !== 'done')
@@ -222,7 +231,7 @@ function _renderSpecsSection(ui) {
       const item = document.createElement('div');
       item.className = 'lane-rail-item lane-rail-card';
       item.innerHTML = `
-        <div class="lane-rail-item-title">${escapeHtml(s.title || s.slug)}</div>
+        <div class="lane-rail-item-title">${require('./agentDispatch').specStatusDotHtml(s.slug)}${escapeHtml(s.title || s.slug)}</div>
         <div class="lane-rail-card-meta">
           <span class="spec-phase-badge phase-${escapeHtml(s.phase)}">${escapeHtml(String(s.phase).replace('_', ' '))}</span>
           ${total > 0 ? `<span class="lane-rail-progress-text">${done}/${total} tasks</span>` : ''}
@@ -265,14 +274,9 @@ function _specProgress(spec) {
 
 function _renderTasksSection(ui) {
   const section = document.createElement('div');
-  section.className = 'lane-rail-section';
+  section.className = 'lane-rail-section rail-tasks';
 
-  const open = allTasks
-    .filter(t => t.status === 'in_progress' || t.status === 'pending')
-    .sort((a, b) => {
-      if (a.status !== b.status) return a.status === 'in_progress' ? -1 : 1;
-      return (TASK_PRIORITY_ORDER[a.priority] ?? 1) - (TASK_PRIORITY_ORDER[b.priority] ?? 1);
-    });
+  const open = allTasks.filter(t => t.status === 'in_progress' || t.status === 'pending');
 
   section.appendChild(_sectionHeader({
     title: 'Tasks',
@@ -285,22 +289,39 @@ function _renderTasksSection(ui) {
 
   if (ui.tasksCollapsed) return section;
 
+  // Filter + sort controls (compact mirror of the dashboard's dimensions);
+  // selections persist with the rest of the rail UI state.
+  const categories = [...new Set(allTasks.map(t => t.category).filter(Boolean))].sort();
+  section.appendChild(_taskControls(ui, categories));
+
+  const filtered = open
+    .filter(t => ui.taskPriority === 'all' || (t.priority || 'medium') === ui.taskPriority)
+    .filter(t => ui.taskCategory === 'all' || t.category === ui.taskCategory)
+    .sort(TASK_SORTS[ui.taskSort] || TASK_SORTS.default);
+
+  // All matching tasks render — the section's flex share caps the height
+  // and the body scrolls past it
   const body = document.createElement('div');
   body.className = 'lane-rail-section-body';
 
-  if (open.length === 0) {
-    body.innerHTML = `<div class="lane-rail-empty">No open tasks</div>`;
+  if (filtered.length === 0) {
+    body.innerHTML = `<div class="lane-rail-empty">${open.length === 0 ? 'No open tasks' : 'No tasks match the filters'}</div>`;
   } else {
-    open.slice(0, MAX_TASKS).forEach((t) => {
+    filtered.forEach((t) => {
       const prio = escapeHtml(t.priority || 'medium');
+      // Live agent on this task → pulsing activity dot replaces the static
+      // in-progress marker; otherwise the marker shows "started, no one on
+      // it right now".
+      const liveDot = require('./agentDispatch').taskStatusDotHtml(t.id);
       const item = document.createElement('div');
       item.className = `lane-rail-item lane-rail-card lane-rail-task${t.status === 'in_progress' ? ' status-in-progress' : ''}`;
       item.innerHTML = `
         <div class="lane-rail-item-row">
-          ${t.status === 'in_progress' ? '<span class="lane-rail-task-dot in-progress"></span>' : ''}
+          ${liveDot || (t.status === 'in_progress' ? '<span class="lane-rail-task-dot in-progress"></span>' : '')}
           <span class="lane-rail-item-title">${escapeHtml(t.title)}</span>
         </div>
         <div class="lane-rail-card-meta">
+          ${t.status === 'in_progress' ? '<span class="task-status-chip in-progress">In Progress</span>' : ''}
           <span class="task-priority priority-${prio}">${prio}</span>
           ${t.category ? `<span class="task-category">${escapeHtml(t.category)}</span>` : ''}
         </div>
@@ -309,14 +330,117 @@ function _renderTasksSection(ui) {
       item.addEventListener('click', () => require('./taskSection').openInNewTab(t.id));
       body.appendChild(item);
     });
-
-    if (open.length > MAX_TASKS) {
-      body.appendChild(_moreLink(`+${open.length - MAX_TASKS} more`, () => require('./tasksDashboard').show()));
-    }
   }
 
   section.appendChild(body);
   return section;
+}
+
+const TASK_SORTS = {
+  // in-progress first, then priority — the section's historical order
+  default: (a, b) => {
+    if (a.status !== b.status) return a.status === 'in_progress' ? -1 : 1;
+    return (TASK_PRIORITY_ORDER[a.priority] ?? 1) - (TASK_PRIORITY_ORDER[b.priority] ?? 1);
+  },
+  priority: (a, b) => (TASK_PRIORITY_ORDER[a.priority] ?? 1) - (TASK_PRIORITY_ORDER[b.priority] ?? 1),
+  newest: (a, b) => (Date.parse(b.createdAt || 0) || 0) - (Date.parse(a.createdAt || 0) || 0)
+};
+
+// Same icons as the dashboard toolbar (funnel / sort arrows)
+const FILTER_ICON_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>';
+const SORT_ICON_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h13"/><path d="M3 12h9"/><path d="M3 18h5"/><path d="M17 8l4-4 4 4" transform="translate(-3 0)"/><path d="M18 4v16"/></svg>';
+
+const SORT_LABELS = { default: 'Status', priority: 'Priority', newest: 'Newest' };
+
+function _popoverOption(name, value, label, checked) {
+  return `
+    <label class="tasks-dashboard-popover-option">
+      <input type="radio" name="${name}" value="${escapeHtml(value)}" ${checked ? 'checked' : ''}>
+      <span>${escapeHtml(label)}</span>
+    </label>
+  `;
+}
+
+// Filter + Sort as compact icon buttons opening dashboard-style popovers —
+// same visual language (toolbar-btn + popover classes) as the Tasks
+// dashboard, single-select radios instead of its multi-select checkboxes.
+function _taskControls(ui, categories) {
+  const controls = document.createElement('div');
+  controls.className = 'lane-rail-controls';
+
+  const filterCount = (ui.taskPriority !== 'all' ? 1 : 0) + (ui.taskCategory !== 'all' ? 1 : 0);
+  const sortActive = ui.taskSort !== 'default';
+
+  controls.innerHTML = `
+    <div class="lane-rail-ctl-wrap">
+      <button class="tasks-dashboard-toolbar-btn lane-rail-ctl-btn${filterCount ? ' has-filters' : ''}" data-pop="filter" title="Filter tasks">
+        ${FILTER_ICON_SVG}
+        Filter
+        ${filterCount ? `<span class="tasks-dashboard-toolbar-badge">${filterCount}</span>` : ''}
+      </button>
+      <div class="tasks-dashboard-popover lane-rail-popover" hidden>
+        <div class="tasks-dashboard-popover-section">
+          <h5>Priority</h5>
+          ${['all', 'high', 'medium', 'low'].map(p =>
+            _popoverOption('rail-task-priority', p, p === 'all' ? 'All priorities' : p[0].toUpperCase() + p.slice(1), (ui.taskPriority || 'all') === p)
+          ).join('')}
+        </div>
+        ${categories.length > 0 ? `
+        <div class="tasks-dashboard-popover-section">
+          <h5>Category</h5>
+          ${['all', ...categories].map(c =>
+            _popoverOption('rail-task-category', c, c === 'all' ? 'All categories' : c, (ui.taskCategory || 'all') === c)
+          ).join('')}
+        </div>` : ''}
+      </div>
+    </div>
+    <div class="lane-rail-ctl-wrap">
+      <button class="tasks-dashboard-toolbar-btn lane-rail-ctl-btn${sortActive ? ' has-sort' : ''}" data-pop="sort" title="Sort tasks">
+        ${SORT_ICON_SVG}
+        ${escapeHtml(SORT_LABELS[ui.taskSort] || 'Status')}
+      </button>
+      <div class="tasks-dashboard-popover lane-rail-popover" hidden>
+        <div class="tasks-dashboard-popover-section">
+          <h5>Sort by</h5>
+          ${_popoverOption('rail-task-sort', 'default', 'Status (in progress first)', (ui.taskSort || 'default') === 'default')}
+          ${_popoverOption('rail-task-sort', 'priority', 'Priority', ui.taskSort === 'priority')}
+          ${_popoverOption('rail-task-sort', 'newest', 'Newest', ui.taskSort === 'newest')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  controls.querySelectorAll('[data-pop]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const pop = btn.nextElementSibling;
+      const wasHidden = pop.hasAttribute('hidden');
+      _closeRailPopovers();
+      if (wasHidden) pop.removeAttribute('hidden');
+    });
+  });
+  // Keep clicks inside a popover from bubbling to the outside-click closer
+  controls.querySelectorAll('.lane-rail-popover').forEach((pop) => {
+    pop.addEventListener('click', (e) => e.stopPropagation());
+  });
+
+  const stateKeys = {
+    'rail-task-priority': 'taskPriority',
+    'rail-task-category': 'taskCategory',
+    'rail-task-sort': 'taskSort'
+  };
+  controls.querySelectorAll('input[type="radio"]').forEach((input) => {
+    input.addEventListener('change', () => {
+      setUIState({ [stateKeys[input.name]]: input.value });
+      _rerenderIfVisible();
+    });
+  });
+
+  return controls;
+}
+
+function _closeRailPopovers() {
+  document.querySelectorAll('.lane-rail-popover:not([hidden])').forEach((p) => p.setAttribute('hidden', ''));
 }
 
 function _moreLink(label, onClick) {

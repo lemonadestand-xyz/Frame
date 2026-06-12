@@ -67,6 +67,12 @@ function createViewport() {
   ipcRenderer.on(IPC.TASKS_DATA, onTasksData);
   ipcRenderer.on(IPC.SPEC_DATA, onSpecData);
 
+  // Track this spec's assigned Frame so the next-action bar's busy lock
+  // follows the live agent state (fires only on material changes).
+  const unsubLaneActivity = require('./agentDispatch').onSpecLaneActivity((s) => {
+    if (s === slug && host) host.notifySectionChanged();
+  });
+
   const projectPath = state.getProjectPath();
   if (projectPath) {
     ipcRenderer.send(IPC.LOAD_TASKS, projectPath);
@@ -180,12 +186,13 @@ function createViewport() {
       <div class="spec-detail-header">
         <h3 class="spec-detail-title">${escapeHtml(status.title)}</h3>
         <div class="spec-detail-meta">
+          ${require('./agentDispatch').specStatusDotHtml(status.slug)}
           <span class="spec-detail-slug">${escapeHtml(status.slug)}</span>
           ${aiLabel ? `<span class="spec-detail-ai">${escapeHtml(aiLabel)}</span>` : ''}
         </div>
       </div>
       ${renderStepper(status.phase)}
-      ${nextAction ? renderNextActionBar(nextAction) : ''}
+      ${nextAction ? renderNextActionBar(nextAction, require('./agentDispatch').getSpecLaneInfo(slug)) : ''}
       <div class="spec-detail-tabs">
         ${renderTabButton('spec', 'Spec', !!spec)}
         ${renderTabButton('plan', 'Plan', !!plan)}
@@ -299,22 +306,20 @@ function createViewport() {
   }
 
   async function runSpecCommand(command) {
-    const pp = state.getProjectPath();
-    if (!pp || !slug) return;
-    const result = await ipcRenderer.invoke(IPC.BUILD_SPEC_COMMAND_FILE, {
-      projectPath: pp, slug, command, aiTool: 'claude-code'
+    if (!slug) return;
+    // Dispatch enters the target Frame itself, which takes the section off
+    // the screen — its tab stays open, same as the old hideSections path.
+    await require('./agentDispatch').dispatchSpecCommand({
+      slug,
+      title: (activeSpec && activeSpec.status && activeSpec.status.title) || slug,
+      command
     });
-    if (!result || !result.success) return;
-    if (typeof window.terminalSendCommand !== 'function') return;
-    // Sending the prompt reveals a Frame — this section leaves the screen but
-    // its tab stays open.
-    if (host) host.hideSections();
-    window.terminalSendCommand(result.instruction);
   }
 
   function dispose() {
     ipcRenderer.removeListener(IPC.TASKS_DATA, onTasksData);
     ipcRenderer.removeListener(IPC.SPEC_DATA, onSpecData);
+    unsubLaneActivity();
     container = null;
   }
 
@@ -339,7 +344,26 @@ function nextActionForPhase(phase) {
   }
 }
 
-function renderNextActionBar(action) {
+function renderNextActionBar(action, lane) {
+  // Live agent mid-turn in the assigned Frame → lock the button against
+  // double-dispatch. Derived from getSpecLaneInfo on every render; lane
+  // activity re-renders the section, so a dead agent or closed Frame
+  // unlocks it again on its own.
+  if (lane && lane.busy) {
+    const verb = lane.status === 'agent-approval' ? 'Waiting for approval' : 'Working';
+    return `
+    <div class="spec-next-action spec-next-action-busy">
+      <div class="spec-next-action-text">
+        <strong>${escapeHtml(verb)} in ${escapeHtml(lane.name)}</strong>
+        <span>Unlocks when the agent finishes its turn.</span>
+        <code class="spec-next-action-cmd">/${escapeHtml(action.command)}</code>
+      </div>
+      <button class="btn btn-primary spec-action-btn" disabled>
+        <span class="spec-action-spinner"></span>${escapeHtml(action.label)}
+      </button>
+    </div>
+  `;
+  }
   return `
     <div class="spec-next-action">
       <div class="spec-next-action-text">

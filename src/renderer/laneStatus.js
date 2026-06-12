@@ -170,9 +170,15 @@ function _ensureEntry(terminalId) {
 }
 
 // Agent mode: the foreground process is a known agent, or (fallback)
-// the buffer tail carries an agent TUI fingerprint.
+// the buffer tail carries an agent TUI fingerprint. The fingerprint
+// fallback only applies while the foreground is inconclusive (agent under
+// a wrapper process, or no process info yet): when the shell itself owns
+// the terminal, anything agent-shaped still on screen is a killed agent's
+// leftover TUI — without this, a killed agent reads "Awaiting input"
+// until 15 fresh lines scroll the remnants away.
 function _isAgentMode(entry, tail) {
   if (detectAgentName(entry.foreground, entry.commandLine)) return true;
+  if (entry.foreground && _isShellProcess(entry.foreground, entry.shellName)) return false;
   return AGENT_PATTERNS.some((re) => re.test(tail));
 }
 

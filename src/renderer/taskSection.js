@@ -64,6 +64,12 @@ function createViewport() {
   };
   ipcRenderer.on(IPC.TASKS_DATA, onTasksData);
 
+  // Activity dots track the live agent state of lanes working on tasks;
+  // null = a lane closed (its task can't be read back), re-render anyway.
+  const unsubLaneActivity = require('./agentDispatch').onTaskLaneActivity(() => {
+    if (host) host.notifySectionChanged();
+  });
+
   const projectPath = state.getProjectPath();
   if (projectPath) ipcRenderer.send(IPC.LOAD_TASKS, projectPath);
 
@@ -116,6 +122,7 @@ function createViewport() {
       })
       .map((t) => {
         const prio = escapeHtml(t.priority || 'medium');
+        const liveDot = require('./agentDispatch').taskStatusDotHtml(t.id);
         return {
           id: t.id,
           active: t.id === taskId,
@@ -123,10 +130,11 @@ function createViewport() {
           className: `lane-rail-task status-${escapeHtml(t.status)}`,
           html: `
             <div class="lane-rail-item-row">
-              ${t.status === 'in_progress' ? '<span class="lane-rail-task-dot in-progress"></span>' : ''}
+              ${liveDot || (t.status === 'in_progress' ? '<span class="lane-rail-task-dot in-progress"></span>' : '')}
               <span class="lane-rail-item-title">${escapeHtml(t.title)}</span>
             </div>
             <div class="lane-rail-card-meta">
+              ${t.status === 'in_progress' ? '<span class="task-status-chip in-progress">In Progress</span>' : ''}
               <span class="task-priority priority-${prio}">${prio}</span>
               ${t.category ? `<span class="task-category">${escapeHtml(t.category)}</span>` : ''}
             </div>
@@ -161,6 +169,7 @@ function createViewport() {
           <div class="task-section-header">
             <h2 class="task-section-title">${escapeHtml(task.title)}</h2>
             <div class="task-section-meta">
+              ${require('./agentDispatch').taskStatusDotHtml(task.id)}
               <span class="task-section-status status-${escapeHtml(task.status)}">${STATUS_LABELS[task.status] || task.status}</span>
               <span class="task-priority priority-${escapeHtml(prio)}">${escapeHtml(prio)}</span>
               ${task.category ? `<span class="task-category">${escapeHtml(task.category)}</span>` : ''}
@@ -179,12 +188,13 @@ function createViewport() {
     `;
 
     el.querySelectorAll('.task-section-actions [data-action]').forEach(btn => {
-      btn.addEventListener('click', () => handleAction(task.id, btn.dataset.action));
+      btn.addEventListener('click', () => handleAction(task, btn.dataset.action));
     });
   }
 
   function dispose() {
     ipcRenderer.removeListener(IPC.TASKS_DATA, onTasksData);
+    unsubLaneActivity();
     container = null;
   }
 
@@ -224,18 +234,26 @@ function actionButtons(status) {
   return `<button class="btn btn-secondary" data-action="reopen">Reopen Task</button>`;
 }
 
-function handleAction(taskId, action) {
+function handleAction(task, action) {
   const projectPath = state.getProjectPath();
-  if (!projectPath) return;
+  if (!projectPath || !task) return;
+
+  if (action === 'start') {
+    // Run flow: config modal → Agent Dispatch into a new Frame; status
+    // flips to in_progress only after the prompt actually lands. Shared
+    // with the tasks panel's ▶ — lazy-required to avoid load-order coupling.
+    require('./tasksPanel').openRunFlow(task);
+    return;
+  }
+
   const statusMap = {
-    start: 'in_progress',
     complete: 'completed',
     pause: 'pending',
     reopen: 'pending'
   };
   const status = statusMap[action];
   if (!status) return;
-  ipcRenderer.send(IPC.UPDATE_TASK, { projectPath, taskId, updates: { status } });
+  ipcRenderer.send(IPC.UPDATE_TASK, { projectPath, taskId: task.id, updates: { status } });
   // TASKS_DATA push re-renders the viewport (and the rail/panels with it).
 }
 

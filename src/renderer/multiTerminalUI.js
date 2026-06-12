@@ -14,6 +14,7 @@ const { TerminalTabBar } = require('./terminalTabBar');
 const { TerminalGrid } = require('./terminalGrid');
 const { LaneBoard } = require('./laneBoard');
 const laneStatus = require('./laneStatus');
+const agentDispatch = require('./agentDispatch');
 const laneDetailRail = require('./laneDetailRail');
 const overviewPanel = require('./overviewPanel');
 const taskSection = require('./taskSection');
@@ -58,6 +59,9 @@ class MultiTerminalUI {
 
     // Lane activity detection needs the manager to read xterm buffers
     laneStatus.init(this.manager);
+
+    // Agent dispatch delivers prompts into lanes through us
+    agentDispatch.init(this);
 
     // Initialize components
     this.tabBar = new TerminalTabBar(tabBarContainer, this.manager);

@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-06-11",
+  "lastUpdated": "2026-06-12",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -3223,7 +3223,9 @@
         "LaneBoard",
         "formatRelativeTime",
         "STATUS_LABELS",
-        "cleanCommand"
+        "cleanCommand",
+        "assignmentIcon",
+        "assignmentText"
       ],
       "depends": [
         "electron",
@@ -3249,16 +3251,28 @@
           ],
           "purpose": "label reads like what the user typed, not like absolute-path soup."
         },
+        "assignmentIcon": {
+          "line": 54,
+          "params": [
+            "assignment"
+          ],
+          "purpose": "task, so spec labels drop the baked-in \"spec: \" prefix and show the slug."
+        },
+        "assignmentText": {
+          "line": 58,
+          "params": [
+            "assignment"
+          ]
+        },
         "lucideIcon": {
-          "line": 52,
+          "line": 63,
           "params": [
             "data",
             "size = 14"
-          ],
-          "purpose": "detection — never a static tag, so failed launches leave nothing behind."
+          ]
         },
         "formatRelativeTime": {
-          "line": 60,
+          "line": 71,
           "params": [
             "ts"
           ]
@@ -3339,33 +3353,33 @@
           ]
         },
         "_isAgentMode": {
-          "line": 174,
+          "line": 179,
           "params": [
             "entry",
             "tail"
           ],
-          "purpose": "the buffer tail carries an agent TUI fingerprint."
+          "purpose": "until 15 fresh lines scroll the remnants away."
         },
         "_onOutput": {
-          "line": 179,
+          "line": 185,
           "params": [
             "terminalId"
           ]
         },
         "_classifyQuiet": {
-          "line": 202,
+          "line": 208,
           "params": [
             "terminalId"
           ]
         },
         "_readBufferTail": {
-          "line": 228,
+          "line": 234,
           "params": [
             "terminalId"
           ]
         },
         "_emit": {
-          "line": 248,
+          "line": 254,
           "params": [
             "terminalId",
             "entry"
@@ -3393,6 +3407,7 @@
         "terminalGrid",
         "laneBoard",
         "laneStatus",
+        "agentDispatch",
         "laneDetailRail",
         "overviewPanel",
         "taskSection",
@@ -4116,7 +4131,8 @@
         "marked",
         "shared/ipcChannels",
         "state",
-        "specsDashboard"
+        "specsDashboard",
+        "agentDispatch"
       ],
       "functions": {
         "init": {
@@ -4133,70 +4149,71 @@
           "line": 69
         },
         "show": {
-          "line": 98,
+          "line": 110,
           "purpose": "─── Visibility ─────────────────────────────────────"
         },
         "hide": {
-          "line": 106
+          "line": 118
         },
         "toggle": {
-          "line": 115,
+          "line": 127,
           "purpose": "instead of opening the panel — keeping the workflow opt-in."
         },
         "startWatchingForProject": {
-          "line": 133,
+          "line": 145,
           "params": [
             "projectPath"
           ],
           "purpose": "─── Watch lifecycle ────────────────────────────────"
         },
         "stopWatching": {
-          "line": 142
+          "line": 154
         },
         "renderList": {
-          "line": 149,
+          "line": 161,
           "purpose": "─── List view ──────────────────────────────────────"
         },
         "renderSpecRow": {
-          "line": 180,
+          "line": 192,
           "params": [
             "spec"
           ]
         },
         "openDetail": {
-          "line": 200,
+          "line": 212,
           "params": [
             "slug"
           ],
           "purpose": "─── Detail view ────────────────────────────────────"
         },
         "reloadDetail": {
-          "line": 206
+          "line": 218
         },
         "renderDetail": {
-          "line": 214
+          "line": 226
         },
         "nextActionForPhase": {
-          "line": 279,
+          "line": 292,
           "params": [
             "phase"
           ],
           "purpose": "AI tool is running) can produce the next artifact."
         },
         "renderNextActionBar": {
-          "line": 295,
+          "line": 308,
           "params": [
-            "action"
+            "action",
+            "lane"
           ]
         },
         "runSpecCommand": {
-          "line": 309,
+          "line": 340,
           "params": [
             "command"
           ]
         },
         "renderTabButton": {
-          "line": 338,
+          "line": 352,
           "params": [
             "tab",
             "label",
@@ -4204,94 +4221,94 @@
           ]
         },
         "hasSpecTasks": {
-          "line": 344
+          "line": 358
         },
         "tasksTabLabel": {
-          "line": 350,
+          "line": 364,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderTabBody": {
-          "line": 359,
+          "line": 373,
           "params": [
             "tab"
           ]
         },
         "renderTasksTabBody": {
-          "line": 375
+          "line": 389
         },
         "renderSpecTaskRow": {
-          "line": 415,
+          "line": 429,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 464
+          "line": 478
         },
         "handleSpecTaskAction": {
-          "line": 477,
+          "line": 491,
           "params": [
             "taskId",
             "action"
           ]
         },
         "switchTab": {
-          "line": 496,
+          "line": 510,
           "params": [
             "tab"
           ]
         },
         "backToList": {
-          "line": 506
+          "line": 520
         },
         "showNewSpecPrompt": {
-          "line": 521,
+          "line": 535,
           "purpose": "`window.prompt` is blocked in Electron's renderer."
         },
         "deriveSlugPreview": {
-          "line": 623,
+          "line": 637,
           "params": [
             "title"
           ],
           "purpose": "can preview without a roundtrip. Keep in sync if the canonical changes."
         },
         "showSuggestionModal": {
-          "line": 641,
+          "line": 655,
           "params": [
             "projectPath"
           ],
           "purpose": "them turn it on or skip. Maximum friction: a one-time, dismissable modal."
         },
         "showRenameModal": {
-          "line": 708,
+          "line": 722,
           "params": [
             "status"
           ],
           "purpose": "status.json — all atomic from the user's perspective."
         },
         "showInlineError": {
-          "line": 801,
+          "line": 815,
           "params": [
             "message"
           ]
         },
         "renderMarkdown": {
-          "line": 821,
+          "line": 835,
           "params": [
             "md"
           ],
           "purpose": "─── Helpers ────────────────────────────────────────"
         },
         "escapeHtml": {
-          "line": 831,
+          "line": 845,
           "params": [
             "s"
           ]
         },
         "relativeTime": {
-          "line": 841,
+          "line": 855,
           "params": [
             "iso"
           ]
@@ -4367,6 +4384,7 @@
         "shared/ipcChannels",
         "state",
         "specPanel",
+        "agentDispatch",
         "taskInfoModal"
       ],
       "functions": {
@@ -4377,71 +4395,72 @@
           "line": 81
         },
         "show": {
-          "line": 107,
+          "line": 119,
           "purpose": "─── Visibility ──────────────────────────────────────────"
         },
         "hide": {
-          "line": 138
+          "line": 150
         },
         "toggle": {
-          "line": 145
+          "line": 157
         },
         "renderFilters": {
-          "line": 151,
+          "line": 163,
           "purpose": "─── Filters ─────────────────────────────────────────────"
         },
         "applyFilter": {
-          "line": 165,
+          "line": 177,
           "params": [
             "specsList"
           ]
         },
         "renderGrid": {
-          "line": 178,
+          "line": 190,
           "purpose": "─── Grid ────────────────────────────────────────────────"
         },
         "renderCard": {
-          "line": 206,
+          "line": 218,
           "params": [
             "spec"
           ]
         },
         "selectCard": {
-          "line": 237,
+          "line": 250,
           "params": [
             "slug"
           ],
           "purpose": "─── Detail aside ───────────────────────────────────────"
         },
         "clearSelection": {
-          "line": 245
+          "line": 258
         },
         "reloadDetail": {
-          "line": 253
+          "line": 266
         },
         "renderDetailHeader": {
-          "line": 269
+          "line": 282
         },
         "nextActionForPhase": {
-          "line": 340,
+          "line": 354,
           "params": [
             "phase"
           ]
         },
         "renderNextActionBar": {
-          "line": 356,
+          "line": 370,
           "params": [
-            "action"
+            "action",
+            "lane"
           ]
         },
         "runSpecCommand": {
-          "line": 370,
+          "line": 401,
           "params": [
             "command"
           ]
         },
         "tabBtn": {
-          "line": 389,
+          "line": 412,
           "params": [
             "tab",
             "label",
@@ -4449,57 +4468,57 @@
           ]
         },
         "renderDetailBody": {
-          "line": 395
+          "line": 418
         },
         "renderTasksTabBody": {
-          "line": 416
+          "line": 439
         },
         "renderSpecTaskRow": {
-          "line": 453,
+          "line": 476,
           "params": [
             "task"
           ]
         },
         "attachTaskActionHandlers": {
-          "line": 502
+          "line": 525
         },
         "handleSpecTaskAction": {
-          "line": 515,
+          "line": 538,
           "params": [
             "taskId",
             "action"
           ]
         },
         "hasSpecTasks": {
-          "line": 526,
+          "line": 549,
           "purpose": "─── Helpers ────────────────────────────────────────────"
         },
         "tasksTabLabel": {
-          "line": 532,
+          "line": 555,
           "params": [
             "hasMarkdown"
           ]
         },
         "renderMarkdown": {
-          "line": 541,
+          "line": 564,
           "params": [
             "md"
           ]
         },
         "escapeHtml": {
-          "line": 546,
+          "line": 569,
           "params": [
             "s"
           ]
         },
         "relativeTime": {
-          "line": 552,
+          "line": 575,
           "params": [
             "iso"
           ]
         },
         "displayProjectName": {
-          "line": 563,
+          "line": 586,
           "params": [
             "projectPath"
           ]
@@ -4909,47 +4928,41 @@
       ],
       "functions": {
         "init": {
-          "line": 37
-        },
-        "updateTerminalChoiceUI": {
-          "line": 85
+          "line": 34
         },
         "updateBranchChoiceUI": {
-          "line": 91
-        },
-        "getTerminalChoice": {
-          "line": 99
+          "line": 76
         },
         "getBranchChoice": {
-          "line": 104
+          "line": 84
         },
         "getCliChoice": {
-          "line": 109
+          "line": 89
         },
         "populateCliOptions": {
-          "line": 114
+          "line": 94
         },
         "loadCurrentBranch": {
-          "line": 144
+          "line": 124
         },
         "open": {
-          "line": 164,
+          "line": 144,
           "params": [
             "task",
             "opts = {}"
           ]
         },
         "close": {
-          "line": 190
+          "line": 168
         },
         "confirm": {
-          "line": 198
+          "line": 176
         },
         "cancel": {
-          "line": 210
+          "line": 187
         },
         "escapeHtml": {
-          "line": 216,
+          "line": 193,
           "params": [
             "s"
           ]
@@ -4970,6 +4983,7 @@
         "electron",
         "shared/ipcChannels",
         "state",
+        "agentDispatch",
         "taskInfoModal",
         "taskConfirmModal"
       ],
@@ -4978,44 +4992,44 @@
           "line": 64
         },
         "flatten": {
-          "line": 129,
+          "line": 134,
           "params": [
             "data"
           ]
         },
         "show": {
-          "line": 140
+          "line": 145
         },
         "hide": {
-          "line": 162
+          "line": 167
         },
         "toggle": {
-          "line": 171
+          "line": 176
         },
         "render": {
-          "line": 175
+          "line": 180
         },
         "renderCard": {
-          "line": 242,
+          "line": 247,
           "params": [
             "task"
           ]
         },
         "setupDropTargets": {
-          "line": 290
+          "line": 298
         },
         "onDragStart": {
-          "line": 329,
+          "line": 337,
           "params": [
             "e",
             "task"
           ]
         },
         "onDragEnd": {
-          "line": 341
+          "line": 349
         },
         "getCardAfterY": {
-          "line": 355,
+          "line": 363,
           "params": [
             "container",
             "y"
@@ -5023,44 +5037,44 @@
           "purpose": "vertical midpoint. Returns null when the drop should land at the end."
         },
         "commitOrder": {
-          "line": 371,
+          "line": 379,
           "purpose": "rewrites tasks.json and pushes a fresh TASKS_DATA, which re-renders the UI."
         },
         "selectTask": {
-          "line": 387,
+          "line": 395,
           "params": [
             "taskId"
           ]
         },
         "clearSelection": {
-          "line": 401
+          "line": 409
         },
         "isFormOpen": {
-          "line": 413
+          "line": 421
         },
         "setupForm": {
-          "line": 417
+          "line": 425
         },
         "showForm": {
-          "line": 431
+          "line": 439
         },
         "hideForm": {
-          "line": 446
+          "line": 454
         },
         "requestDeleteSelected": {
-          "line": 462
+          "line": 470
         },
         "submitForm": {
-          "line": 480
+          "line": 488
         },
         "renderDetail": {
-          "line": 498,
+          "line": 506,
           "params": [
             "task"
           ]
         },
         "appendMetaPill": {
-          "line": 550,
+          "line": 558,
           "params": [
             "container",
             "text",
@@ -5068,7 +5082,7 @@
           ]
         },
         "setSection": {
-          "line": 557,
+          "line": 565,
           "params": [
             "textEl",
             "sectionEl",
@@ -5076,71 +5090,71 @@
           ]
         },
         "formatDate": {
-          "line": 568,
+          "line": 576,
           "params": [
             "isoString"
           ]
         },
         "isFilterActive": {
-          "line": 582
+          "line": 590
         },
         "filterMatches": {
-          "line": 586,
+          "line": 594,
           "params": [
             "task"
           ]
         },
         "setupFilter": {
-          "line": 592
+          "line": 600
         },
         "isFilterPopoverOpen": {
-          "line": 630
+          "line": 638
         },
         "toggleFilterPopover": {
-          "line": 634
+          "line": 642
         },
         "openFilterPopover": {
-          "line": 640
+          "line": 648
         },
         "closeFilterPopover": {
-          "line": 646
+          "line": 654
         },
         "clearFilters": {
-          "line": 652
+          "line": 660
         },
         "updateFilterUI": {
-          "line": 664
+          "line": 672
         },
         "compareTasks": {
-          "line": 681,
+          "line": 689,
           "params": [
             "a",
             "b"
           ]
         },
         "setupSort": {
-          "line": 697
+          "line": 705
         },
         "isSortPopoverOpen": {
-          "line": 742
+          "line": 750
         },
         "toggleSortPopover": {
-          "line": 746
+          "line": 754
         },
         "openSortPopover": {
-          "line": 752
+          "line": 760
         },
         "closeSortPopover": {
-          "line": 758
+          "line": 766
         },
         "resetSort": {
-          "line": 764
+          "line": 772
         },
         "updateSortUI": {
-          "line": 777
+          "line": 785
         },
         "commitSortToFile": {
-          "line": 802,
+          "line": 810,
           "purpose": "resulting array is coherent. Backend's reorderTasks rewrites the file."
         }
       },
@@ -5167,6 +5181,7 @@
         "hide",
         "toggle",
         "loadTasks",
+        "openRunFlow",
         "isVisible",
         "setClaudeRunning",
         "isClaudeRunning"
@@ -5178,6 +5193,7 @@
         "tasksDashboard",
         "taskInfoModal",
         "taskRunModal",
+        "agentDispatch",
         "taskConfirmModal"
       ],
       "functions": {
@@ -5239,8 +5255,15 @@
           ],
           "purpose": "Handle task action buttons"
         },
+        "openRunFlow": {
+          "line": 365,
+          "params": [
+            "task"
+          ],
+          "purpose": "too, so every surface runs tasks through the same modal + dispatch."
+        },
         "showToast": {
-          "line": 376,
+          "line": 386,
           "params": [
             "message",
             "type = 'info'"
@@ -5248,14 +5271,14 @@
           "purpose": "Show toast notification"
         },
         "getToastIcon": {
-          "line": 412,
+          "line": 422,
           "params": [
             "type"
           ],
           "purpose": "Get toast icon based on type"
         },
         "buildTaskPrompt": {
-          "line": 432,
+          "line": 442,
           "params": [
             "task",
             "opts = {}"
@@ -5263,80 +5286,80 @@
           "purpose": "never made on top of an unresolved working tree."
         },
         "runTaskWithOptions": {
-          "line": 459,
+          "line": 476,
           "params": [
             "task",
             "opts = {}"
           ],
-          "purpose": "the caller can decide whether to flip status / show \"sent\" toast."
+          "purpose": "show the \"sent\" toast."
         },
         "setClaudeRunning": {
-          "line": 532,
+          "line": 493,
           "params": [
             "running"
           ],
           "purpose": "Mark Claude Code as running (called from external modules)"
         },
         "isClaudeRunning": {
-          "line": 539,
+          "line": 500,
           "purpose": "Check if Claude Code is marked as running"
         },
         "deleteTask": {
-          "line": 548,
+          "line": 509,
           "params": [
             "taskId"
           ],
           "purpose": "load order ever shifts."
         },
         "showAddTaskModal": {
-          "line": 565,
+          "line": 526,
           "purpose": "Show add task modal"
         },
         "showEditTaskModal": {
-          "line": 584,
+          "line": 545,
           "params": [
             "taskId"
           ],
           "purpose": "Show edit task modal"
         },
         "hideTaskModal": {
-          "line": 610,
+          "line": 571,
           "purpose": "Hide task modal"
         },
         "handleTaskFormSubmit": {
-          "line": 620,
+          "line": 581,
           "params": [
             "e"
           ],
           "purpose": "Handle task form submit"
         },
         "setupModalListeners": {
-          "line": 658,
+          "line": 619,
           "purpose": "Setup modal event listeners"
         },
         "escapeHtml": {
-          "line": 698,
+          "line": 659,
           "params": [
             "text"
           ],
           "purpose": "Escape HTML for safe rendering"
         },
         "renderSourceChip": {
-          "line": 709,
+          "line": 670,
           "params": [
             "source"
           ],
           "purpose": "that's the actionable identifier the user knows."
         },
         "formatDate": {
-          "line": 720,
+          "line": 681,
           "params": [
             "isoString"
           ],
           "purpose": "Format date for display"
         },
         "initWhenReady": {
-          "line": 737,
+          "line": 698,
           "purpose": "Initialize when DOM is ready"
         }
       },
@@ -5455,7 +5478,7 @@
           "purpose": "Set active terminal"
         },
         "getMultiTerminalUI": {
-          "line": 166,
+          "line": 149,
           "purpose": "Get MultiTerminalUI instance"
         }
       },
@@ -5943,7 +5966,7 @@
           "line": 100
         },
         "_startTicker": {
-          "line": 175
+          "line": 181
         }
       }
     },
@@ -5957,6 +5980,7 @@
         "electron",
         "shared/ipcChannels",
         "lucide",
+        "agentDispatch",
         "specsDashboard",
         "specSection",
         "tasksDashboard",
@@ -5964,43 +5988,42 @@
       ],
       "functions": {
         "lucideIcon": {
-          "line": 37,
+          "line": 36,
           "params": [
             "data",
             "size = 14"
           ]
         },
         "escapeHtml": {
-          "line": 45,
+          "line": 44,
           "params": [
             "text"
           ]
         },
         "getUIState": {
-          "line": 53,
-          "purpose": "─── Persisted UI state ─────────────────────────────────────"
+          "line": 58
         },
         "setUIState": {
-          "line": 64,
+          "line": 66,
           "params": [
             "partial"
           ]
         },
         "_initOnce": {
-          "line": 73,
+          "line": 75,
           "purpose": "─── Data ───────────────────────────────────────────────────"
         },
         "_fetchForProject": {
-          "line": 88,
+          "line": 97,
           "params": [
             "projectPath"
           ]
         },
         "_rerenderIfVisible": {
-          "line": 99
+          "line": 108
         },
         "render": {
-          "line": 111,
+          "line": 120,
           "params": [
             "container",
             "projectPath"
@@ -6008,17 +6031,17 @@
           "purpose": "Called by laneBoard on every board render."
         },
         "_renderInto": {
-          "line": 127,
+          "line": 136,
           "params": [
             "container"
           ],
           "purpose": "─── Rendering ──────────────────────────────────────────────"
         },
         "_renderCollapsedStrip": {
-          "line": 152
+          "line": 161
         },
         "_sectionHeader": {
-          "line": 176,
+          "line": 185,
           "params": [
             "{ title",
             "count",
@@ -6029,25 +6052,45 @@
           ]
         },
         "_renderSpecsSection": {
-          "line": 195,
+          "line": 204,
           "params": [
             "ui"
           ]
         },
         "_specProgress": {
-          "line": 249,
+          "line": 258,
           "params": [
             "spec"
           ]
         },
         "_renderTasksSection": {
-          "line": 266,
+          "line": 275,
           "params": [
             "ui"
           ]
         },
+        "_popoverOption": {
+          "line": 355,
+          "params": [
+            "name",
+            "value",
+            "label",
+            "checked"
+          ]
+        },
+        "_taskControls": {
+          "line": 367,
+          "params": [
+            "ui",
+            "categories"
+          ],
+          "purpose": "dashboard, single-select radios instead of its multi-select checkboxes."
+        },
+        "_closeRailPopovers": {
+          "line": 442
+        },
         "_moreLink": {
-          "line": 322,
+          "line": 446,
           "params": [
             "label",
             "onClick"
@@ -6225,7 +6268,9 @@
         "state",
         "sectionRail",
         "lucide",
-        "tasksDashboard"
+        "agentDispatch",
+        "tasksDashboard",
+        "tasksPanel"
       ],
       "functions": {
         "setHost": {
@@ -6251,7 +6296,7 @@
           "line": 54
         },
         "block": {
-          "line": 196,
+          "line": 206,
           "params": [
             "heading",
             "content",
@@ -6260,32 +6305,32 @@
           "purpose": "─── Rendering helpers (pure / stateless) ───────────"
         },
         "actionButtons": {
-          "line": 211,
+          "line": 221,
           "params": [
             "status"
           ]
         },
         "handleAction": {
-          "line": 227,
+          "line": 237,
           "params": [
-            "taskId",
+            "task",
             "action"
           ]
         },
         "sourceChip": {
-          "line": 242,
+          "line": 260,
           "params": [
             "source"
           ]
         },
         "formatDate": {
-          "line": 249,
+          "line": 267,
           "params": [
             "iso"
           ]
         },
         "escapeHtml": {
-          "line": 256,
+          "line": 274,
           "params": [
             "text"
           ]
@@ -6312,6 +6357,7 @@
         "state",
         "sectionRail",
         "lucide",
+        "agentDispatch",
         "specsDashboard"
       ],
       "functions": {
@@ -6338,51 +6384,52 @@
           "line": 48
         },
         "nextActionForPhase": {
-          "line": 326,
+          "line": 331,
           "params": [
             "phase"
           ],
           "purpose": "─── Pure helpers ───────────────────────────────────"
         },
         "renderNextActionBar": {
-          "line": 342,
+          "line": 347,
           "params": [
-            "action"
+            "action",
+            "lane"
           ]
         },
         "stepIndexForPhase": {
-          "line": 359,
+          "line": 383,
           "params": [
             "phase"
           ]
         },
         "renderStepper": {
-          "line": 371,
+          "line": 395,
           "params": [
             "phase"
           ]
         },
         "renderSpecTaskRow": {
-          "line": 388,
+          "line": 412,
           "params": [
             "task"
           ]
         },
         "handleTaskAction": {
-          "line": 437,
+          "line": 461,
           "params": [
             "taskId",
             "action"
           ]
         },
         "renderMarkdown": {
-          "line": 446,
+          "line": 470,
           "params": [
             "md"
           ]
         },
         "escapeHtml": {
-          "line": 454,
+          "line": 478,
           "params": [
             "s"
           ]
@@ -6444,6 +6491,170 @@
             "opts"
           ]
         }
+      }
+    },
+    "renderer/agentDispatch": {
+      "file": "src/renderer/agentDispatch.js",
+      "description": "Agent Dispatch Module",
+      "exports": [
+        "init",
+        "dispatch",
+        "dispatchSpecCommand",
+        "getSpecLaneInfo",
+        "getTaskLaneInfo",
+        "onSpecLaneActivity",
+        "onTaskLaneActivity",
+        "specStatusDotHtml",
+        "taskStatusDotHtml"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "laneStatus",
+        "state",
+        "aiToolSelector"
+      ],
+      "functions": {
+        "init": {
+          "line": 32,
+          "params": [
+            "ui"
+          ],
+          "purpose": "Initialize with the MultiTerminalUI instance."
+        },
+        "dispatch": {
+          "line": 70,
+          "params": [
+            "{ terminalId = null",
+            "createNew = false",
+            "toolId = null",
+            "prompt",
+            "assignment = null } = {}"
+          ],
+          "purpose": "running (default: current tool)"
+        },
+        "dispatchSpecCommand": {
+          "line": 178,
+          "params": [
+            "{ slug",
+            "title = null",
+            "command } = {}"
+          ]
+        },
+        "getSpecLaneInfo": {
+          "line": 242,
+          "params": [
+            "slug"
+          ],
+          "purpose": "states fail open on purpose."
+        },
+        "getTaskLaneInfo": {
+          "line": 261,
+          "params": [
+            "taskId"
+          ],
+          "purpose": "requires a live agent process."
+        },
+        "specStatusDotHtml": {
+          "line": 282,
+          "params": [
+            "slug"
+          ],
+          "purpose": "Presentation helpers kept here so all surfaces share one mapping."
+        },
+        "taskStatusDotHtml": {
+          "line": 286,
+          "params": [
+            "taskId"
+          ]
+        },
+        "_activityDotHtml": {
+          "line": 290,
+          "params": [
+            "info"
+          ]
+        },
+        "onSpecLaneActivity": {
+          "line": 307,
+          "params": [
+            "callback"
+          ],
+          "purpose": "Returns an unsubscribe function."
+        },
+        "_notifySpecLane": {
+          "line": 315,
+          "params": [
+            "slug"
+          ]
+        },
+        "onTaskLaneActivity": {
+          "line": 335,
+          "params": [
+            "callback"
+          ],
+          "purpose": "Returns an unsubscribe function."
+        },
+        "_notifyTaskLane": {
+          "line": 343,
+          "params": [
+            "taskId"
+          ]
+        },
+        "_assignedLane": {
+          "line": 361,
+          "params": [
+            "slug"
+          ],
+          "purpose": "lane means the spec is unassigned again."
+        },
+        "_laneName": {
+          "line": 371,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "_askContinueOrNew": {
+          "line": 380,
+          "params": [
+            "frameName",
+            "specName"
+          ],
+          "purpose": "Resolves 'continue' | 'new' | 'cancel'; continue is the default action."
+        },
+        "_escapeHtml": {
+          "line": 412,
+          "params": [
+            "s"
+          ]
+        },
+        "_waitForAgentReady": {
+          "line": 431,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "the prompt to a y/n chooser, so those lanes time out instead."
+        },
+        "_fail": {
+          "line": 466,
+          "params": [
+            "terminalId",
+            "message"
+          ],
+          "purpose": "for what is presentation-only."
+        },
+        "_showToast": {
+          "line": 471,
+          "params": [
+            "message",
+            "type = 'info'"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "TERMINAL_DESTROYED"
+        ],
+        "emits": []
       }
     }
   },
@@ -7039,6 +7250,13 @@
   "files": {},
   "conventions": {},
   "intentIndex": {
+    "agent-dispatch": [
+      {
+        "module": "renderer/agentDispatch",
+        "file": "src/renderer/agentDispatch.js",
+        "description": "Agent Dispatch Module"
+      }
+    ],
     "ai-tool": [
       {
         "module": "main/aiToolManager",

@@ -14,7 +14,7 @@ const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const laneStatus = require('./laneStatus');
 const laneRail = require('./laneRail');
-const { Plus, Pencil, X, FolderOpen, GitBranch, Bot } = require('lucide');
+const { Plus, Pencil, X, FolderOpen, GitBranch, Bot, FileText, CheckSquare } = require('lucide');
 
 const STATUS_LABELS = {
   'idle': 'Idle',
@@ -48,6 +48,17 @@ function cleanCommand(commandLine) {
 
 // Agent identity (the card chip) comes live from laneStatus's foreground
 // detection — never a static tag, so failed launches leave nothing behind.
+
+// Assignment chip (what the lane works on): the icon already says spec vs
+// task, so spec labels drop the baked-in "spec: " prefix and show the slug.
+function assignmentIcon(assignment) {
+  return assignment.kind === 'spec' ? FileText : CheckSquare;
+}
+
+function assignmentText(assignment) {
+  if (assignment.kind === 'spec') return assignment.ref || assignment.label;
+  return assignment.label;
+}
 
 function lucideIcon(data, size = 14) {
   const children = data.map(([tag, attrs]) => {
@@ -165,6 +176,12 @@ class LaneBoard {
         <span class="lane-card-agent-badge" style="${agentName ? '' : 'display:none'}">${lucideIcon(Bot, 11)}<span>Agent</span></span>
         <span class="lane-card-tool" style="${agentName ? '' : 'display:none'}">${this._escapeHtml(agentName || '')}</span>
       </div>
+      ${t.assignment ? `
+      <div class="lane-card-assignment">
+        <span class="lane-assignment-chip${agentName ? '' : ' dimmed'}" title="${this._escapeHtml(t.assignment.label)}">
+          ${lucideIcon(assignmentIcon(t.assignment), 11)}<span class="lane-assignment-chip-label">${this._escapeHtml(assignmentText(t.assignment))}</span>
+        </span>
+      </div>` : ''}
       <div class="lane-card-footer">
         <span class="lane-card-status-label ${status}" title="${this._escapeHtml(commandLine || '')}">${this._escapeHtml(statusLabel(status, foreground, commandLine))}</span>
         <span class="lane-card-activity" data-ts="${lastActivityAt || ''}">${formatRelativeTime(lastActivityAt)}</span>
@@ -322,6 +339,11 @@ class LaneBoard {
       chip.textContent = agentName || '';
     }
 
+    // Assignment chip stays (provenance) but fades while no live agent
+    // is in the lane.
+    const assignChip = card.querySelector('.lane-assignment-chip');
+    if (assignChip) assignChip.classList.toggle('dimmed', !agentName);
+
     const activity = card.querySelector('.lane-card-activity');
     if (activity) {
       activity.dataset.ts = lastActivityAt || '';
@@ -438,4 +460,4 @@ class LaneBoard {
   }
 }
 
-module.exports = { LaneBoard, formatRelativeTime, STATUS_LABELS, cleanCommand };
+module.exports = { LaneBoard, formatRelativeTime, STATUS_LABELS, cleanCommand, assignmentIcon, assignmentText };
