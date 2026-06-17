@@ -26,6 +26,21 @@
   },
   "tasks": [
     {
+      "id": "task-fix-lane-card-assignment-overflow",
+      "title": "Lane card stretches when assignment label is long",
+      "description": "On the Lane Board (Mainframe home), when a lane card's assigned task/spec label is long (e.g. 'Structure filter data-loading per active view (Home/Explore + Explore sub...')', the assignment chip forces the card's grid track wider and breaks the card grid layout — cards stop sizing to their column. Fix is CSS-only in src/renderer/styles/components/lane-board.css: grid items default to min-width:auto, so a long nowrap chip refuses to shrink and overflows its track. Add min-width:0 to .lane-card so it can shrink within its 1fr grid track, and min-width:0 to .lane-assignment-chip-label so the existing text-overflow:ellipsis actually engages inside the chip's flex row. Card width must stay fixed to its column; the long label truncates with an ellipsis instead of expanding the card.",
+      "userRequest": "User said: bir bug var. Eğer bir frame üzerinde atanan task ya da spec çok uzunsa bu main ekrandaki görünümü bozuyor, burada esnememeli o width'ten gerekirse alt satırda yerimiz var o şekilde devam etmeli.",
+      "acceptanceCriteria": "(1) A lane card with a very long assigned task/spec label keeps the same width as the other cards in its grid row — it no longer stretches. (2) The long label truncates with an ellipsis within the assignment chip. (3) No regression to short-label cards, the branch chip, agent badge, or the status footer. (4) Behavior holds across the board's responsive breakpoints (1/2/3/4 columns).",
+      "notes": "Root cause: CSS grid tracks (repeat(N, 1fr)) carry an implicit min-width:auto on items, so intrinsic content (the nowrap chip label) widens the track. Two-line targeted fix in lane-board.css — no JS/markup change. Assignment chip markup lives in src/renderer/laneBoard.js (_renderCard).",
+      "status": "in_progress",
+      "priority": "high",
+      "category": "fix",
+      "context": "Session 2026-06-15 - Lane card overflow on long task/spec assignment",
+      "createdAt": "2026-06-15T00:00:00Z",
+      "updatedAt": "2026-06-15T00:00:00Z",
+      "completedAt": null
+    },
+    {
       "id": "task-structure-bootstrap",
       "title": "Ship STRUCTURE.json auto-fill machinery to user projects",
       "description": "Today the STRUCTURE.json auto-fill mechanism only works in Frame's own repo because scripts/update-structure.js, scripts/find-module.js, and .githooks/pre-commit live there. User projects initialized via 'Initialize as Frame Project' get an empty STRUCTURE.json with no tooling to fill it — AI is told to maintain it manually but rarely does, so the index stays {}.\n\nThis task ships the same machinery into user projects without disturbing their existing setup:\n\n1. Make scripts/update-structure.js and scripts/find-module.js portable via FRAME_PROJECT_ROOT env var (one-line tweak each). Frame's own usage stays identical because the env var falls back to __dirname/..\n2. Add 'scripts/**/*' to package.json electron-builder files array so the scripts ship in the asar bundle.\n3. Create src/main/structureBootstrap.js with: copyParserScripts(), detectHookSetup(), installPreCommitHook(), runInitialFullScan().\n4. Add a hook template string to src/shared/frameTemplates.js (getStructurePreCommitHookTemplate()) that calls 'node .frame/bin/update-structure.js --changed' with FRAME_PROJECT_ROOT set, then 'git add STRUCTURE.json'. Guards against missing node (silent skip).\n5. Detect existing hook setups: vanilla (.git/hooks/pre-commit), husky (.husky/pre-commit + core.hooksPath check), lefthook (lefthook.yml present). For vanilla-empty/sample: install. For husky/lefthook: append our line idempotently. For custom vanilla: log a console warning + show the line to add manually (don't auto-append in v1, safer).\n6. Wire bootstrap calls into initializeFrameProject() in frameProject.js AFTER existing logic. Only run runInitialFullScan if STRUCTURE.json was just created by us (track via createFileIfNotExists return value), never if user had a pre-existing one.\n7. Skip hook install when .git/ doesn't exist; still run initial full scan if applicable.\n\nFiles affected: scripts/update-structure.js (1-line), scripts/find-module.js (1-line), package.json (files array), src/main/frameProject.js (call sites), src/main/structureBootstrap.js (new), src/shared/frameTemplates.js (hook template).",
@@ -701,7 +716,7 @@
       "category": "feature",
       "context": "Session 2026-03-19 - HN post discussion on intentIndex edge cases",
       "createdAt": "2026-03-19T00:00:00Z",
-      "updatedAt": "2026-04-24T12:50:58.600Z",
+      "updatedAt": "2026-06-15T14:21:31.311Z",
       "completedAt": null
     },
     {
