@@ -62,11 +62,33 @@ After \`/spec.tasks\`, **do not** also write entries to \`tasks.json\` — Frame
 
 Spec-generated tasks carry a \`source\` field. Treat them like any other task — start them, complete them, update status. User-set status is preserved across spec re-imports; only title/description sync from \`tasks.md\`.
 
-### When to suggest a spec
+### When to suggest a spec (steer the conversation)
 
-If the user describes work bigger than a one-shot edit (a new feature, a multi-file refactor, a cross-cutting fix), suggest a spec first: *"This sounds like a spec — want me to draft \`.frame/specs/<slug>/spec.md\`?"*
+Spec-driven is Frame's core way of working, so when a user describes meaningful
+new work **mid-conversation**, gently steer them toward a spec instead of
+silently diving into code. Suggest a spec only for **significant work** — don't
+make this a reflex on every message.
 
-For one-line typo fixes, build errors, or clarifying questions, skip the spec — go direct.`;
+**Suggest a spec for:**
+- A new **feature** or capability ("users should be able to …", "add a … system")
+- A change that will touch **multiple files / modules** or affect architecture
+- Anything that clearly benefits from a **plan and ordered tasks** before coding
+- Work the user describes vaguely/largely that would benefit from being scoped first
+
+**Do NOT suggest a spec for:**
+- Typos, one-line fixes, small tweaks, renames → just do it
+- Small, discrete tracked work → that's a task (\`tasks.json\`)
+- Questions, debugging, explanations, experiments
+- Anything the user explicitly says to "just do" / "do directly"
+
+Rough ladder: *trivial → just do it · small but worth tracking → task · sizable
+feature or multi-file change → spec.*
+
+Ask once, in plain language, before coding. If they agree, start the spec flow
+(\`/spec.new\` → \`/spec.plan\` → \`/spec.tasks\`). If they decline or say "just do
+it", proceed directly and **don't ask again for that same piece of work** in the
+session. Never force it — the spec is an offer, not a gate; the user's stated
+preference always wins.`;
 
 /**
  * AGENTS.md template - Main instructions file for AI assistants
