@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-06-17",
+  "lastUpdated": "2026-06-18",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -5910,7 +5910,7 @@
           "purpose": "Get current ISO timestamp"
         },
         "getAgentsTemplate": {
-          "line": 80,
+          "line": 102,
           "params": [
             "projectName",
             "options"
@@ -5918,46 +5918,46 @@
           "purpose": "which we re-emit AGENTS.md (or append the section to it)."
         },
         "getStructureTemplate": {
-          "line": 259,
+          "line": 281,
           "params": [
             "projectName"
           ],
           "purpose": "STRUCTURE.json template"
         },
         "getNotesTemplate": {
-          "line": 283,
+          "line": 305,
           "params": [
             "projectName"
           ],
           "purpose": "PROJECT_NOTES.md template"
         },
         "getTasksTemplate": {
-          "line": 303,
+          "line": 325,
           "params": [
             "projectName"
           ],
           "purpose": "tasks.json template"
         },
         "getQuickstartTemplate": {
-          "line": 349,
+          "line": 371,
           "params": [
             "projectName"
           ],
           "purpose": "QUICKSTART.md template"
         },
         "getFrameConfigTemplate": {
-          "line": 415,
+          "line": 437,
           "params": [
             "projectName"
           ],
           "purpose": ".frame/config.json template"
         },
         "getCodexWrapperTemplate": {
-          "line": 454,
+          "line": 476,
           "purpose": "Instructs Codex to read AGENTS.md as initial prompt"
         },
         "getGenericWrapperTemplate": {
-          "line": 491,
+          "line": 513,
           "params": [
             "toolCommand",
             "promptFlag = ''"
@@ -5965,27 +5965,27 @@
           "purpose": "Can be customized for other AI tools in the future"
         },
         "getStructureHookSnippet": {
-          "line": 537
+          "line": 559
         },
         "getStructurePreCommitHookTemplate": {
-          "line": 558,
+          "line": 580,
           "purpose": "Husky/lefthook get the snippet appended into their own files instead."
         },
         "getOrchBusHeader": {
-          "line": 581,
+          "line": 603,
           "purpose": "wrappers above."
         },
         "getOrchRequestScript": {
-          "line": 593,
+          "line": 615,
           "params": [
             "type"
           ]
         },
         "getOrchStatusScript": {
-          "line": 613
+          "line": 635
         },
         "getOrchBinScripts": {
-          "line": 631,
+          "line": 653,
           "purpose": "project when an orchestration session starts."
         }
       }

@@ -46,6 +46,51 @@ This searches STRUCTURE.json's intentIndex and returns the exact files you need.
 
 ---
 
+## Spec-Driven Development (steer the conversation)
+
+Frame is built around **spec-driven development**: significant work flows
+through a spec (`spec.md` → `plan.md` → `tasks.md`) before code is written. This
+is Frame's core way of working, so when a user describes meaningful new work
+**mid-conversation**, gently steer them toward a spec instead of silently diving
+into code.
+
+### When to suggest a spec
+
+Suggest a spec only for **significant work** — don't make this a reflex on every
+message. Good triggers:
+
+- A new **feature** or capability ("users should be able to …", "add a … system")
+- A change that will touch **multiple files / modules** or affect architecture
+- Anything that clearly benefits from a **plan and ordered tasks** before coding
+- Work the user describes vaguely/largely and would benefit from being scoped first
+
+**Do NOT suggest a spec for:**
+- Typos, one-line fixes, small tweaks, renames → just do it
+- Small, discrete tracked work → that's a **task** (see Task Management below)
+- Questions, debugging, explanations, experiments
+- Anything the user explicitly says to "just do" / "do directly"
+
+Rough ladder: *trivial → just do it · small but worth tracking → task · sizable
+feature or multi-file change → spec.*
+
+### How to suggest
+
+When a significant request appears, ask once, in plain language, before coding:
+
+> "This is a sizable feature. Want me to handle it as a **spec** — I'll draft
+> `spec.md`, then we plan it and generate tasks — or should I just implement it
+> directly?"
+
+- If the user agrees → start the spec flow (create the spec, then plan, then
+  tasks). If they have the slash commands set up, point them at `/spec` etc.;
+  otherwise scaffold `.frame/specs/<slug>/` per the existing structure.
+- If the user says "just do it" / declines → proceed directly and **don't ask
+  again for that same piece of work** in the session.
+- Never force it. The spec is an offer, not a gate. The user's stated preference
+  always wins.
+
+---
+
 ## Task Management (tasks.json)
 
 ### Task Recognition Rules
