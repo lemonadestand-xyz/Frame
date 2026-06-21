@@ -8,10 +8,17 @@ const { IPC } = require('../shared/ipcChannels');
 const promptLogger = require('./promptLogger');
 
 // Store multiple PTY instances
-const ptyInstances = new Map(); // Map<terminalId, {pty, cwd, projectPath}>
+const ptyInstances = new Map(); // Map<terminalId, {pty, cwd, projectPath, awaiting, idleTimer}>
 let mainWindow = null;
 let terminalCounter = 0;
 const MAX_TERMINALS = 9;
+
+// How long a terminal must go without any PTY output, after being marked
+// "active" by a Run/Start flow, before we consider it complete. Long
+// enough to cover Claude's thinking-spinner cadence (which streams a few
+// chars every ~200ms) and short enough to be a useful "look back at me"
+// signal. 4s is the user-validated default; tunable later.
+const TERMINAL_IDLE_THRESHOLD_MS = 4000;
 
 /**
  * Initialize PTY manager with window reference
@@ -167,23 +174,36 @@ function createTerminal(workingDir = null, projectPath = null, shellPath = null)
     }
   });
 
-  // Handle PTY output - send with terminal ID
+  // Handle PTY output - send with terminal ID. Output also resets the
+  // idle timer for completion detection (see markTerminalActive).
   ptyProcess.onData((data) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send(IPC.TERMINAL_OUTPUT_ID, { terminalId, data });
     }
-  });
-
-  // Handle PTY exit
-  ptyProcess.onExit(({ exitCode, signal }) => {
-    console.log(`Terminal ${terminalId} exited:`, exitCode, signal);
-    ptyInstances.delete(terminalId);
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(IPC.TERMINAL_DESTROYED, { terminalId, exitCode });
+    const instance = ptyInstances.get(terminalId);
+    if (instance && instance.awaiting) {
+      resetIdleTimer(terminalId);
     }
   });
 
-  ptyInstances.set(terminalId, { pty: ptyProcess, cwd, projectPath });
+  // Handle PTY exit. Marked idempotent — destroyTerminal/destroyAll may
+  // have already deleted the instance and cleared timers.
+  ptyProcess.onExit(({ exitCode, signal }) => {
+    console.log(`Terminal ${terminalId} exited:`, exitCode, signal);
+    const inst = ptyInstances.get(terminalId);
+    if (inst) {
+      inst.destroyed = true;
+      clearIdleTimer(terminalId);
+      ptyInstances.delete(terminalId);
+    }
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      try {
+        mainWindow.webContents.send(IPC.TERMINAL_DESTROYED, { terminalId, exitCode });
+      } catch (_) { /* window torn down between guard and send */ }
+    }
+  });
+
+  ptyInstances.set(terminalId, { pty: ptyProcess, cwd, projectPath, destroyed: false });
   console.log(`Created terminal ${terminalId} in ${cwd} (project: ${projectPath || 'global'})`);
 
   return terminalId;
@@ -218,43 +238,77 @@ function getTerminalInfo(terminalId) {
 }
 
 /**
- * Write data to specific terminal
+ * Write data to specific terminal. Guarded against the destroyed-race
+ * window between user input being dispatched and the pty being torn
+ * down — node-pty's native binding will throw a Napi error otherwise.
  */
 function writeToTerminal(terminalId, data) {
   const instance = ptyInstances.get(terminalId);
-  if (instance) {
+  if (!instance || instance.destroyed) return;
+  try {
     instance.pty.write(data);
+  } catch (err) {
+    console.warn(`pty.write failed for ${terminalId}:`, err.message);
+    instance.destroyed = true;
   }
 }
 
 /**
- * Resize specific terminal
+ * Resize specific terminal. Same guard as writeToTerminal — a late
+ * resize from xterm's fit-addon on window teardown could otherwise
+ * crash the process.
  */
 function resizeTerminal(terminalId, cols, rows) {
   const instance = ptyInstances.get(terminalId);
-  if (instance) {
+  if (!instance || instance.destroyed) return;
+  try {
     instance.pty.resize(cols, rows);
+  } catch (err) {
+    console.warn(`pty.resize failed for ${terminalId}:`, err.message);
+    instance.destroyed = true;
   }
 }
 
 /**
- * Destroy specific terminal
+ * Destroy specific terminal. Idempotent via the `destroyed` flag so
+ * destroyAll → onExit double-fire can't kill an already-dead handle.
  */
 function destroyTerminal(terminalId) {
   const instance = ptyInstances.get(terminalId);
-  if (instance) {
-    instance.pty.kill();
+  if (!instance) return;
+  if (instance.destroyed) {
     ptyInstances.delete(terminalId);
-    console.log(`Destroyed terminal ${terminalId}`);
+    return;
   }
+  instance.destroyed = true;
+  clearIdleTimer(terminalId);
+  try {
+    instance.pty.kill();
+  } catch (err) {
+    // ESRCH / EBADF surface as Napi errors from node-pty if the pid
+    // is already gone or the handle is in a bad state. Safe to ignore
+    // here — we're tearing down anyway.
+    console.warn(`pty.kill failed for ${terminalId}:`, err.message);
+  }
+  ptyInstances.delete(terminalId);
+  console.log(`Destroyed terminal ${terminalId}`);
 }
 
 /**
- * Destroy all terminals
+ * Destroy all terminals. Used by mainWindow 'closed' and app shutdown.
+ * Each kill is independently guarded so one bad handle can't take
+ * down the rest of teardown.
  */
 function destroyAll() {
   for (const [terminalId, instance] of ptyInstances) {
-    instance.pty.kill();
+    if (instance.destroyed) continue;
+    instance.destroyed = true;
+    clearIdleTimer(terminalId);
+    try {
+      instance.pty.kill();
+    } catch (err) {
+      console.warn(`pty.kill failed for ${terminalId} during destroyAll:`, err.message);
+    }
     console.log(`Destroyed terminal ${terminalId}`);
   }
   ptyInstances.clear();
@@ -335,6 +389,55 @@ function setupIPC(ipcMain) {
   ipcMain.on(IPC.TERMINAL_RESIZE_ID, (event, { terminalId, cols, rows }) => {
     resizeTerminal(terminalId, cols, rows);
   });
+
+  // Activity tracking for completion notifications (lemo-7). Renderer
+  // marks a terminal "active" right after dispatching a Run / Start
+  // prompt. We arm an idle timer; each PTY output chunk resets it.
+  // When the timer expires we emit TERMINAL_COMPLETED so the renderer
+  // can notify, bounce the dock, and decorate the source tab + project.
+  ipcMain.on(IPC.TERMINAL_MARK_ACTIVE, (event, { terminalId } = {}) => {
+    if (!terminalId) return;
+    markTerminalActive(terminalId);
+  });
+}
+
+function markTerminalActive(terminalId) {
+  const instance = ptyInstances.get(terminalId);
+  if (!instance) return;
+  instance.awaiting = true;
+  resetIdleTimer(terminalId);
+}
+
+function resetIdleTimer(terminalId) {
+  const instance = ptyInstances.get(terminalId);
+  if (!instance) return;
+  if (instance.idleTimer) clearTimeout(instance.idleTimer);
+  instance.idleTimer = setTimeout(() => {
+    handleIdleExpired(terminalId);
+  }, TERMINAL_IDLE_THRESHOLD_MS);
+}
+
+function clearIdleTimer(terminalId) {
+  const instance = ptyInstances.get(terminalId);
+  if (!instance) return;
+  if (instance.idleTimer) {
+    clearTimeout(instance.idleTimer);
+    instance.idleTimer = null;
+  }
+  instance.awaiting = false;
+}
+
+function handleIdleExpired(terminalId) {
+  const instance = ptyInstances.get(terminalId);
+  if (!instance || !instance.awaiting) return;
+  instance.awaiting = false;
+  instance.idleTimer = null;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(IPC.TERMINAL_COMPLETED, {
+      terminalId,
+      projectPath: instance.projectPath || null
+    });
+  }
 }
 
 module.exports = {

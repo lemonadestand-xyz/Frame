@@ -52,3 +52,9 @@
 
 /* 15. Diff Viewer Overlay (read-only) */
 @import 'components/diff-viewer.css';
+
+/* 16. Global (cross-project) Dashboard overlay */
+@import 'components/global-dashboard.css';
+
+/* 17. Cross-project Chat Panel (overview-session chat) */
+@import 'components/chat-panel.css';

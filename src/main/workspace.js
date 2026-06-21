@@ -125,6 +125,26 @@ function removeProject(projectPath) {
 }
 
 /**
+ * Rename a project. The path stays the same — only the display name
+ * changes. Empty / whitespace-only names fall back to the directory
+ * basename so we never end up with a blank label in the sidebar.
+ */
+function renameProject(projectPath, newName) {
+  const workspace = loadWorkspace();
+  const active = workspace.activeWorkspace;
+
+  const project = workspace.workspaces[active].projects.find(
+    p => p.path === projectPath
+  );
+  if (!project) return false;
+
+  const cleaned = (newName || '').trim();
+  project.name = cleaned || path.basename(projectPath);
+  saveWorkspace(workspace);
+  return true;
+}
+
+/**
  * Update project's last opened timestamp
  */
 function updateProjectLastOpened(projectPath) {
@@ -176,6 +196,12 @@ function setupIPC(ipcMain) {
     const projects = getProjects();
     event.sender.send(IPC.WORKSPACE_UPDATED, projects);
   });
+
+  ipcMain.on(IPC.RENAME_PROJECT, (event, { projectPath, newName }) => {
+    renameProject(projectPath, newName);
+    const projects = getProjects();
+    event.sender.send(IPC.WORKSPACE_UPDATED, projects);
+  });
 }
 
 module.exports = {
@@ -184,6 +210,7 @@ module.exports = {
   getProjects,
   addProject,
   removeProject,
+  renameProject,
   updateProjectLastOpened,
   updateProjectFrameStatus,
   setupIPC

@@ -276,6 +276,23 @@ class MultiTerminalUI {
    */
   setActiveTerminal(terminalId) {
     this.manager.setActiveTerminal(terminalId);
+    // Clear any pending completion indicator on this terminal — the
+    // user is now looking at it. Lazy-required to avoid a load-order
+    // coupling with the notifier module.
+    try {
+      require('./terminalNotifier').clearTerminalIndicator(terminalId);
+    } catch (err) {
+      // Notifier not initialized yet — fine, indicator paint runs on
+      // each state change anyway.
+    }
+  }
+
+  /**
+   * Read accessor used by the notifier to suppress notifications when
+   * the user is already looking at the source terminal.
+   */
+  getActiveTerminalId() {
+    return this.manager.activeTerminalId;
   }
 
   /**

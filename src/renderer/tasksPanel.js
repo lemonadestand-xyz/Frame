@@ -11,6 +11,13 @@ let isVisible = false;
 let currentFilter = 'all'; // all, pending, inProgress, completed
 let tasksData = null;
 let claudeCodeRunning = false; // Track if Claude Code was started
+// Set when the user clicks "+ Subtask" on a parent row and consumed by
+// handleTaskFormSubmit. Cleared on every modal open and on submit.
+let pendingParentId = null;
+// Module-level so collapse state survives re-renders (driven by external
+// task edits, filter changes, etc.). Not persisted to disk in v1 — it's
+// a viewing preference, not task data.
+const collapsedParents = new Set();
 
 // DOM Elements
 let panelElement = null;
@@ -161,7 +168,10 @@ function setFilter(filter) {
 }
 
 /**
- * Get filtered tasks
+ * Get filtered tasks for the sidebar. Initiative-centric: only top-level
+ * tasks are listed here — subtasks are visible via the dashboard's
+ * detail aside or by drilling into the parent. This keeps the sidebar
+ * scan-able when initiatives explode into many subtasks.
  */
 function getFilteredTasks() {
   if (!tasksData || !tasksData.tasks) return [];
@@ -174,7 +184,8 @@ function getFilteredTasks() {
         ...(tasksData.tasks.completed || []).map(t => ({ ...t, status: 'completed' }))
       ];
 
-  if (currentFilter === 'all') return allTasks;
+  const topLevel = allTasks.filter(t => !t.parentId);
+  if (currentFilter === 'all') return topLevel;
 
   const statusMap = {
     pending: 'pending',
@@ -182,7 +193,16 @@ function getFilteredTasks() {
     completed: 'completed'
   };
 
-  return allTasks.filter(t => t.status === statusMap[currentFilter]);
+  return topLevel.filter(t => t.status === statusMap[currentFilter]);
+}
+
+/**
+ * Return all tasks (including subtasks) — used internally for rollup
+ * computation and locating tasks by ID when launching a parent run.
+ */
+function getAllTasks() {
+  if (!tasksData || !tasksData.tasks) return [];
+  return Array.isArray(tasksData.tasks) ? tasksData.tasks : [];
 }
 
 /**
@@ -209,7 +229,14 @@ function render() {
     return;
   }
 
-  contentElement.innerHTML = tasks.map(task => renderTaskItem(task)).join('');
+  // Sidebar lists only top-level tasks now (see getFilteredTasks).
+  // Subtask hierarchy is owned by the dashboard's detail aside.
+  // Each parent gets a small rollup chip in its meta row showing
+  // children completion progress.
+  const allTasks = getAllTasks();
+  contentElement.innerHTML = tasks
+    .map(task => renderTaskItem(task, 0, null, computeRollup(task.id, allTasks)))
+    .join('');
 
   // Add event listeners to task items
   contentElement.querySelectorAll('.task-item').forEach(item => {
@@ -232,9 +259,71 @@ function render() {
 }
 
 /**
- * Render single task item
+ * Build a tree view from a flat task list. Tasks whose parent is not in
+ * the filtered set are rendered as top-level so they don't disappear
+ * (this matters when filter narrowing removes a parent but keeps a child).
  */
-function renderTaskItem(task) {
+function renderTree(tasks) {
+  const inFilter = new Set(tasks.map(t => t.id));
+  const childrenByParent = new Map();
+  const roots = [];
+
+  for (const task of tasks) {
+    const pid = task.parentId && inFilter.has(task.parentId) ? task.parentId : null;
+    if (pid === null) {
+      roots.push(task);
+    } else {
+      if (!childrenByParent.has(pid)) childrenByParent.set(pid, []);
+      childrenByParent.get(pid).push(task);
+    }
+  }
+
+  const renderBranch = (task, depth) => {
+    const kids = childrenByParent.get(task.id) || [];
+    const rollup = computeRollup(task.id, tasks);
+    const isCollapsed = kids.length > 0 && collapsedParents.has(task.id);
+    const self = renderTaskItem(task, depth, null, rollup, {
+      hasChildren: kids.length > 0,
+      isCollapsed
+    });
+    if (isCollapsed) return self;
+    return self + kids.map(k => renderBranch(k, depth + 1)).join('');
+  };
+
+  return roots.map(t => renderBranch(t, 0)).join('');
+}
+
+/**
+ * Compute a small rollup summary ({completed, total}) over the immediate
+ * children of a task within the current filtered set. Returns null when
+ * the task has no children — caller decides whether to render the chip.
+ */
+function computeRollup(taskId, tasks) {
+  let total = 0;
+  let completed = 0;
+  for (const t of tasks) {
+    if (t.parentId === taskId) {
+      total += 1;
+      if (t.status === 'completed') completed += 1;
+    }
+  }
+  return total > 0 ? { total, completed } : null;
+}
+
+/**
+ * Render single task item.
+ *
+ * @param {object} task — the task to render
+ * @param {number} depth — nesting depth (0 = top-level). Used for indent only.
+ * @param {object|null} parentBreadcrumb — when rendered outside tree mode
+ *   (e.g. a status filter) and the task has a parent, pass the parent task
+ *   so we can show a `↳ parent title` line above the row.
+ * @param {{ total: number, completed: number } | null} rollup — child summary
+ *   for parent tasks. Renders as a small chip in the meta row.
+ * @param {{ hasChildren: boolean, isCollapsed: boolean }} treeInfo — only
+ *   meaningful in tree-render mode. Drives the chevron toggle.
+ */
+function renderTaskItem(task, depth = 0, parentBreadcrumb = null, rollup = null, treeInfo = {}) {
   const priorityClass = `priority-${task.priority || 'medium'}`;
   const statusClass = `status-${task.status.replace('_', '-')}`;
   const isCompleted = task.status === 'completed';
@@ -282,23 +371,62 @@ function renderTaskItem(task) {
     `;
   }
 
+  // Depth-based indent. Done as inline style to keep the CSS surface
+  // small — if we extend hierarchy more (collapse/expand toggles,
+  // connector lines, drag-to-reparent) move to a class-based approach.
+  const indentStyle = depth > 0 ? ` style="padding-left: ${12 + depth * 18}px"` : '';
+  const depthAttr = depth > 0 ? ` data-task-depth="${depth}"` : '';
+
+  const breadcrumb = parentBreadcrumb
+    ? `<div class="task-parent-breadcrumb" title="Parent task">↳ ${escapeHtml(parentBreadcrumb.title)}</div>`
+    : '';
+
+  const rollupChip = rollup
+    ? `<span class="task-rollup-chip" title="Subtasks completed">${rollup.completed}/${rollup.total} ✓</span>`
+    : '';
+
+  const subtaskButton = `
+        <button class="task-action-btn task-add-subtask" data-action="subtask" title="Add subtask">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>`;
+
+  // Expand: jump straight to the full-page initiative view. Available
+  // on every sidebar row even when there are no subtasks yet — the
+  // view doubles as a roomy editor for the initiative itself.
+  const expandButton = `
+        <button class="task-action-btn task-expand" data-action="expand" title="Open as initiative view">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 3 21 3 21 9"/>
+            <polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/>
+            <line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+        </button>`;
+
   return `
-    <div class="task-item ${statusClass}" data-task-id="${task.id}">
+    <div class="task-item ${statusClass}" data-task-id="${task.id}"${depthAttr}${indentStyle}>
       <div class="task-status-indicator" title="${task.status.replace('_', ' ')}">
         ${statusIcon}
       </div>
       <div class="task-content">
+        ${breadcrumb}
         <div class="task-title ${isCompleted ? 'completed' : ''}">${escapeHtml(task.title)}</div>
         ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ''}
         <div class="task-meta">
           <span class="task-priority ${priorityClass}">${priorityLabel}</span>
           ${task.category ? `<span class="task-category">${task.category}</span>` : ''}
+          ${rollupChip}
           ${renderSourceChip(task.source)}
+          ${renderDueChip(task)}
           <span class="task-date">${formatDate(task.createdAt)}</span>
         </div>
       </div>
       <div class="task-actions">
         ${actionButtons}
+        ${subtaskButton}
+        ${expandButton}
         <button class="task-action-btn task-delete" data-action="delete" title="Delete task">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -328,7 +456,10 @@ function handleTaskAction(taskId, action) {
       // only after the user confirms AND the launch actually succeeds
       // (e.g. the chosen CLI is installed). Lazy-required to avoid
       // load-order coupling with the rest of the renderer wiring.
+      // Pass children so the modal can render the subtask multi-select
+      // when this is a parent task.
       require('./taskRunModal').open(task, {
+        children: getAllTasks().filter(t => t.parentId === task.id),
         onRun: async (opts) => {
           const ok = await runTaskWithOptions(task, opts);
           if (!ok) return;
@@ -353,6 +484,14 @@ function handleTaskAction(taskId, action) {
       newStatus = 'pending';
       toastMessage = 'Task reopened';
       break;
+    case 'subtask':
+      showAddSubtaskModal(taskId);
+      return;
+    case 'expand':
+      // Defer to the dashboard module — it owns the fullscreen overlay
+      // and already knows how to render parent + subtasks side-by-side.
+      require('./tasksDashboard').openInitiativeView(taskId);
+      return;
     case 'delete':
       deleteTask(taskId);
       return;
@@ -430,16 +569,96 @@ function getToastIcon(type) {
  * never made on top of an unresolved working tree.
  */
 function buildTaskPrompt(task, opts = {}) {
-  let prompt = `Work on this task: ${task.title}`;
-  if (task.description) prompt += `. ${task.description}`;
-  if (task.priority === 'high') prompt += ` (High priority)`;
+  // Initiative shape: when subtasks are attached, the parent is the
+  // umbrella and the AI gets an explicit checklist of which children to
+  // execute. Without subtasks, we keep the older single-task wording.
+  // When the task being run is itself a subtask, opts.parent carries
+  // the parent task so we can prepend just enough context — title +
+  // acceptance criteria — without dumping every sibling and the full
+  // parent description (the Claude-Skill philosophy: slim contextual
+  // headers, not full-context-on-every-call).
+  const subtasks = Array.isArray(opts.subtasks) ? opts.subtasks : [];
+  const parent = opts.parent || null;
+
+  // References (lemo-4) — render as "[file] /abs/path" / "[url] https://..."
+  // so the agent can read/open whatever the user already had on hand.
+  const formatRefs = (refs) => {
+    if (!Array.isArray(refs) || refs.length === 0) return '';
+    return refs.map(r => {
+      const kind = r.kind === 'url' ? 'url' : 'file';
+      const label = r.label ? ` (${r.label})` : '';
+      return `  - [${kind}] ${r.value}${label}`;
+    }).join('\n');
+  };
+
+  let prompt;
+  if (subtasks.length > 0) {
+    prompt = `Work on this initiative: ${task.title}`;
+    if (task.description) prompt += `. ${task.description}`;
+    if (task.priority === 'high') prompt += ` (High priority)`;
+    if (task.acceptanceCriteria) {
+      prompt += `\n\nInitiative is done when: ${task.acceptanceCriteria}`;
+    }
+    prompt += `\n\nComplete the following sub-tasks, in order:\n`;
+    subtasks.forEach((sub, i) => {
+      prompt += `${i + 1}. ${sub.title}`;
+      if (sub.description) prompt += ` — ${sub.description}`;
+      if (sub.acceptanceCriteria) prompt += `\n   Done when: ${sub.acceptanceCriteria}`;
+      prompt += `\n`;
+    });
+    prompt += `\nDo not work on anything outside this list — other sub-tasks on the initiative are intentionally excluded.`;
+  } else {
+    // Parent context goes FIRST so the AI knows the umbrella before
+    // we narrow in on the subtask. Kept brief on purpose — full
+    // parent description is omitted unless the caller explicitly
+    // bumps opts.parentContextLevel to 'full' later.
+    if (parent) {
+      prompt = `You're working on a subtask within initiative "${parent.title}".`;
+      if (parent.acceptanceCriteria) {
+        prompt += ` The initiative succeeds when: ${parent.acceptanceCriteria}.`;
+      }
+      prompt += `\n\nFocus only on the subtask below — sibling subtasks are intentionally not in your context.\n\n`;
+      prompt += `Subtask: ${task.title}`;
+    } else {
+      prompt = `Work on this task: ${task.title}`;
+    }
+    if (task.description) prompt += `. ${task.description}`;
+    if (task.priority === 'high') prompt += ` (High priority)`;
+    if (task.acceptanceCriteria) {
+      prompt += `\n\nDone when: ${task.acceptanceCriteria}`;
+    }
+  }
+
+  // References block. Always appended last so the agent has the
+  // primary context first. Parent's references travel with subtask
+  // runs (initiative-wide assets); subtask references are listed
+  // alongside their subtask in initiative runs.
+  const taskRefs = formatRefs(task.references);
+  const parentRefs = parent ? formatRefs(parent.references) : '';
+  if (taskRefs || parentRefs) {
+    prompt += `\n\nReferences to consult before starting:`;
+    if (parentRefs) prompt += `\n(from initiative)\n${parentRefs}`;
+    if (taskRefs) prompt += `\n(direct)\n${taskRefs}`;
+  }
+  if (subtasks.length > 0) {
+    const subtaskRefsBlock = subtasks
+      .map((sub, i) => {
+        const r = formatRefs(sub.references);
+        return r ? `${i + 1}. ${sub.title}\n${r}` : '';
+      })
+      .filter(Boolean)
+      .join('\n');
+    if (subtaskRefsBlock) {
+      prompt += `\n\nSubtask references:\n${subtaskRefsBlock}`;
+    }
+  }
 
   if (opts.branchMode === 'new') {
     const branchStep = opts.newBranchName
       ? `create and switch to a new branch named "${opts.newBranchName}"`
       : `suggest an appropriate branch name based on this task, wait for my confirmation, and then create and switch to that branch`;
 
-    prompt += `. Before starting, do the following in order:`
+    prompt += `\n\nBefore starting, do the following in order:`
       + ` First, check for uncommitted changes on the current branch — if any exist, ask me what to do with them (commit, stash, or discard) and act on my decision before continuing.`
       + ` Then, ${branchStep}.`;
   }
@@ -457,7 +676,21 @@ function buildTaskPrompt(task, opts = {}) {
  * the caller can decide whether to flip status / show "sent" toast.
  */
 async function runTaskWithOptions(task, opts = {}) {
-  const prompt = buildTaskPrompt(task, opts);
+  // Resolve subtask IDs (from the run modal's multi-select) into actual
+  // task objects so buildTaskPrompt can render them inline. Skip
+  // already-completed subtasks even if the user left them checked —
+  // re-running completed work is rarely intended.
+  const byId = new Map(getAllTasks().map(t => [t.id, t]));
+  let subtasks = [];
+  if (Array.isArray(opts.includedSubtaskIds) && opts.includedSubtaskIds.length > 0) {
+    subtasks = opts.includedSubtaskIds
+      .map(id => byId.get(id))
+      .filter(t => t && t.status !== 'completed');
+  }
+  // If the task being run is itself a subtask, look up its parent so
+  // buildTaskPrompt can prepend a slim initiative-context block.
+  const parent = task.parentId ? (byId.get(task.parentId) || null) : null;
+  const prompt = buildTaskPrompt(task, { ...opts, subtasks, parent });
 
   if (!opts.useNewTerminal) {
     // Same text-then-Enter trick as the new-terminal flow: AI CLI input
@@ -466,10 +699,16 @@ async function runTaskWithOptions(task, opts = {}) {
     // submitting. Splitting the writes makes submit reliable.
     if (typeof window.terminalSendPromptThenEnter === 'function') {
       window.terminalSendPromptThenEnter(prompt);
+      if (typeof window.terminalMarkActive === 'function') {
+        window.terminalMarkActive();
+      }
       return true;
     }
     if (typeof window.terminalSendCommand === 'function') {
       window.terminalSendCommand(prompt);
+      if (typeof window.terminalMarkActive === 'function') {
+        window.terminalMarkActive();
+      }
       return true;
     }
     console.error('Terminal sendCommand not available');
@@ -522,6 +761,9 @@ async function runTaskWithOptions(task, opts = {}) {
     } else if (typeof window.terminalSendCommand === 'function') {
       window.terminalSendCommand(prompt, newTerminalId);
     }
+    if (typeof window.terminalMarkActive === 'function') {
+      window.terminalMarkActive(newTerminalId);
+    }
   }, 5000);
   return true;
 }
@@ -569,7 +811,44 @@ function showAddTaskModal() {
 
   if (!modal || !form) return;
 
+  pendingParentId = null;
+  updateParentInfo(null);
+
   title.textContent = 'Add Task';
+  form.reset();
+  form.dataset.mode = 'add';
+  form.dataset.taskId = '';
+  // Expand button only meaningful when editing an existing task.
+  const expandBtn = document.getElementById('task-modal-expand');
+  if (expandBtn) expandBtn.style.display = 'none';
+
+  modal.classList.add('visible');
+  document.getElementById('task-title-input')?.focus();
+}
+
+/**
+ * Show the add-task modal pre-bound to a parent. The submit handler will
+ * include `parentId` in the payload so tasksManager wires the new task
+ * under the right parent. Renders a small "Subtask of: <parent title>"
+ * banner in the modal so the user knows what they're filing under.
+ */
+function showAddSubtaskModal(parentId) {
+  const modal = document.getElementById('task-modal');
+  const form = document.getElementById('task-form');
+  const title = document.getElementById('task-modal-title');
+
+  if (!modal || !form) return;
+
+  const parent = (tasksData?.tasks || []).find(t => t.id === parentId);
+  if (!parent) {
+    showToast('Parent task not found', 'error');
+    return;
+  }
+
+  pendingParentId = parentId;
+  updateParentInfo(parent);
+
+  title.textContent = 'Add Subtask';
   form.reset();
   form.dataset.mode = 'add';
   form.dataset.taskId = '';
@@ -579,10 +858,40 @@ function showAddTaskModal() {
 }
 
 /**
+ * Show or hide the "Subtask of: ..." banner in the task modal. The
+ * banner element is inserted into the DOM once (lazily) so we don't
+ * have to touch index.html.
+ */
+function updateParentInfo(parent) {
+  const body = document.querySelector('#task-modal .task-modal-body');
+  if (!body) return;
+
+  let info = document.getElementById('task-parent-info');
+  if (!info) {
+    info = document.createElement('div');
+    info.id = 'task-parent-info';
+    info.className = 'task-parent-info';
+    info.style.cssText = 'padding: 6px 10px; margin-bottom: 10px; border-radius: 4px; background: rgba(212,165,116,0.12); border: 1px solid rgba(212,165,116,0.35); font-size: 12px; display: none;';
+    body.insertBefore(info, body.firstChild);
+  }
+
+  if (parent) {
+    info.textContent = `Subtask of: ${parent.title}`;
+    info.style.display = 'block';
+  } else {
+    info.textContent = '';
+    info.style.display = 'none';
+  }
+}
+
+/**
  * Show edit task modal
  */
 function showEditTaskModal(taskId) {
-  const task = getFilteredTasks().find(t => t.id === taskId);
+  // Look up the task in the full list, not just the filtered view —
+  // a subtask click from the modal subtasks list needs to work even
+  // though subtasks are excluded from the sidebar's filtered list.
+  const task = getAllTasks().find(t => t.id === taskId);
   if (!task) return;
 
   const modal = document.getElementById('task-modal');
@@ -591,17 +900,96 @@ function showEditTaskModal(taskId) {
 
   if (!modal || !form) return;
 
+  pendingParentId = null;
+
   title.textContent = 'Edit Task';
   form.dataset.mode = 'edit';
   form.dataset.taskId = taskId;
+  // Show the Expand button so the user can jump from this modal into
+  // the full-page initiative view (handler set up in setupModalListeners).
+  const expandBtn = document.getElementById('task-modal-expand');
+  if (expandBtn) {
+    expandBtn.style.display = '';
+    expandBtn.dataset.taskId = taskId;
+  }
+
+  // Surface parent context: if this is a subtask, show the "Subtask of"
+  // banner. If it's a parent (has children), the dedicated subtasks
+  // section below replaces that role.
+  const parent = task.parentId ? getAllTasks().find(t => t.id === task.parentId) : null;
+  updateParentInfo(parent || null);
 
   // Fill form with task data
   document.getElementById('task-title-input').value = task.title || '';
   document.getElementById('task-description-input').value = task.description || '';
   document.getElementById('task-priority-input').value = task.priority || 'medium';
   document.getElementById('task-category-input').value = task.category || 'feature';
+  document.getElementById('task-start-date-input').value = task.startDate || '';
+  document.getElementById('task-end-date-input').value = task.endDate || '';
+
+  renderModalSubtasks(task);
 
   modal.classList.add('visible');
+}
+
+/**
+ * Paint the subtasks section inside the edit modal. Hidden for tasks
+ * with no children; shown otherwise. Clicking a child swaps the modal
+ * to edit that child (parent edits in the form are abandoned — that's
+ * the same UX as switching between Add and Edit modes elsewhere).
+ */
+function renderModalSubtasks(task) {
+  const section = document.getElementById('task-modal-subtasks');
+  const list = document.getElementById('task-modal-subtasks-list');
+  const countEl = document.getElementById('task-modal-subtasks-count');
+  const addBtn = document.getElementById('task-modal-add-subtask');
+  if (!section || !list) return;
+
+  const children = getAllTasks().filter(t => t.parentId === task.id);
+
+  if (children.length === 0 && task.parentId) {
+    // Subtask itself with no children → no subtasks section needed.
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = '';
+  if (countEl) {
+    const completed = children.filter(c => c.status === 'completed').length;
+    countEl.textContent = children.length === 0
+      ? ''
+      : ` (${completed}/${children.length})`;
+  }
+
+  list.innerHTML = '';
+  for (const child of children) {
+    const row = document.createElement('div');
+    row.className = `task-modal-subtask status-${(child.status || 'pending').replace('_', '-')}`;
+    row.dataset.taskId = child.id;
+    const completedCls = child.status === 'completed' ? ' completed' : '';
+    row.innerHTML = `
+      <span class="task-modal-subtask-dot status-${(child.status || 'pending').replace('_', '-')}"></span>
+      <span class="task-modal-subtask-title${completedCls}"></span>
+      <span class="task-modal-subtask-status">${(child.status || 'pending').replace('_', ' ')}</span>
+    `;
+    row.querySelector('.task-modal-subtask-title').textContent = child.title || 'Untitled';
+    row.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showEditTaskModal(child.id);
+    });
+    list.appendChild(row);
+  }
+
+  if (addBtn) {
+    // Clone-replace to clear stale parent IDs from previous renders so a
+    // user editing parent A then B can't accidentally add a subtask to A.
+    const fresh = addBtn.cloneNode(true);
+    addBtn.parentNode.replaceChild(fresh, addBtn);
+    fresh.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showAddSubtaskModal(task.id);
+    });
+  }
 }
 
 /**
@@ -612,6 +1000,10 @@ function hideTaskModal() {
   if (modal) {
     modal.classList.remove('visible');
   }
+  pendingParentId = null;
+  updateParentInfo(null);
+  const section = document.getElementById('task-modal-subtasks');
+  if (section) section.style.display = 'none';
 }
 
 /**
@@ -631,7 +1023,9 @@ function handleTaskFormSubmit(e) {
     title: document.getElementById('task-title-input').value.trim(),
     description: document.getElementById('task-description-input').value.trim(),
     priority: document.getElementById('task-priority-input').value,
-    category: document.getElementById('task-category-input').value
+    category: document.getElementById('task-category-input').value,
+    startDate: document.getElementById('task-start-date-input').value || null,
+    endDate: document.getElementById('task-end-date-input').value || null
   };
 
   if (!taskData.title) {
@@ -640,6 +1034,7 @@ function handleTaskFormSubmit(e) {
   }
 
   if (mode === 'add') {
+    if (pendingParentId) taskData.parentId = pendingParentId;
     ipcRenderer.send(IPC.ADD_TASK, { projectPath, task: taskData });
   } else if (mode === 'edit' && taskId) {
     ipcRenderer.send(IPC.UPDATE_TASK, {
@@ -649,6 +1044,7 @@ function handleTaskFormSubmit(e) {
     });
   }
 
+  pendingParentId = null;
   hideTaskModal();
 }
 
@@ -660,6 +1056,7 @@ function setupModalListeners() {
   const form = document.getElementById('task-form');
   const cancelBtn = document.getElementById('task-cancel-btn');
   const closeBtn = document.getElementById('task-modal-close');
+  const expandBtn = document.getElementById('task-modal-expand');
 
   if (form) {
     form.addEventListener('submit', handleTaskFormSubmit);
@@ -671,6 +1068,17 @@ function setupModalListeners() {
 
   if (closeBtn) {
     closeBtn.addEventListener('click', hideTaskModal);
+  }
+
+  if (expandBtn) {
+    expandBtn.addEventListener('click', () => {
+      const taskId = expandBtn.dataset.taskId;
+      if (!taskId) return;
+      // Close the modal so the initiative view isn't visually layered
+      // on top of it. The fullscreen overlay takes over.
+      hideTaskModal();
+      require('./tasksDashboard').openInitiativeView(taskId);
+    });
   }
 
   // Close on backdrop click
@@ -715,6 +1123,42 @@ function renderSourceChip(source) {
 }
 
 /**
+ * Render a chip for a task's due date — colored as overdue when the
+ * date has passed and the task is not yet completed.
+ */
+function renderDueChip(task) {
+  if (!task || !task.endDate) return '';
+  const overdue = task.status !== 'completed' && task.endDate < todayYMD();
+  const cls = `task-due${overdue ? ' overdue' : ''}`;
+  const label = formatDueDate(task.endDate);
+  const title = overdue ? `Overdue · due ${task.endDate}` : `Due ${task.endDate}`;
+  return `<span class="${cls}" title="${escapeHtml(title)}">${escapeHtml(label)}</span>`;
+}
+
+function todayYMD() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function formatDueDate(ymd) {
+  if (!ymd) return '';
+  const today = todayYMD();
+  if (ymd === today) return 'Due today';
+  const [y, m, d] = ymd.split('-').map(Number);
+  const target = new Date(y, (m || 1) - 1, d || 1);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((target - now) / (1000 * 60 * 60 * 24));
+  if (diffDays === 1) return 'Due tomorrow';
+  if (diffDays < 0) return `${Math.abs(diffDays)}d overdue`;
+  if (diffDays < 7) return `Due in ${diffDays}d`;
+  return `Due ${target.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+}
+
+/**
  * Format date for display
  */
 function formatDate(isoString) {
@@ -739,6 +1183,15 @@ function initWhenReady() {
   setupModalListeners();
 }
 
+/**
+ * Public entry point for opening the Add Subtask modal from outside
+ * this module (e.g. the dashboard's full-page initiative view). Same
+ * flow as the in-row "+" button, just callable by ID.
+ */
+function openAddSubtaskModalForParent(parentId) {
+  showAddSubtaskModal(parentId);
+}
+
 module.exports = {
   init: initWhenReady,
   show,
@@ -747,5 +1200,11 @@ module.exports = {
   loadTasks,
   isVisible: () => isVisible,
   setClaudeRunning,
-  isClaudeRunning
+  isClaudeRunning,
+  // Exported so the dashboard can reuse the same launch flow for its
+  // Run buttons (detail aside + subtask rows) without duplicating the
+  // CLI pre-flight + prompt build + status flip wiring.
+  runTaskWithOptions,
+  showToast,
+  openAddSubtaskModalForParent
 };

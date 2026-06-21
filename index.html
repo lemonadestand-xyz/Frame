@@ -43,7 +43,30 @@
   <div id="sidebar">
     <div id="sidebar-resize-handle"></div>
     <div id="sidebar-header">
+      <button
+        type="button"
+        id="sidebar-collapse-toggle"
+        class="sidebar-collapse-toggle"
+        title="Collapse sidebar"
+        aria-label="Collapse sidebar"
+        tabindex="-1"
+      >
+        <svg class="sidebar-collapse-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
       <span class="sidebar-header-text">Frame <span id="app-version"></span></span>
+      <button
+        id="btn-global-dashboard"
+        type="button"
+        class="sidebar-header-dashboard-btn"
+        tabindex="-1"
+        title="Open cross-project dashboard"
+        aria-label="Open cross-project dashboard"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        <span>Dashboard</span>
+      </button>
       <button
         type="button"
         id="update-dot"
@@ -55,9 +78,28 @@
     </div>
 
     <div class="sidebar-tabs">
-      <button class="sidebar-tab-btn active" data-sidebar-tab="projects">Projects</button>
-      <button class="sidebar-tab-btn" data-sidebar-tab="files">Files</button>
-      <button class="sidebar-tab-btn" data-sidebar-tab="changes">Changes</button>
+      <button class="sidebar-tab-btn active" data-sidebar-tab="projects" title="Projects">
+        <svg class="sidebar-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span class="sidebar-tab-label">Projects</span>
+      </button>
+      <button class="sidebar-tab-btn" data-sidebar-tab="files" title="Files">
+        <svg class="sidebar-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        <span class="sidebar-tab-label">Files</span>
+      </button>
+      <button class="sidebar-tab-btn" data-sidebar-tab="changes" title="Changes">
+        <svg class="sidebar-tab-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="6" y1="3" x2="6" y2="15"/>
+          <circle cx="18" cy="6" r="3"/>
+          <circle cx="6" cy="18" r="3"/>
+          <path d="M18 9a9 9 0 0 1-9 9"/>
+        </svg>
+        <span class="sidebar-tab-label">Changes</span>
+      </button>
     </div>
 
     <!-- Projects Tab Content -->
@@ -77,11 +119,48 @@
           <button id="btn-clone-github-cancel" class="btn btn-secondary" tabindex="-1" style="font-size:11px; padding:4px 8px;">✕</button>
         </div>
         <div class="ai-tool-row">
-          <button id="btn-start-ai" class="btn btn-success" tabindex="-1" disabled>Start Claude Code</button>
+          <div class="ai-tool-start-split">
+            <button id="btn-start-ai" class="btn btn-success" tabindex="-1" disabled>Start Claude Code</button>
+            <button id="btn-start-ai-options" class="btn btn-success ai-tool-options-btn" tabindex="-1" title="Start options" aria-haspopup="true" aria-expanded="false">▾</button>
+          </div>
           <select id="ai-tool-selector" class="ai-tool-select" tabindex="-1">
             <option value="claude">Claude</option>
             <option value="codex">Codex</option>
           </select>
+        </div>
+
+        <!-- Start-options popover. Populated by aiToolSelector.js with the
+             active tool's presets + a free-form flags input. Anchored to
+             #project-actions so it floats above the rest of the sidebar. -->
+        <div id="ai-tool-options-popover" class="ai-tool-options-popover" hidden>
+          <div class="ai-tool-options-header">
+            <span>Start options</span>
+            <button id="ai-tool-options-close" class="ai-tool-options-close" title="Close">✕</button>
+          </div>
+          <div class="ai-tool-options-body">
+            <div class="ai-tool-options-section">
+              <div class="ai-tool-options-section-label">Presets</div>
+              <div id="ai-tool-options-presets" class="ai-tool-options-presets"></div>
+              <div id="ai-tool-options-no-presets" class="ai-tool-options-empty" hidden>
+                No presets defined for this tool — use Additional flags below.
+              </div>
+            </div>
+            <div class="ai-tool-options-section">
+              <div class="ai-tool-options-section-label">Additional flags</div>
+              <input
+                id="ai-tool-options-custom"
+                type="text"
+                class="ai-tool-options-custom"
+                placeholder="--model opus --print"
+                spellcheck="false"
+              />
+              <div class="ai-tool-options-hint">Space-separated. Saved as the default for this tool.</div>
+            </div>
+            <div class="ai-tool-options-section">
+              <div class="ai-tool-options-section-label">Will run</div>
+              <code id="ai-tool-options-preview" class="ai-tool-options-preview"></code>
+            </div>
+          </div>
         </div>
         <div class="init-frame-wrapper">
           <button id="btn-initialize-frame" class="btn btn-frame-init" tabindex="-1" style="display: none;">Initialize as Frame Project</button>
@@ -804,6 +883,16 @@
                   </select>
                 </div>
               </div>
+              <div class="tasks-dashboard-form-row">
+                <div class="tasks-dashboard-form-group">
+                  <label for="tasks-dashboard-form-start-date">Start date</label>
+                  <input type="date" id="tasks-dashboard-form-start-date">
+                </div>
+                <div class="tasks-dashboard-form-group">
+                  <label for="tasks-dashboard-form-end-date">Due date</label>
+                  <input type="date" id="tasks-dashboard-form-end-date">
+                </div>
+              </div>
             </div>
             <div class="tasks-dashboard-form-footer">
               <button type="button" class="tasks-dashboard-form-cancel">Cancel</button>
@@ -814,6 +903,30 @@
             <div class="tasks-dashboard-detail-header">
               <div class="tasks-dashboard-detail-status-pill"></div>
               <div class="tasks-dashboard-detail-header-actions">
+                <button class="tasks-dashboard-detail-expand" tabindex="-1" title="Open as initiative view">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 3 21 3 21 9"/>
+                    <polyline points="9 21 3 21 3 15"/>
+                    <line x1="21" y1="3" x2="14" y2="10"/>
+                    <line x1="3" y1="21" x2="10" y2="14"/>
+                  </svg>
+                  Expand
+                </button>
+                <button class="tasks-dashboard-detail-run" tabindex="-1" title="Run task">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  Run
+                </button>
+                <button class="tasks-dashboard-detail-move" tabindex="-1" title="Change parent">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="17 1 21 5 17 9"/>
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                    <polyline points="7 23 3 19 7 15"/>
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+                  </svg>
+                  Move
+                </button>
                 <button class="tasks-dashboard-detail-delete" tabindex="-1" title="Delete task">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"/>
@@ -832,11 +945,19 @@
                 </button>
               </div>
             </div>
+            <div class="tasks-dashboard-detail-parent" style="display:none;">
+              <span class="tasks-dashboard-detail-parent-label">Part of initiative</span>
+              <button class="tasks-dashboard-detail-parent-link" tabindex="-1"></button>
+            </div>
             <h3 class="tasks-dashboard-detail-title"></h3>
             <div class="tasks-dashboard-detail-meta"></div>
             <div class="tasks-dashboard-detail-section">
               <h4>Description</h4>
               <p class="tasks-dashboard-detail-description"></p>
+            </div>
+            <div class="tasks-dashboard-detail-section tasks-dashboard-detail-subtasks" style="display:none;">
+              <h4><span class="tasks-dashboard-detail-subtasks-label">Subtasks</span><span class="tasks-dashboard-detail-subtasks-count"></span></h4>
+              <div class="tasks-dashboard-detail-subtasks-list"></div>
             </div>
             <div class="tasks-dashboard-detail-section tasks-dashboard-detail-userrequest" style="display:none;">
               <h4>Original request</h4>
@@ -860,6 +981,47 @@
             </div>
           </div>
         </aside>
+
+        <!-- Reparent popover. Anchored to the Move button; populated
+             on open with all top-level tasks (potential new parents)
+             plus "Make top-level". -->
+        <div id="tasks-dashboard-move-popover" class="tasks-dashboard-move-popover" hidden>
+          <div class="tasks-dashboard-move-header">Move to initiative</div>
+          <div id="tasks-dashboard-move-list" class="tasks-dashboard-move-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full-page initiative view. Activated from the dashboard's
+         detail aside (Expand button). Shows the parent task in a wide
+         left pane and a scrollable subtasks column on the right so the
+         user can read the whole initiative without losing context. -->
+    <div id="tasks-initiative-view" class="tasks-initiative-view">
+      <div class="tasks-initiative-header">
+        <button id="tasks-initiative-back" class="tasks-initiative-back" tabindex="-1">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          Back to dashboard
+        </button>
+        <div class="tasks-initiative-header-title">
+          <span class="tasks-initiative-header-label">Initiative</span>
+          <h2 id="tasks-initiative-title" class="tasks-initiative-title"></h2>
+        </div>
+        <div class="tasks-initiative-header-actions">
+          <button id="tasks-initiative-add-subtask" class="tasks-initiative-action" tabindex="-1" title="Add subtask">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add subtask
+          </button>
+          <button id="tasks-initiative-run" class="tasks-initiative-action tasks-initiative-action-primary" tabindex="-1" title="Run initiative">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Run initiative
+          </button>
+        </div>
+      </div>
+      <div class="tasks-initiative-body">
+        <aside id="tasks-initiative-left" class="tasks-initiative-left"></aside>
+        <main id="tasks-initiative-right" class="tasks-initiative-right"></main>
       </div>
     </div>
 
@@ -886,6 +1048,247 @@
           </div>
           <div class="specs-dashboard-detail-content"></div>
         </aside>
+      </div>
+    </div>
+
+    <!-- Global Dashboard (cross-project tasks + metadata) -->
+    <div id="global-dashboard" class="global-dashboard">
+      <div class="global-dashboard-header">
+        <div class="global-dashboard-header-left">
+          <button id="global-dashboard-toggle-side" class="global-dashboard-icon-btn" tabindex="-1" title="Show / hide projects sidebar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="global-dashboard-title">
+            <span class="global-dashboard-mark">&#9783;</span>
+            <h2 id="global-dashboard-heading">All Projects</h2>
+            <span id="global-dashboard-last-synced" class="global-dashboard-last-synced"></span>
+          </div>
+        </div>
+        <div class="global-dashboard-actions">
+          <div class="global-dashboard-view-toggle" role="group" aria-label="View mode">
+            <button class="global-dashboard-view-btn active" data-view-mode="list" tabindex="-1" title="List view">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              List
+            </button>
+            <button class="global-dashboard-view-btn" data-view-mode="board" tabindex="-1" title="Board view">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="4" width="5" height="16"/><rect x="10" y="4" width="5" height="10"/><rect x="17" y="4" width="5" height="13"/></svg>
+              Board
+            </button>
+          </div>
+          <button id="global-dashboard-open-chat" class="global-dashboard-btn" tabindex="-1" title="Open cross-project chat (overview-session)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Chat
+          </button>
+          <button id="global-dashboard-toggle-filters" class="global-dashboard-btn" tabindex="-1" title="Show / hide filters">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            Filter
+          </button>
+          <button id="global-dashboard-sync" class="global-dashboard-btn" tabindex="-1" title="Re-read tasks.json from every tracked project">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span class="global-dashboard-sync-label">Sync</span>
+          </button>
+          <button id="global-dashboard-add-task" class="global-dashboard-btn" tabindex="-1" title="Add a task to a tracked project">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Add task
+          </button>
+          <button id="global-dashboard-add" class="global-dashboard-btn" tabindex="-1" title="Track a new project">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add project
+          </button>
+          <button id="global-dashboard-close" class="global-dashboard-close" tabindex="-1" aria-label="Close">&#x2715;</button>
+        </div>
+      </div>
+      <div class="global-dashboard-body">
+        <aside id="global-dashboard-sidebar" class="global-dashboard-sidebar">
+          <button class="global-dashboard-side-item all-projects active" data-side-target="all">
+            <span class="global-dashboard-side-name">All projects</span>
+            <span class="global-dashboard-side-count" data-count-all>0</span>
+          </button>
+          <div class="global-dashboard-side-section-label">Tracked</div>
+          <div id="global-dashboard-side-list" class="global-dashboard-side-list"></div>
+        </aside>
+        <main id="global-dashboard-main" class="global-dashboard-main">
+          <div id="global-dashboard-toolbar" class="global-dashboard-toolbar">
+            <div class="global-dashboard-toolbar-filters">
+              <label class="global-dashboard-toolbar-pill">
+                <input type="checkbox" data-global-filter-status value="pending"> Pending
+              </label>
+              <label class="global-dashboard-toolbar-pill">
+                <input type="checkbox" data-global-filter-status value="in_progress"> In progress
+              </label>
+              <label class="global-dashboard-toolbar-pill">
+                <input type="checkbox" data-global-filter-status value="completed"> Completed
+              </label>
+              <label class="global-dashboard-toolbar-pill">
+                <input type="checkbox" data-global-filter-due value="overdue"> Overdue only
+              </label>
+              <label class="global-dashboard-toolbar-pill">
+                <input type="checkbox" data-global-filter-due value="upcoming"> Due this week
+              </label>
+            </div>
+            <select id="global-dashboard-sort" class="global-dashboard-toolbar-sort">
+              <option value="due">Sort by due date</option>
+              <option value="priority">Sort by priority</option>
+              <option value="updated">Sort by updated</option>
+              <option value="project">Sort by project</option>
+            </select>
+          </div>
+          <div id="global-dashboard-content" class="global-dashboard-content"></div>
+          <aside id="global-task-detail" class="global-task-detail">
+            <div class="global-task-detail-topbar">
+              <span class="global-task-detail-topbar-title">Task</span>
+              <button id="global-task-detail-close" class="global-task-detail-topbar-close" aria-label="Close">&#x2715;</button>
+            </div>
+            <div id="global-task-detail-body" class="global-task-detail-body"></div>
+          </aside>
+        </main>
+      </div>
+    </div>
+
+    <!-- Global dashboard: Add Task modal -->
+    <div id="global-task-add-modal" class="modal-overlay">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h3>Add task</h3>
+          <button class="modal-close" id="global-task-add-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-field">
+            <label for="global-task-add-project">Project</label>
+            <select id="global-task-add-project"></select>
+          </div>
+          <div class="modal-field">
+            <label for="global-task-add-title">Title</label>
+            <input type="text" id="global-task-add-title" placeholder="What needs to happen?" />
+          </div>
+          <div class="modal-field">
+            <label for="global-task-add-description">Description</label>
+            <textarea id="global-task-add-description" placeholder="More detail (optional)"></textarea>
+          </div>
+          <div class="modal-field-row">
+            <div class="modal-field">
+              <label for="global-task-add-priority">Priority</label>
+              <select id="global-task-add-priority">
+                <option value="high">High</option>
+                <option value="medium" selected>Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            <div class="modal-field">
+              <label for="global-task-add-category">Category</label>
+              <select id="global-task-add-category">
+                <option value="feature">Feature</option>
+                <option value="fix">Bug Fix</option>
+                <option value="refactor">Refactor</option>
+                <option value="docs">Documentation</option>
+                <option value="test">Testing</option>
+                <option value="research">Research</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-field-row">
+            <div class="modal-field">
+              <label for="global-task-add-start">Start date</label>
+              <input type="date" id="global-task-add-start" />
+            </div>
+            <div class="modal-field">
+              <label for="global-task-add-due">Due date</label>
+              <input type="date" id="global-task-add-due" />
+            </div>
+          </div>
+          <div class="modal-field">
+            <label for="global-task-add-parent">Parent (optional)</label>
+            <select id="global-task-add-parent"></select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" id="global-task-add-cancel">Cancel</button>
+          <button class="modal-btn modal-btn-primary" id="global-task-add-confirm">Create task</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cross-project Chat Panel (overview-session chat) -->
+    <div id="chat-panel" class="chat-panel">
+      <div class="chat-panel-header">
+        <div class="chat-panel-title">
+          <span class="chat-panel-mark">&#128172;</span>
+          <h2>Cross-project Chat</h2>
+        </div>
+        <div class="chat-panel-actions">
+          <button id="chat-new-btn" class="chat-btn primary" tabindex="-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New chat
+          </button>
+          <button id="chat-panel-close" class="chat-panel-close" tabindex="-1" aria-label="Close">&#x2715;</button>
+        </div>
+      </div>
+      <div class="chat-panel-body">
+        <aside id="chat-sidebar" class="chat-sidebar">
+          <div class="chat-sidebar-section-label">Sessions</div>
+          <div id="chat-session-list" class="chat-session-list"></div>
+        </aside>
+        <main id="chat-main" class="chat-main">
+          <div id="chat-empty" class="chat-empty">
+            <h3>Start a cross-project chat</h3>
+            <p>Pick the projects you want context for. Frame stages metadata + task snapshots into a fresh directory and launches your selected CLI tool there. The agent can read the snapshots, suggest action items, and write structured suggestions Frame will let you Apply.</p>
+            <button class="chat-btn primary" id="chat-empty-new">+ New chat</button>
+          </div>
+          <div id="chat-body" class="chat-body">
+            <div id="chat-active-header" class="chat-active-header"></div>
+            <div class="chat-active-split">
+              <div id="chat-terminal-host" class="chat-terminal-host"></div>
+              <aside class="chat-suggestions-panel">
+                <div class="chat-suggestions-head">
+                  <span>Suggestions</span>
+                  <span id="chat-suggestions-count" class="chat-suggestions-count"></span>
+                </div>
+                <div id="chat-suggestions" class="chat-suggestions"></div>
+              </aside>
+            </div>
+            <div class="chat-active-footer">
+              <button id="chat-active-close" class="chat-btn">End session</button>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Chat picker modal (which projects to include) -->
+    <div id="chat-picker" class="modal-overlay">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h3>Start a cross-project chat</h3>
+          <button class="modal-close" id="chat-picker-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="chat-picker-intro">Pick the projects to include as context. The agent will get read-only snapshots of each project's tasks and metadata, plus pointers to deeper files on disk if it needs more.</p>
+          <div id="chat-picker-list" class="chat-picker-list"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" id="chat-picker-cancel">Cancel</button>
+          <button class="modal-btn modal-btn-primary" id="chat-picker-confirm">Start chat</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global Dashboard backfill / enroll modal -->
+    <div id="global-dashboard-modal" class="modal-overlay">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h3 id="global-dashboard-modal-title">Track projects in the global dashboard</h3>
+          <button class="modal-close" id="global-dashboard-modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p id="global-dashboard-modal-body" class="global-dashboard-modal-intro">
+            Select the projects you want to track in the cross-project dashboard. Tracked projects show up in the dashboard sidebar and contribute to the unified task list.
+          </p>
+          <div id="global-dashboard-modal-list" class="global-dashboard-modal-list"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" id="global-dashboard-modal-cancel">Skip for now</button>
+          <button class="modal-btn modal-btn-primary" id="global-dashboard-modal-confirm">Track selected</button>
+        </div>
       </div>
     </div>
 
@@ -977,7 +1380,17 @@
     <div class="task-modal-container">
       <div class="task-modal-header">
         <h4 id="task-modal-title">Add Task</h4>
-        <button id="task-modal-close" tabindex="-1">✕</button>
+        <div class="task-modal-header-actions">
+          <button id="task-modal-expand" type="button" class="task-modal-icon-btn" tabindex="-1" title="Open as initiative view" style="display:none;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 3 21 3 21 9"/>
+              <polyline points="9 21 3 21 3 15"/>
+              <line x1="21" y1="3" x2="14" y2="10"/>
+              <line x1="3" y1="21" x2="10" y2="14"/>
+            </svg>
+          </button>
+          <button id="task-modal-close" tabindex="-1">✕</button>
+        </div>
       </div>
       <form id="task-form">
         <div class="task-modal-body">
@@ -1009,6 +1422,33 @@
                 <option value="research">Research</option>
               </select>
             </div>
+          </div>
+          <div class="task-form-row">
+            <div class="task-form-group">
+              <label for="task-start-date-input">Start date</label>
+              <input type="date" id="task-start-date-input">
+            </div>
+            <div class="task-form-group">
+              <label for="task-end-date-input">Due date</label>
+              <input type="date" id="task-end-date-input">
+            </div>
+          </div>
+
+          <!-- Subtasks list, shown only when editing a parent task with
+               children. Each row is clickable to switch the modal to
+               edit that subtask (the parent's pending edits are
+               discarded — that mirrors the existing form behaviour
+               when switching between Add and Edit). -->
+          <div id="task-modal-subtasks" class="task-modal-subtasks" style="display:none;">
+            <div class="task-modal-subtasks-header">
+              <span class="task-modal-subtasks-label">Subtasks</span>
+              <span id="task-modal-subtasks-count" class="task-modal-subtasks-count"></span>
+            </div>
+            <div id="task-modal-subtasks-list" class="task-modal-subtasks-list"></div>
+            <button type="button" id="task-modal-add-subtask" class="task-modal-add-subtask">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add subtask
+            </button>
           </div>
         </div>
         <div class="task-modal-footer">
@@ -1103,6 +1543,19 @@
             </label>
           </div>
           <input type="text" id="task-run-new-branch-name" class="task-run-input" placeholder="Optional — leave blank to pick a name with AI" disabled>
+        </div>
+
+        <!-- Subtask multi-select. Visible only when the task being run
+             has children. Lets the user pick which subtasks the agent
+             should tackle in this launch — defaults to all selected. -->
+        <div id="task-run-subtasks-section" class="task-run-section" style="display:none;">
+          <label class="task-run-section-label">Subtasks to include</label>
+          <div class="task-run-subtasks-toolbar">
+            <button type="button" id="task-run-subtasks-all" class="task-run-link-btn">All</button>
+            <button type="button" id="task-run-subtasks-none" class="task-run-link-btn">None</button>
+          </div>
+          <div id="task-run-subtasks-list" class="task-run-subtasks-list"></div>
+          <p class="task-run-hint">Unchecked subtasks won't be mentioned in the prompt — useful when running just research + spec ahead of team alignment.</p>
         </div>
       </div>
       <div class="task-run-modal-footer">

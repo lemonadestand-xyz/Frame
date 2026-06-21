@@ -113,6 +113,25 @@ function loadTasks(projectPath) {
     }
   }
 
+  for (const task of tasks) {
+    if (task.parentId === undefined) {
+      task.parentId = null;
+      mutated = true;
+    }
+    if (!Array.isArray(task.references)) {
+      task.references = [];
+      mutated = true;
+    }
+    if (task.startDate === undefined) {
+      task.startDate = null;
+      mutated = true;
+    }
+    if (task.endDate === undefined) {
+      task.endDate = null;
+      mutated = true;
+    }
+  }
+
   raw.tasks = tasks;
 
   if (mutated) {
@@ -140,18 +159,42 @@ function generateTaskId() {
   return `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+// Accept YYYY-MM-DD (what <input type="date"> emits) or a full ISO string,
+// store as YYYY-MM-DD. Anything else collapses to null so a junk value can't
+// poison downstream date math.
+function normalizeDate(value) {
+  if (!value) return null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : null;
+}
+
 function addTask(projectPath, task) {
   const tasksData = loadTasks(projectPath);
   if (!tasksData) return null;
 
+  // Only honor parentId if the parent actually exists in the current task
+  // set — otherwise we'd end up with orphan references the UI can't render.
+  const parentId = (task.parentId && tasksData.tasks.some(t => t.id === task.parentId))
+    ? task.parentId
+    : null;
+
   const newTask = {
     id: generateTaskId(),
+    parentId,
     title: task.title || 'Untitled Task',
     description: task.description || '',
     status: 'pending',
     priority: task.priority || 'medium',
     category: task.category || 'feature',
     context: task.context || '',
+    // lemo-4: references are paths/URLs the agent should consult before
+    // starting. Stored as { kind, value, label? } — never copies.
+    references: Array.isArray(task.references) ? task.references : [],
+    startDate: normalizeDate(task.startDate),
+    endDate: normalizeDate(task.endDate),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     completedAt: null
@@ -172,7 +215,14 @@ function updateTask(projectPath, taskId, updates) {
   if (!task) return null;
 
   const incomingStatus = updates.status;
-  Object.assign(task, updates, { updatedAt: new Date().toISOString() });
+  const normalized = { ...updates };
+  if (Object.prototype.hasOwnProperty.call(normalized, 'startDate')) {
+    normalized.startDate = normalizeDate(normalized.startDate);
+  }
+  if (Object.prototype.hasOwnProperty.call(normalized, 'endDate')) {
+    normalized.endDate = normalizeDate(normalized.endDate);
+  }
+  Object.assign(task, normalized, { updatedAt: new Date().toISOString() });
 
   if (incomingStatus && VALID_STATUSES.includes(incomingStatus)) {
     task.status = incomingStatus;
@@ -192,6 +242,16 @@ function deleteTask(projectPath, taskId) {
 
   const idx = tasksData.tasks.findIndex(t => t.id === taskId);
   if (idx === -1) return false;
+
+  // Orphan any subtasks instead of cascade-deleting. Cascade is the more
+  // dangerous default — users can delete children explicitly if intended.
+  const now = new Date().toISOString();
+  for (const t of tasksData.tasks) {
+    if (t.parentId === taskId) {
+      t.parentId = null;
+      t.updatedAt = now;
+    }
+  }
 
   tasksData.tasks.splice(idx, 1);
   return saveTasks(projectPath, tasksData);

@@ -44,3 +44,9 @@ release/
 #Walkthroughs
 WALKTHROUGH/*.p8
 RELEASE.local.md
+
+# Frame: per-machine task tracking. Frame rewrites this on every edit
+# (and normalizes Unicode escapes) so diffs are constant cosmetic noise.
+# Sharing the backlog with the team will go through tasks.shared.json
+# once that lands — see lemo-6 in the backlog.
+tasks.json

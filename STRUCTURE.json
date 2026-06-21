@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-05-21",
+  "lastUpdated": "2026-06-21",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -15,6 +15,9 @@
         "getConfig",
         "getCommand",
         "getStartCommand",
+        "getToolFlags",
+        "setToolFlags",
+        "buildInvocation",
         "addCustomTool",
         "removeCustomTool",
         "AI_TOOLS"
@@ -28,7 +31,7 @@
       ],
       "functions": {
         "init": {
-          "line": 73,
+          "line": 103,
           "params": [
             "window",
             "app"
@@ -36,54 +39,80 @@
           "purpose": "Initialize the AI Tool Manager"
         },
         "loadConfig": {
-          "line": 83,
+          "line": 113,
           "purpose": "Load configuration from file"
         },
         "saveConfig": {
-          "line": 98,
+          "line": 128,
           "purpose": "Save configuration to file"
         },
         "getAvailableTools": {
-          "line": 109,
+          "line": 139,
           "purpose": "Get all available AI tools"
         },
         "getActiveTool": {
-          "line": 116,
+          "line": 146,
           "purpose": "Get the currently active tool"
         },
+        "getActiveToolDecorated": {
+          "line": 158,
+          "purpose": "to the bare binary."
+        },
         "setActiveTool": {
-          "line": 124,
+          "line": 170,
           "params": [
             "toolId"
           ],
           "purpose": "Set the active AI tool"
         },
+        "getToolFlags": {
+          "line": 193,
+          "params": [
+            "toolId"
+          ],
+          "purpose": "are dropped silently so the popover never shows ghost selections."
+        },
+        "setToolFlags": {
+          "line": 214,
+          "params": [
+            "toolId",
+            "flags"
+          ],
+          "purpose": "sees and what we splice into the command line are the same."
+        },
+        "buildInvocation": {
+          "line": 247,
+          "params": [
+            "toolId"
+          ],
+          "purpose": "we write into the PTY when the user clicks Start."
+        },
         "getConfig": {
-          "line": 143,
-          "purpose": "Get full configuration for renderer"
+          "line": 267,
+          "purpose": "button label / popover state without a second round-trip."
         },
         "addCustomTool": {
-          "line": 153,
+          "line": 277,
           "params": [
             "tool"
           ],
           "purpose": "Add a custom AI tool"
         },
         "removeCustomTool": {
-          "line": 170,
+          "line": 294,
           "params": [
             "toolId"
           ],
           "purpose": "Remove a custom AI tool"
         },
         "isPathLike": {
-          "line": 182,
+          "line": 306,
           "params": [
             "command"
           ]
         },
         "isCommandAvailable": {
-          "line": 196,
+          "line": 320,
           "params": [
             "command",
             "projectPath"
@@ -91,28 +120,38 @@
           "purpose": "shell. Tries the tool's primary command first, then its fallback."
         },
         "setupIPC": {
-          "line": 250,
+          "line": 374,
           "purpose": "Setup IPC handlers"
         },
+        "composeFlagSuffix": {
+          "line": 461,
+          "params": [
+            "toolId"
+          ],
+          "purpose": "nothing to append."
+        },
         "getCommand": {
-          "line": 299,
+          "line": 478,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 307,
-          "purpose": "Get the start command for active tool"
+          "line": 489,
+          "purpose": "directly."
         }
       },
       "ipc": {
         "listens": [
           "GET_AI_TOOL_CONFIG",
           "SET_AI_TOOL",
-          "CHECK_AI_TOOL_AVAILABLE"
+          "CHECK_AI_TOOL_AVAILABLE",
+          "GET_TOOL_FLAGS",
+          "SET_TOOL_FLAGS"
         ],
         "emits": [
+          "AI_TOOL_CHANGED",
           "AI_TOOL_CHANGED"
         ]
       }
@@ -449,7 +488,8 @@
         "shared/frameConstants",
         "shared/frameTemplates",
         "workspace",
-        "structureBootstrap"
+        "structureBootstrap",
+        "globalDashboardManager"
       ],
       "functions": {
         "init": {
@@ -503,8 +543,15 @@
           ],
           "purpose": "Show confirmation dialog before initializing Frame project"
         },
+        "ensureTasksGitignored": {
+          "line": 176,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "(no write permission, etc.) is logged but doesn't break init."
+        },
         "initializeFrameProject": {
-          "line": 174,
+          "line": 204,
           "params": [
             "projectPath",
             "projectName"
@@ -512,27 +559,27 @@
           "purpose": "Initialize a project as Frame project"
         },
         "isSpecDrivenEnabled": {
-          "line": 335,
+          "line": 372,
           "params": [
             "projectPath"
           ],
           "purpose": "edits — slice 1 doesn't ship a \"disable\" path."
         },
         "enableSpecDriven": {
-          "line": 340,
+          "line": 377,
           "params": [
             "projectPath"
           ]
         },
         "ensureSpecDrivenArtifacts": {
-          "line": 365,
+          "line": 402,
           "params": [
             "projectPath",
             "config"
           ]
         },
         "setupIPC": {
-          "line": 415,
+          "line": 452,
           "params": [
             "ipcMain"
           ],
@@ -853,23 +900,25 @@
         "gitStatusManager",
         "gitDiffManager",
         "telemetry",
-        "specManager"
+        "specManager",
+        "globalDashboardManager",
+        "chatSessionManager"
       ],
       "functions": {
         "createWindow": {
-          "line": 40,
+          "line": 42,
           "purpose": "Create main application window"
         },
         "setupAllIPC": {
-          "line": 93,
+          "line": 112,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 140,
+          "line": 243,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 159,
+          "line": 262,
           "params": [
             "window"
           ],
@@ -878,8 +927,14 @@
       },
       "ipc": {
         "listens": [
+          "GET_CHAT_START_COMMAND",
           "GET_USER_SETTING",
           "SET_USER_SETTING",
+          "DOCK_BOUNCE",
+          "WINDOW_FOCUS_AND_SHOW",
+          "PICK_FOLDER",
+          "PICK_REFERENCE_FILE",
+          "OPEN_REFERENCE",
           "TELEMETRY_SET_ENABLED",
           "TERMINAL_INPUT"
         ],
@@ -1354,22 +1409,22 @@
       ],
       "functions": {
         "init": {
-          "line": 19,
+          "line": 26,
           "params": [
             "window"
           ],
           "purpose": "Initialize PTY manager with window reference"
         },
         "getDefaultShell": {
-          "line": 26,
+          "line": 33,
           "purpose": "Get default shell based on platform"
         },
         "getAvailableShells": {
-          "line": 43,
+          "line": 50,
           "purpose": "Get available shells on the system"
         },
         "createTerminal": {
-          "line": 129,
+          "line": 136,
           "params": [
             "workingDir = null",
             "projectPath = null",
@@ -1377,68 +1432,92 @@
           ]
         },
         "getTerminalsByProject": {
-          "line": 197,
+          "line": 217,
           "params": [
             "projectPath"
           ],
           "purpose": "Get terminals for a specific project"
         },
         "getTerminalInfo": {
-          "line": 212,
+          "line": 232,
           "params": [
             "terminalId"
           ],
           "purpose": "Get terminal info"
         },
         "writeToTerminal": {
-          "line": 223,
+          "line": 245,
           "params": [
             "terminalId",
             "data"
           ],
-          "purpose": "Write data to specific terminal"
+          "purpose": "down — node-pty's native binding will throw a Napi error otherwise."
         },
         "resizeTerminal": {
-          "line": 233,
+          "line": 261,
           "params": [
             "terminalId",
             "cols",
             "rows"
           ],
-          "purpose": "Resize specific terminal"
+          "purpose": "crash the process."
         },
         "destroyTerminal": {
-          "line": 243,
+          "line": 276,
           "params": [
             "terminalId"
           ],
-          "purpose": "Destroy specific terminal"
+          "purpose": "destroyAll → onExit double-fire can't kill an already-dead handle."
         },
         "destroyAll": {
-          "line": 255,
-          "purpose": "Destroy all terminals"
+          "line": 302,
+          "purpose": "down the rest of teardown."
         },
         "getTerminalCount": {
-          "line": 266,
+          "line": 320,
           "purpose": "Get terminal count"
         },
         "getTerminalIds": {
-          "line": 273,
+          "line": 327,
           "purpose": "Get all terminal IDs"
         },
         "hasTerminal": {
-          "line": 280,
+          "line": 334,
           "params": [
             "terminalId"
           ],
           "purpose": "Check if terminal exists"
         },
         "setupIPC": {
-          "line": 287,
+          "line": 341,
           "params": [
             "ipcMain"
           ],
           "purpose": "Setup IPC handlers for multi-terminal"
+        },
+        "markTerminalActive": {
+          "line": 404,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "resetIdleTimer": {
+          "line": 411,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "clearIdleTimer": {
+          "line": 420,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "handleIdleExpired": {
+          "line": 430,
+          "params": [
+            "terminalId"
+          ]
         }
       },
       "ipc": {
@@ -1447,11 +1526,13 @@
           "TERMINAL_CREATE",
           "TERMINAL_DESTROY",
           "TERMINAL_INPUT_ID",
-          "TERMINAL_RESIZE_ID"
+          "TERMINAL_RESIZE_ID",
+          "TERMINAL_MARK_ACTIVE"
         ],
         "emits": [
           "TERMINAL_OUTPUT_ID",
-          "TERMINAL_DESTROYED"
+          "TERMINAL_DESTROYED",
+          "TERMINAL_COMPLETED"
         ]
       }
     },
@@ -1801,24 +1882,31 @@
           "purpose": "the file becomes self-healing."
         },
         "saveTasks": {
-          "line": 126,
+          "line": 145,
           "params": [
             "projectPath",
             "tasksData"
           ]
         },
         "generateTaskId": {
-          "line": 139
+          "line": 158
+        },
+        "normalizeDate": {
+          "line": 165,
+          "params": [
+            "value"
+          ],
+          "purpose": "poison downstream date math."
         },
         "addTask": {
-          "line": 143,
+          "line": 174,
           "params": [
             "projectPath",
             "task"
           ]
         },
         "updateTask": {
-          "line": 167,
+          "line": 210,
           "params": [
             "projectPath",
             "taskId",
@@ -1826,14 +1914,14 @@
           ]
         },
         "deleteTask": {
-          "line": 189,
+          "line": 239,
           "params": [
             "projectPath",
             "taskId"
           ]
         },
         "reorderTasks": {
-          "line": 208,
+          "line": 268,
           "params": [
             "projectPath",
             "order"
@@ -1841,17 +1929,17 @@
           "purpose": "flow but keeps any concurrent additions from being dropped)."
         },
         "startWatching": {
-          "line": 260,
+          "line": 320,
           "params": [
             "projectPath"
           ],
           "purpose": "saveTasks() call to avoid a feedback loop."
         },
         "stopWatching": {
-          "line": 286
+          "line": 346
         },
         "setupIPC": {
-          "line": 296,
+          "line": 356,
           "params": [
             "ipcMain"
           ]
@@ -1999,6 +2087,7 @@
         "getProjects",
         "addProject",
         "removeProject",
+        "renameProject",
         "updateProjectLastOpened",
         "updateProjectFrameStatus",
         "setupIPC"
@@ -2058,15 +2147,23 @@
           ],
           "purpose": "Remove project from workspace"
         },
+        "renameProject": {
+          "line": 132,
+          "params": [
+            "projectPath",
+            "newName"
+          ],
+          "purpose": "basename so we never end up with a blank label in the sidebar."
+        },
         "updateProjectLastOpened": {
-          "line": 130,
+          "line": 150,
           "params": [
             "projectPath"
           ],
           "purpose": "Update project's last opened timestamp"
         },
         "updateProjectFrameStatus": {
-          "line": 146,
+          "line": 166,
           "params": [
             "projectPath",
             "isFrame"
@@ -2074,7 +2171,7 @@
           "purpose": "Update project's Frame status"
         },
         "setupIPC": {
-          "line": 162,
+          "line": 182,
           "params": [
             "ipcMain"
           ],
@@ -2085,7 +2182,8 @@
         "listens": [
           "LOAD_WORKSPACE",
           "ADD_PROJECT_TO_WORKSPACE",
-          "REMOVE_PROJECT_FROM_WORKSPACE"
+          "REMOVE_PROJECT_FROM_WORKSPACE",
+          "RENAME_PROJECT"
         ],
         "emits": [
           "WORKSPACE_DATA",
@@ -2117,34 +2215,63 @@
           "purpose": "Initialize the AI tool selector"
         },
         "setupSelector": {
-          "line": 41,
+          "line": 47,
           "purpose": "Setup the selector dropdown"
         },
         "updateUI": {
-          "line": 73,
+          "line": 79,
           "purpose": "Update UI to reflect current tool"
         },
         "getCurrentTool": {
-          "line": 98,
+          "line": 104,
           "purpose": "Get the current active tool"
         },
         "getAvailableTools": {
-          "line": 105,
+          "line": 111,
           "purpose": "Get all available AI tools (keyed by id)."
         },
         "getStartCommand": {
-          "line": 112,
-          "purpose": "Get the start command for current tool"
+          "line": 120,
+          "purpose": "binary if flags aren't resolved yet."
+        },
+        "isOptionsPopoverOpen": {
+          "line": 127
+        },
+        "setupOptionsPopover": {
+          "line": 132
+        },
+        "openOptionsPopover": {
+          "line": 184
+        },
+        "closeOptionsPopover": {
+          "line": 201
+        },
+        "renderOptionsPopover": {
+          "line": 217,
+          "purpose": "changed between opens."
+        },
+        "commitOptionsFromUI": {
+          "line": 256
+        },
+        "updatePreviewFromUI": {
+          "line": 287,
+          "purpose": "version still comes from setToolFlags on commit."
+        },
+        "updatePreview": {
+          "line": 307,
+          "params": [
+            "fullCommand"
+          ]
         },
         "getCommand": {
-          "line": 119,
+          "line": 315,
           "params": [
             "action"
           ],
           "purpose": "Get a specific command for current tool"
         },
         "supportsFeature": {
-          "line": 127,
+          "line": 323,
           "params": [
             "feature"
           ],
@@ -2913,10 +3040,14 @@
         "specPanel",
         "specPanelResize",
         "specsDashboard",
+        "globalDashboard",
+        "chatPanel",
         "state",
         "projectListUI",
         "editor",
         "sidebarResize",
+        "sidebarCollapse",
+        "terminalNotifier",
         "aiToolSelector",
         "commandRegistry",
         "commandPalette",
@@ -2930,26 +3061,26 @@
       ],
       "functions": {
         "init": {
-          "line": 41,
+          "line": 45,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 207,
+          "line": 231,
           "purpose": "Setup button click handlers"
         },
         "setupUpdateDot": {
-          "line": 318,
+          "line": 375,
           "purpose": "→ About → \"Dismiss this version\"). Both click open Settings → About."
         },
         "revealSidebarTab": {
-          "line": 349,
+          "line": 406,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 367,
+          "line": 424,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -2973,7 +3104,8 @@
         "terminalManager",
         "terminalTabBar",
         "terminalGrid",
-        "overviewPanel"
+        "overviewPanel",
+        "terminalNotifier"
       ],
       "functions": {}
     },
@@ -3306,7 +3438,8 @@
       ],
       "depends": [
         "electron",
-        "shared/ipcChannels"
+        "shared/ipcChannels",
+        "terminalNotifier"
       ],
       "functions": {
         "init": {
@@ -3336,8 +3469,23 @@
           ],
           "purpose": "Create a project item element"
         },
+        "startRename": {
+          "line": 151,
+          "params": [
+            "itemEl",
+            "project"
+          ],
+          "purpose": "would select the project and discard the edit)."
+        },
+        "restoreNameSpan": {
+          "line": 213,
+          "params": [
+            "input",
+            "project"
+          ]
+        },
         "confirmRemoveProject": {
-          "line": 127,
+          "line": 229,
           "params": [
             "projectPath",
             "projectName"
@@ -3345,25 +3493,25 @@
           "purpose": "Show confirmation dialog and remove project"
         },
         "selectProject": {
-          "line": 153,
+          "line": 256,
           "params": [
             "projectPath"
           ],
-          "purpose": "Terminal session switching is handled by state.js via multiTerminalUI"
+          "purpose": "dashboard / Frame-only actions without manually clearing)."
         },
         "setActiveProject": {
-          "line": 164,
+          "line": 283,
           "params": [
             "projectPath"
           ],
           "purpose": "Set active project (visual only)"
         },
         "getActiveProject": {
-          "line": 183,
+          "line": 302,
           "purpose": "Get active project path"
         },
         "addProject": {
-          "line": 190,
+          "line": 309,
           "params": [
             "projectPath",
             "projectName",
@@ -3372,37 +3520,37 @@
           "purpose": "Add project to workspace"
         },
         "removeProject": {
-          "line": 201,
+          "line": 320,
           "params": [
             "projectPath"
           ],
           "purpose": "Remove project from workspace"
         },
         "setupIPC": {
-          "line": 208,
+          "line": 327,
           "purpose": "Setup IPC listeners"
         },
         "selectNextProject": {
-          "line": 221,
+          "line": 340,
           "purpose": "Select next project in list"
         },
         "selectPrevProject": {
-          "line": 232,
+          "line": 351,
           "purpose": "Select previous project in list"
         },
         "focus": {
-          "line": 243,
+          "line": 362,
           "purpose": "Focus project list for keyboard navigation"
         },
         "handleKeydown": {
-          "line": 266,
+          "line": 385,
           "params": [
             "e"
           ],
           "purpose": "Handle keyboard navigation in project list"
         },
         "blur": {
-          "line": 301,
+          "line": 420,
           "purpose": "Blur/unfocus project list"
         }
       },
@@ -3413,6 +3561,7 @@
         ],
         "emits": [
           "LOAD_WORKSPACE",
+          "RENAME_PROJECT",
           "ADD_PROJECT_TO_WORKSPACE",
           "REMOVE_PROJECT_FROM_WORKSPACE"
         ]
@@ -3990,30 +4139,30 @@
           "purpose": "Update project UI elements"
         },
         "selectProjectFolder": {
-          "line": 352,
+          "line": 359,
           "purpose": "Request folder selection"
         },
         "createNewProject": {
-          "line": 359,
+          "line": 366,
           "purpose": "Request new project creation"
         },
         "openSampleProject": {
-          "line": 369,
+          "line": 376,
           "purpose": "specs) is reused unchanged."
         },
         "getIsSampleProject": {
-          "line": 376,
+          "line": 383,
           "purpose": "Check whether the current project is the bundled sample."
         },
         "onSampleChange": {
-          "line": 384,
+          "line": 391,
           "params": [
             "callback"
           ],
           "purpose": "\"is sample\" flag changes (opens or leaves the sample)."
         },
         "setupIPC": {
-          "line": 391,
+          "line": 398,
           "purpose": "Setup IPC listeners"
         }
       },
@@ -4249,58 +4398,317 @@
         "show",
         "hide",
         "toggle",
-        "isVisible"
+        "isVisible",
+        "z-index 9200) and doesn't need the\n  // dashboard's structure to be visible.\n  openInitiativeView"
       ],
       "depends": [
         "electron",
         "shared/ipcChannels",
         "state",
         "taskInfoModal",
+        "taskRunModal",
+        "tasksPanel",
         "taskConfirmModal"
       ],
       "functions": {
         "init": {
-          "line": 64
+          "line": 81
         },
         "flatten": {
-          "line": 129,
+          "line": 172,
           "params": [
             "data"
           ]
         },
         "show": {
-          "line": 140
+          "line": 183
         },
         "hide": {
-          "line": 162
+          "line": 205
         },
         "toggle": {
-          "line": 171
+          "line": 214
         },
         "render": {
-          "line": 175
+          "line": 218
         },
         "renderCard": {
-          "line": 242,
+          "line": 298,
+          "params": [
+            "task",
+            "childrenByParent"
+          ]
+        },
+        "appendSubtaskSection": {
+          "line": 369,
+          "params": [
+            "card",
+            "parentTask",
+            "children",
+            "childrenByParent"
+          ],
+          "purpose": "detail aside), same as clicking a top-level card."
+        },
+        "renderSubtaskRow": {
+          "line": 411,
+          "params": [
+            "task",
+            "childrenByParent"
+          ],
+          "purpose": "detail aside) — full edit happens there."
+        },
+        "runTaskById": {
+          "line": 478,
+          "params": [
+            "taskId"
+          ],
+          "purpose": "status flip wiring stays in one place."
+        },
+        "runSelectedTask": {
+          "line": 503
+        },
+        "setupMovePopover": {
+          "line": 509
+        },
+        "isMovePopoverOpen": {
+          "line": 527
+        },
+        "toggleMovePopover": {
+          "line": 532
+        },
+        "openMovePopover": {
+          "line": 536
+        },
+        "closeMovePopover": {
+          "line": 599
+        },
+        "commitReparent": {
+          "line": 604,
+          "params": [
+            "taskId",
+            "newParentId"
+          ]
+        },
+        "collectDescendantIds": {
+          "line": 619,
+          "params": [
+            "taskId"
+          ],
+          "purpose": "the reparent picker to exclude cycle-creating targets."
+        },
+        "setupInitiativeView": {
+          "line": 643
+        },
+        "isInitiativeViewOpen": {
+          "line": 686
+        },
+        "expandSelectedAsInitiative": {
+          "line": 690
+        },
+        "openInitiativeView": {
+          "line": 695,
+          "params": [
+            "taskId"
+          ]
+        },
+        "closeInitiativeView": {
+          "line": 715
+        },
+        "renderInitiativeView": {
+          "line": 721
+        },
+        "renderInitiativeLeft": {
+          "line": 756,
           "params": [
             "task"
           ]
         },
+        "renderInitiativeRight": {
+          "line": 803,
+          "params": [
+            "rightEl",
+            "task"
+          ]
+        },
+        "renderInitiativeSubtaskCard": {
+          "line": 829,
+          "params": [
+            "child"
+          ]
+        },
+        "handleInitiativeSubtaskAction": {
+          "line": 899,
+          "params": [
+            "child",
+            "action"
+          ]
+        },
+        "attachInlineEditors": {
+          "line": 936,
+          "params": [
+            "root"
+          ],
+          "purpose": "Also handles the status / priority cycle buttons in the same pass."
+        },
+        "cycleField": {
+          "line": 970,
+          "params": [
+            "taskId",
+            "field",
+            "cycle"
+          ]
+        },
+        "startInlineEdit": {
+          "line": 999,
+          "params": [
+            "el"
+          ],
+          "purpose": "scroll position and collapsed `<details>` state on neighbours)."
+        },
+        "escapeHtml": {
+          "line": 1080,
+          "params": [
+            "s"
+          ]
+        },
+        "renderScheduleSection": {
+          "line": 1092,
+          "params": [
+            "task"
+          ]
+        },
+        "attachDateInputs": {
+          "line": 1114,
+          "params": [
+            "root"
+          ]
+        },
+        "isOverdue": {
+          "line": 1133,
+          "params": [
+            "task"
+          ]
+        },
+        "todayYMD": {
+          "line": 1140
+        },
+        "formatDueShort": {
+          "line": 1148,
+          "params": [
+            "ymd"
+          ]
+        },
+        "renderReferencesSection": {
+          "line": 1173,
+          "params": [
+            "task",
+            "opts = {}"
+          ],
+          "purpose": "opens via shell.openPath (files / folders) or shell.openExternal (URLs)."
+        },
+        "renderReferenceRow": {
+          "line": 1213,
+          "params": [
+            "taskId",
+            "ref",
+            "index"
+          ]
+        },
+        "prettyRefLabel": {
+          "line": 1230,
+          "params": [
+            "ref"
+          ]
+        },
+        "attachReferenceHandlers": {
+          "line": 1239,
+          "params": [
+            "root"
+          ]
+        },
+        "openFilePickerForTask": {
+          "line": 1287,
+          "params": [
+            "taskId"
+          ]
+        },
+        "revealUrlInputForTask": {
+          "line": 1305,
+          "params": [
+            "taskId"
+          ]
+        },
+        "hideUrlInputForTask": {
+          "line": 1318,
+          "params": [
+            "taskId"
+          ]
+        },
+        "commitUrlForTask": {
+          "line": 1328,
+          "params": [
+            "taskId"
+          ]
+        },
+        "removeReferenceAt": {
+          "line": 1345,
+          "params": [
+            "taskId",
+            "index"
+          ]
+        },
+        "saveReferences": {
+          "line": 1354,
+          "params": [
+            "taskId",
+            "references"
+          ]
+        },
+        "openReference": {
+          "line": 1364,
+          "params": [
+            "ref"
+          ]
+        },
+        "cssEscape": {
+          "line": 1379,
+          "params": [
+            "value"
+          ],
+          "purpose": "(e.g. \"lemo-4.2\") which are valid in CSS selectors only when escaped."
+        },
         "setupDropTargets": {
-          "line": 290
+          "line": 1386
         },
         "onDragStart": {
-          "line": 329,
+          "line": 1429,
           "params": [
             "e",
             "task"
           ]
         },
         "onDragEnd": {
-          "line": 341
+          "line": 1441
+        },
+        "maybeAutoScroll": {
+          "line": 1461,
+          "params": [
+            "col",
+            "clientY"
+          ]
+        },
+        "startAutoScroll": {
+          "line": 1477,
+          "params": [
+            "col",
+            "delta"
+          ]
+        },
+        "stopAutoScroll": {
+          "line": 1486
         },
         "getCardAfterY": {
-          "line": 355,
+          "line": 1497,
           "params": [
             "container",
             "y"
@@ -4308,44 +4716,44 @@
           "purpose": "vertical midpoint. Returns null when the drop should land at the end."
         },
         "commitOrder": {
-          "line": 371,
+          "line": 1513,
           "purpose": "rewrites tasks.json and pushes a fresh TASKS_DATA, which re-renders the UI."
         },
         "selectTask": {
-          "line": 387,
+          "line": 1529,
           "params": [
             "taskId"
           ]
         },
         "clearSelection": {
-          "line": 401
+          "line": 1543
         },
         "isFormOpen": {
-          "line": 413
+          "line": 1555
         },
         "setupForm": {
-          "line": 417
+          "line": 1559
         },
         "showForm": {
-          "line": 431
+          "line": 1573
         },
         "hideForm": {
-          "line": 446
+          "line": 1588
         },
         "requestDeleteSelected": {
-          "line": 462
+          "line": 1604
         },
         "submitForm": {
-          "line": 480
+          "line": 1622
         },
         "renderDetail": {
-          "line": 498,
+          "line": 1642,
           "params": [
             "task"
           ]
         },
         "appendMetaPill": {
-          "line": 550,
+          "line": 1773,
           "params": [
             "container",
             "text",
@@ -4353,7 +4761,7 @@
           ]
         },
         "setSection": {
-          "line": 557,
+          "line": 1780,
           "params": [
             "textEl",
             "sectionEl",
@@ -4361,71 +4769,71 @@
           ]
         },
         "formatDate": {
-          "line": 568,
+          "line": 1791,
           "params": [
             "isoString"
           ]
         },
         "isFilterActive": {
-          "line": 582
+          "line": 1805
         },
         "filterMatches": {
-          "line": 586,
+          "line": 1809,
           "params": [
             "task"
           ]
         },
         "setupFilter": {
-          "line": 592
+          "line": 1815
         },
         "isFilterPopoverOpen": {
-          "line": 630
+          "line": 1853
         },
         "toggleFilterPopover": {
-          "line": 634
+          "line": 1857
         },
         "openFilterPopover": {
-          "line": 640
+          "line": 1863
         },
         "closeFilterPopover": {
-          "line": 646
+          "line": 1869
         },
         "clearFilters": {
-          "line": 652
+          "line": 1875
         },
         "updateFilterUI": {
-          "line": 664
+          "line": 1887
         },
         "compareTasks": {
-          "line": 681,
+          "line": 1904,
           "params": [
             "a",
             "b"
           ]
         },
         "setupSort": {
-          "line": 697
+          "line": 1920
         },
         "isSortPopoverOpen": {
-          "line": 742
+          "line": 1965
         },
         "toggleSortPopover": {
-          "line": 746
+          "line": 1969
         },
         "openSortPopover": {
-          "line": 752
+          "line": 1975
         },
         "closeSortPopover": {
-          "line": 758
+          "line": 1981
         },
         "resetSort": {
-          "line": 764
+          "line": 1987
         },
         "updateSortUI": {
-          "line": 777
+          "line": 2000
         },
         "commitSortToFile": {
-          "line": 802,
+          "line": 2025,
           "purpose": "resulting array is coherent. Backend's reorderTasks rewrites the file."
         }
       },
@@ -4436,6 +4844,14 @@
         ],
         "emits": [
           "LOAD_TASKS",
+          "UPDATE_TASK",
+          "UPDATE_TASK",
+          "DELETE_TASK",
+          "UPDATE_TASK",
+          "UPDATE_TASK",
+          "UPDATE_TASK",
+          "UPDATE_TASK",
+          "UPDATE_TASK",
           "REORDER_TASKS",
           "DELETE_TASK",
           "ADD_TASK",
@@ -4454,7 +4870,9 @@
         "loadTasks",
         "isVisible",
         "setClaudeRunning",
-        "isClaudeRunning"
+        "isClaudeRunning",
+        "showToast",
+        "openAddSubtaskModalForParent"
       ],
       "depends": [
         "electron",
@@ -4467,57 +4885,80 @@
       ],
       "functions": {
         "init": {
-          "line": 23,
+          "line": 30,
           "purpose": "Initialize tasks panel"
         },
         "setupEventListeners": {
-          "line": 39,
+          "line": 46,
           "purpose": "Setup event listeners"
         },
         "setupIPCListeners": {
-          "line": 81,
+          "line": 88,
           "purpose": "Setup IPC listeners"
         },
         "loadTasks": {
-          "line": 103,
+          "line": 110,
           "purpose": "Load tasks for current project"
         },
         "show": {
-          "line": 114,
+          "line": 121,
           "purpose": "instead of opening an empty panel — there's nothing to show without one."
         },
         "hide": {
-          "line": 131,
+          "line": 138,
           "purpose": "Hide tasks panel"
         },
         "toggle": {
-          "line": 141,
+          "line": 148,
           "purpose": "Toggle tasks panel visibility"
         },
         "setFilter": {
-          "line": 152,
+          "line": 159,
           "params": [
             "filter"
           ],
           "purpose": "Set filter"
         },
         "getFilteredTasks": {
-          "line": 166,
-          "purpose": "Get filtered tasks"
+          "line": 176,
+          "purpose": "scan-able when initiatives explode into many subtasks."
+        },
+        "getAllTasks": {
+          "line": 203,
+          "purpose": "computation and locating tasks by ID when launching a parent run."
         },
         "render": {
-          "line": 191,
+          "line": 211,
           "purpose": "Render tasks list"
         },
-        "renderTaskItem": {
-          "line": 237,
+        "renderTree": {
+          "line": 266,
           "params": [
-            "task"
+            "tasks"
           ],
-          "purpose": "Render single task item"
+          "purpose": "(this matters when filter narrowing removes a parent but keeps a child)."
+        },
+        "computeRollup": {
+          "line": 301,
+          "params": [
+            "taskId",
+            "tasks"
+          ],
+          "purpose": "the task has no children — caller decides whether to render the chip."
+        },
+        "renderTaskItem": {
+          "line": 326,
+          "params": [
+            "task",
+            "depth = 0",
+            "parentBreadcrumb = null",
+            "rollup = null",
+            "treeInfo = {}"
+          ],
+          "purpose": "meaningful in tree-render mode. Drives the chevron toggle."
         },
         "handleTaskAction": {
-          "line": 315,
+          "line": 443,
           "params": [
             "taskId",
             "action"
@@ -4525,7 +4966,7 @@
           "purpose": "Handle task action buttons"
         },
         "showToast": {
-          "line": 376,
+          "line": 515,
           "params": [
             "message",
             "type = 'info'"
@@ -4533,14 +4974,14 @@
           "purpose": "Show toast notification"
         },
         "getToastIcon": {
-          "line": 412,
+          "line": 551,
           "params": [
             "type"
           ],
           "purpose": "Get toast icon based on type"
         },
         "buildTaskPrompt": {
-          "line": 432,
+          "line": 571,
           "params": [
             "task",
             "opts = {}"
@@ -4548,7 +4989,7 @@
           "purpose": "never made on top of an unresolved working tree."
         },
         "runTaskWithOptions": {
-          "line": 459,
+          "line": 678,
           "params": [
             "task",
             "opts = {}"
@@ -4556,73 +4997,117 @@
           "purpose": "the caller can decide whether to flip status / show \"sent\" toast."
         },
         "setClaudeRunning": {
-          "line": 532,
+          "line": 774,
           "params": [
             "running"
           ],
           "purpose": "Mark Claude Code as running (called from external modules)"
         },
         "isClaudeRunning": {
-          "line": 539,
+          "line": 781,
           "purpose": "Check if Claude Code is marked as running"
         },
         "deleteTask": {
-          "line": 548,
+          "line": 790,
           "params": [
             "taskId"
           ],
           "purpose": "load order ever shifts."
         },
         "showAddTaskModal": {
-          "line": 565,
+          "line": 807,
           "purpose": "Show add task modal"
         },
+        "showAddSubtaskModal": {
+          "line": 835,
+          "params": [
+            "parentId"
+          ],
+          "purpose": "banner in the modal so the user knows what they're filing under."
+        },
+        "updateParentInfo": {
+          "line": 865,
+          "params": [
+            "parent"
+          ],
+          "purpose": "have to touch index.html."
+        },
         "showEditTaskModal": {
-          "line": 584,
+          "line": 890,
           "params": [
             "taskId"
           ],
           "purpose": "Show edit task modal"
         },
+        "renderModalSubtasks": {
+          "line": 941,
+          "params": [
+            "task"
+          ],
+          "purpose": "the same UX as switching between Add and Edit modes elsewhere)."
+        },
         "hideTaskModal": {
-          "line": 610,
+          "line": 998,
           "purpose": "Hide task modal"
         },
         "handleTaskFormSubmit": {
-          "line": 620,
+          "line": 1012,
           "params": [
             "e"
           ],
           "purpose": "Handle task form submit"
         },
         "setupModalListeners": {
-          "line": 658,
+          "line": 1054,
           "purpose": "Setup modal event listeners"
         },
         "escapeHtml": {
-          "line": 698,
+          "line": 1106,
           "params": [
             "text"
           ],
           "purpose": "Escape HTML for safe rendering"
         },
         "renderSourceChip": {
-          "line": 709,
+          "line": 1117,
           "params": [
             "source"
           ],
           "purpose": "that's the actionable identifier the user knows."
         },
+        "renderDueChip": {
+          "line": 1129,
+          "params": [
+            "task"
+          ],
+          "purpose": "date has passed and the task is not yet completed."
+        },
+        "todayYMD": {
+          "line": 1138
+        },
+        "formatDueDate": {
+          "line": 1146,
+          "params": [
+            "ymd"
+          ]
+        },
         "formatDate": {
-          "line": 720,
+          "line": 1164,
           "params": [
             "isoString"
           ],
           "purpose": "Format date for display"
         },
         "initWhenReady": {
-          "line": 737,
+          "line": 1181,
           "purpose": "Initialize when DOM is ready"
+        },
+        "openAddSubtaskModalForParent": {
+          "line": 1191,
+          "params": [
+            "parentId"
+          ],
+          "purpose": "flow as the in-row \"+\" button, just callable by ID."
         }
       },
       "ipc": {
@@ -4740,7 +5225,7 @@
           "purpose": "Set active terminal"
         },
         "getMultiTerminalUI": {
-          "line": 162,
+          "line": 173,
           "purpose": "Get MultiTerminalUI instance"
         }
       },
@@ -4749,6 +5234,7 @@
           "RUN_COMMAND"
         ],
         "emits": [
+          "TERMINAL_MARK_ACTIVE",
           "TERMINAL_INPUT_ID",
           "TERMINAL_INPUT_ID"
         ]
@@ -4822,7 +5308,8 @@
         "githubPanel",
         "promptsPanel",
         "specPanel",
-        "lucide"
+        "lucide",
+        "terminalNotifier"
       ],
       "functions": {
         "lucideIcon": {
@@ -5249,47 +5736,61 @@
       ],
       "functions": {
         "init": {
-          "line": 37
+          "line": 43
         },
         "updateTerminalChoiceUI": {
-          "line": 85
+          "line": 103
         },
         "updateBranchChoiceUI": {
-          "line": 91
-        },
-        "getTerminalChoice": {
-          "line": 99
-        },
-        "getBranchChoice": {
-          "line": 104
-        },
-        "getCliChoice": {
           "line": 109
         },
+        "getTerminalChoice": {
+          "line": 117
+        },
+        "getBranchChoice": {
+          "line": 122
+        },
+        "getCliChoice": {
+          "line": 127
+        },
         "populateCliOptions": {
-          "line": 114
+          "line": 132
         },
         "loadCurrentBranch": {
-          "line": 144
+          "line": 162
         },
         "open": {
-          "line": 164,
+          "line": 186,
           "params": [
             "task",
             "opts = {}"
+          ],
+          "purpose": "on `options.includedSubtaskIds`."
+        },
+        "populateSubtasks": {
+          "line": 219,
+          "purpose": "when the task has no children."
+        },
+        "setAllSubtasksChecked": {
+          "line": 242,
+          "params": [
+            "checked"
           ]
         },
+        "getIncludedSubtaskIds": {
+          "line": 249
+        },
         "close": {
-          "line": 190
+          "line": 256
         },
         "confirm": {
-          "line": 198
+          "line": 265
         },
         "cancel": {
-          "line": 210
+          "line": 278
         },
         "escapeHtml": {
-          "line": 216,
+          "line": 284,
           "params": [
             "s"
           ]
@@ -5680,6 +6181,924 @@
           ]
         }
       }
+    },
+    "main/chatSessionManager": {
+      "file": "src/main/chatSessionManager.js",
+      "description": "Chat Session Manager",
+      "exports": [
+        "init",
+        "setupIPC",
+        "listSessions",
+        "createSession",
+        "deleteSession",
+        "applySuggestion"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "os",
+        "crypto",
+        "shared/ipcChannels",
+        "shared/frameConstants",
+        "globalDashboardManager",
+        "tasksManager"
+      ],
+      "functions": {
+        "init": {
+          "line": 39,
+          "params": [
+            "window"
+          ]
+        },
+        "generateSessionId": {
+          "line": 49
+        },
+        "slugify": {
+          "line": 55,
+          "params": [
+            "name"
+          ]
+        },
+        "listSessions": {
+          "line": 63
+        },
+        "readSuggestions": {
+          "line": 88,
+          "params": [
+            "sessionDir"
+          ]
+        },
+        "createSession": {
+          "line": 110,
+          "params": [
+            "{ title",
+            "projectPaths = [] }"
+          ],
+          "purpose": "`title` is a human label shown in the session list."
+        },
+        "deleteSession": {
+          "line": 153,
+          "params": [
+            "id"
+          ]
+        },
+        "defaultSessionTitle": {
+          "line": 161,
+          "params": [
+            "projects"
+          ]
+        },
+        "renderMetadataMd": {
+          "line": 169,
+          "params": [
+            "entry"
+          ]
+        },
+        "renderTasksMd": {
+          "line": 187,
+          "params": [
+            "entry"
+          ]
+        },
+        "renderPrimer": {
+          "line": 233,
+          "params": [
+            "meta"
+          ]
+        },
+        "rebindWatchers": {
+          "line": 323
+        },
+        "startSuggestionsWatcher": {
+          "line": 329,
+          "params": [
+            "sessionId",
+            "sessionDir"
+          ]
+        },
+        "stopSuggestionsWatcher": {
+          "line": 345,
+          "params": [
+            "sessionId"
+          ]
+        },
+        "pushSuggestions": {
+          "line": 352,
+          "params": [
+            "sessionId",
+            "sessionDir"
+          ]
+        },
+        "dismissSuggestion": {
+          "line": 361,
+          "params": [
+            "sessionId",
+            "suggestionId"
+          ]
+        },
+        "applySuggestion": {
+          "line": 378,
+          "params": [
+            "sessionId",
+            "suggestionId"
+          ],
+          "purpose": "On failure we leave the suggestion in place so the user can retry."
+        },
+        "setupIPC": {
+          "line": 423,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "CREATE_CHAT_SESSION",
+          "LIST_CHAT_SESSIONS",
+          "DELETE_CHAT_SESSION",
+          "APPLY_CHAT_SUGGESTION",
+          "DISMISS_CHAT_SUGGESTION"
+        ],
+        "emits": [
+          "CHAT_SUGGESTIONS_DATA",
+          "CHAT_SESSIONS_DATA"
+        ]
+      }
+    },
+    "main/globalDashboardManager": {
+      "file": "src/main/globalDashboardManager.js",
+      "description": "Global Dashboard Manager",
+      "exports": [
+        "init",
+        "loadRegistry",
+        "addProject",
+        "removeProject",
+        "updateMetadata",
+        "setFilter",
+        "sync",
+        "refreshProject",
+        "isTracked",
+        "notifyEnrollPrompt",
+        "setupIPC"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "os",
+        "shared/ipcChannels",
+        "shared/frameConstants"
+      ],
+      "functions": {
+        "init": {
+          "line": 29,
+          "params": [
+            "window"
+          ]
+        },
+        "ensureRegistry": {
+          "line": 36
+        },
+        "emptyRegistry": {
+          "line": 45
+        },
+        "loadRegistry": {
+          "line": 53
+        },
+        "saveRegistry": {
+          "line": 67,
+          "params": [
+            "registry"
+          ]
+        },
+        "resolveProjectName": {
+          "line": 86,
+          "params": [
+            "projectPath",
+            "fallbackName"
+          ],
+          "purpose": "4. path.basename as a last resort."
+        },
+        "readTaskSnapshot": {
+          "line": 109,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "addProject": {
+          "line": 126,
+          "params": [
+            "projectPath",
+            "{ name",
+            "description",
+            "metadata } = {}"
+          ]
+        },
+        "removeProject": {
+          "line": 169,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "updateMetadata": {
+          "line": 177,
+          "params": [
+            "projectPath",
+            "{ description",
+            "metadata",
+            "name } = {}"
+          ]
+        },
+        "refreshNamesFromWorkspace": {
+          "line": 199,
+          "params": [
+            "registry"
+          ],
+          "purpose": "renamed in the sidebar — until they explicitly override in-dashboard."
+        },
+        "setFilter": {
+          "line": 212,
+          "params": [
+            "projectPath",
+            "filterHidden"
+          ]
+        },
+        "sync": {
+          "line": 226,
+          "params": [
+            "sender"
+          ],
+          "purpose": "progress updates to the renderer."
+        },
+        "refreshProject": {
+          "line": 272,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "reflects the change without waiting for a full Sync."
+        },
+        "isTracked": {
+          "line": 288,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "notifyEnrollPrompt": {
+          "line": 294,
+          "params": [
+            "projectPath",
+            "projectName"
+          ]
+        },
+        "setupIPC": {
+          "line": 302,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "LOAD_GLOBAL_DASHBOARD",
+          "SYNC_GLOBAL_DASHBOARD",
+          "ADD_GLOBAL_PROJECT",
+          "REMOVE_GLOBAL_PROJECT",
+          "UPDATE_GLOBAL_PROJECT_METADATA",
+          "SET_GLOBAL_PROJECT_FILTER",
+          "REFRESH_GLOBAL_PROJECT"
+        ],
+        "emits": [
+          "PROMPT_GLOBAL_DASHBOARD_ENROLL",
+          "GLOBAL_DASHBOARD_SYNC_PROGRESS",
+          "GLOBAL_DASHBOARD_DATA"
+        ]
+      }
+    },
+    "renderer/chatPanel": {
+      "file": "src/renderer/chatPanel.js",
+      "description": "Cross-Project Chat Panel",
+      "exports": [
+        "init",
+        "show",
+        "hide",
+        "toggle"
+      ],
+      "depends": [
+        "electron",
+        "xterm",
+        "xterm-addon-fit",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 43
+        },
+        "wireUI": {
+          "line": 63
+        },
+        "wireIPC": {
+          "line": 85
+        },
+        "show": {
+          "line": 112,
+          "purpose": "Loads sessions and ensures we have a fresh registry for the picker."
+        },
+        "hide": {
+          "line": 119
+        },
+        "toggle": {
+          "line": 124
+        },
+        "openPicker": {
+          "line": 130
+        },
+        "closePicker": {
+          "line": 137
+        },
+        "renderPickerList": {
+          "line": 141
+        },
+        "startNewSessionFromPicker": {
+          "line": 176
+        },
+        "renderSessionList": {
+          "line": 196
+        },
+        "openSession": {
+          "line": 249,
+          "params": [
+            "session"
+          ]
+        },
+        "createTerminal": {
+          "line": 279,
+          "params": [
+            "cwd"
+          ]
+        },
+        "mountTerminal": {
+          "line": 294,
+          "params": [
+            "terminalId",
+            "session"
+          ]
+        },
+        "showChatBody": {
+          "line": 400
+        },
+        "hideChatBody": {
+          "line": 404
+        },
+        "closeActiveSession": {
+          "line": 408
+        },
+        "renderSuggestionsForActive": {
+          "line": 441
+        },
+        "renderSuggestionCard": {
+          "line": 465,
+          "params": [
+            "s"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "CHAT_SESSIONS_DATA",
+          "CHAT_SUGGESTIONS_DATA",
+          "GLOBAL_DASHBOARD_DATA",
+          "TERMINAL_CREATED",
+          "TERMINAL_OUTPUT_ID",
+          "TERMINAL_DESTROYED"
+        ],
+        "emits": [
+          "LIST_CHAT_SESSIONS",
+          "LOAD_GLOBAL_DASHBOARD",
+          "LOAD_GLOBAL_DASHBOARD",
+          "DELETE_CHAT_SESSION",
+          "TERMINAL_INPUT_ID",
+          "TERMINAL_CREATE",
+          "TERMINAL_RESIZE_ID",
+          "TERMINAL_INPUT_ID",
+          "TERMINAL_RESIZE_ID",
+          "TERMINAL_INPUT_ID",
+          "TERMINAL_DESTROY",
+          "DISMISS_CHAT_SUGGESTION"
+        ]
+      }
+    },
+    "renderer/globalDashboard": {
+      "file": "src/renderer/globalDashboard.js",
+      "description": "Global Dashboard (cross-project view)",
+      "exports": [
+        "init",
+        "show",
+        "hide",
+        "toggle"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "globalDashboardDetail",
+        "chatPanel",
+        "tasksPanel"
+      ],
+      "functions": {
+        "init": {
+          "line": 47
+        },
+        "wireToolbar": {
+          "line": 68
+        },
+        "applyPanelVisibility": {
+          "line": 133
+        },
+        "wireFiltersAndSort": {
+          "line": 143
+        },
+        "wireModal": {
+          "line": 167
+        },
+        "wireIPC": {
+          "line": 178
+        },
+        "show": {
+          "line": 214
+        },
+        "hide": {
+          "line": 223
+        },
+        "toggle": {
+          "line": 229
+        },
+        "checkBackfill": {
+          "line": 233
+        },
+        "openBackfillPrompt": {
+          "line": 243,
+          "params": [
+            "projectsList"
+          ]
+        },
+        "openEnrollPrompt": {
+          "line": 257,
+          "params": [
+            "{ projectPath",
+            "projectName }"
+          ]
+        },
+        "renderModalList": {
+          "line": 267,
+          "params": [
+            "items"
+          ]
+        },
+        "commitModalSelection": {
+          "line": 291
+        },
+        "closeModal": {
+          "line": 308
+        },
+        "addProjectViaPicker": {
+          "line": 313
+        },
+        "render": {
+          "line": 319
+        },
+        "renderSidebar": {
+          "line": 326
+        },
+        "renderLastSynced": {
+          "line": 392
+        },
+        "renderContent": {
+          "line": 401
+        },
+        "renderAllProjects": {
+          "line": 417
+        },
+        "renderBoard": {
+          "line": 444,
+          "params": [
+            "rows",
+            "opts = {}"
+          ]
+        },
+        "renderBoardCard": {
+          "line": 486,
+          "params": [
+            "row",
+            "opts = {}"
+          ]
+        },
+        "renderProjectDetail": {
+          "line": 536,
+          "params": [
+            "proj"
+          ]
+        },
+        "renderMetadataEditor": {
+          "line": 600,
+          "params": [
+            "proj"
+          ]
+        },
+        "commitMetadata": {
+          "line": 679,
+          "params": [
+            "projectPath",
+            "rowsEl"
+          ]
+        },
+        "renderTaskRow": {
+          "line": 692,
+          "params": [
+            "row",
+            "opts = {}"
+          ]
+        },
+        "onBoardDragStart": {
+          "line": 742,
+          "params": [
+            "e",
+            "row",
+            "card"
+          ]
+        },
+        "onBoardDragEnd": {
+          "line": 756,
+          "params": [
+            "card"
+          ]
+        },
+        "wireBoardDropTarget": {
+          "line": 769,
+          "params": [
+            "bodyEl"
+          ]
+        },
+        "sortedTrackedProjects": {
+          "line": 805
+        },
+        "countOpenTasks": {
+          "line": 810,
+          "params": [
+            "proj"
+          ]
+        },
+        "collectVisibleTasks": {
+          "line": 816
+        },
+        "passesFilters": {
+          "line": 830,
+          "params": [
+            "task"
+          ]
+        },
+        "compareRows": {
+          "line": 842,
+          "params": [
+            "a",
+            "b"
+          ]
+        },
+        "priorityOrder": {
+          "line": 863,
+          "params": [
+            "task"
+          ]
+        },
+        "isOverdue": {
+          "line": 872,
+          "params": [
+            "task"
+          ]
+        },
+        "todayYMD": {
+          "line": 878
+        },
+        "ymdShift": {
+          "line": 886,
+          "params": [
+            "ymd",
+            "days"
+          ]
+        },
+        "formatDueShort": {
+          "line": 896,
+          "params": [
+            "ymd"
+          ]
+        },
+        "formatRelative": {
+          "line": 911,
+          "params": [
+            "iso"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "GLOBAL_DASHBOARD_DATA",
+          "GLOBAL_DASHBOARD_SYNC_PROGRESS",
+          "PROMPT_GLOBAL_DASHBOARD_ENROLL"
+        ],
+        "emits": [
+          "SYNC_GLOBAL_DASHBOARD",
+          "LOAD_GLOBAL_DASHBOARD",
+          "LOAD_WORKSPACE",
+          "ADD_GLOBAL_PROJECT",
+          "ADD_GLOBAL_PROJECT",
+          "SET_GLOBAL_PROJECT_FILTER",
+          "REMOVE_GLOBAL_PROJECT",
+          "UPDATE_GLOBAL_PROJECT_METADATA",
+          "UPDATE_GLOBAL_PROJECT_METADATA",
+          "UPDATE_GLOBAL_PROJECT_METADATA",
+          "UPDATE_TASK",
+          "REFRESH_GLOBAL_PROJECT"
+        ]
+      }
+    },
+    "renderer/globalDashboardDetail": {
+      "file": "src/renderer/globalDashboardDetail.js",
+      "description": "Global Dashboard — Task Detail & Add-Task",
+      "exports": [
+        "init",
+        "setRegistry",
+        "setParentDataProvider",
+        "openTaskDetail",
+        "openAdd",
+        "closeDetail"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state",
+        "globalDashboard",
+        "tasksDashboard"
+      ],
+      "functions": {
+        "init": {
+          "line": 37
+        },
+        "setRegistry": {
+          "line": 80,
+          "params": [
+            "registry"
+          ]
+        },
+        "setParentDataProvider": {
+          "line": 84,
+          "params": [
+            "fn"
+          ]
+        },
+        "openTaskDetail": {
+          "line": 90,
+          "params": [
+            "task",
+            "projectPath"
+          ]
+        },
+        "closeDetail": {
+          "line": 98
+        },
+        "findTaskInRegistry": {
+          "line": 104,
+          "params": [
+            "projectPath",
+            "taskId"
+          ]
+        },
+        "projectTasks": {
+          "line": 110,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "renderDetail": {
+          "line": 115,
+          "params": [
+            "task",
+            "projectPath"
+          ]
+        },
+        "editableField": {
+          "line": 221,
+          "params": [
+            "{ field",
+            "label",
+            "value",
+            "placeholder",
+            "multiline",
+            "task",
+            "projectPath }"
+          ]
+        },
+        "scheduleField": {
+          "line": 254,
+          "params": [
+            "task",
+            "projectPath"
+          ]
+        },
+        "cyclePill": {
+          "line": 282,
+          "params": [
+            "field",
+            "task",
+            "projectPath",
+            "cycle"
+          ]
+        },
+        "subtasksSection": {
+          "line": 300,
+          "params": [
+            "parent",
+            "projectPath"
+          ]
+        },
+        "sendUpdate": {
+          "line": 358,
+          "params": [
+            "projectPath",
+            "taskId",
+            "updates"
+          ]
+        },
+        "deleteTask": {
+          "line": 367,
+          "params": [
+            "task",
+            "projectPath"
+          ]
+        },
+        "openInProjectContext": {
+          "line": 376,
+          "params": [
+            "task",
+            "projectPath"
+          ]
+        },
+        "openAdd": {
+          "line": 406,
+          "params": [
+            "{ defaultProjectPath = null",
+            "defaultParentId = null } = {}"
+          ]
+        },
+        "closeAdd": {
+          "line": 420
+        },
+        "refreshProjectOptions": {
+          "line": 424,
+          "params": [
+            "preferredPath"
+          ]
+        },
+        "refreshParentOptions": {
+          "line": 440,
+          "params": [
+            "projectPath",
+            "defaultParentId = null"
+          ]
+        },
+        "commitAdd": {
+          "line": 461
+        }
+      },
+      "ipc": {
+        "listens": [
+          "GLOBAL_DASHBOARD_DATA"
+        ],
+        "emits": [
+          "UPDATE_TASK",
+          "REFRESH_GLOBAL_PROJECT",
+          "DELETE_TASK",
+          "REFRESH_GLOBAL_PROJECT",
+          "ADD_TASK",
+          "REFRESH_GLOBAL_PROJECT"
+        ]
+      }
+    },
+    "renderer/sidebarCollapse": {
+      "file": "src/renderer/sidebarCollapse.js",
+      "description": "Sidebar Collapse Module",
+      "exports": [
+        "init",
+        "toggle",
+        "expand",
+        "isCollapsed"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 18
+        },
+        "toggle": {
+          "line": 36
+        },
+        "expand": {
+          "line": 51,
+          "purpose": "the visible tab in one motion (activity-bar pattern)."
+        },
+        "isCollapsed": {
+          "line": 58
+        },
+        "applyCollapsed": {
+          "line": 62,
+          "params": [
+            "collapsed"
+          ]
+        }
+      }
+    },
+    "renderer/terminalNotifier": {
+      "file": "src/renderer/terminalNotifier.js",
+      "description": "Terminal Notifier Module (lemo-7)",
+      "exports": [
+        "init",
+        "clearTerminalIndicator",
+        "clearProjectIndicator",
+        "paintIndicators"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "state"
+      ],
+      "functions": {
+        "init": {
+          "line": 30,
+          "params": [
+            "{ multiTerminalUI",
+            "projectListUI } = {}"
+          ]
+        },
+        "handleCompletion": {
+          "line": 47,
+          "params": [
+            "{ terminalId",
+            "projectPath }"
+          ]
+        },
+        "shouldSuppressNotification": {
+          "line": 74,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "specific terminal selected, etc.) still notifies."
+        },
+        "fireSystemNotification": {
+          "line": 81,
+          "params": [
+            "terminalId",
+            "projectPath"
+          ]
+        },
+        "showNotification": {
+          "line": 100,
+          "params": [
+            "terminalId",
+            "projectPath"
+          ]
+        },
+        "prettyTerminalLabel": {
+          "line": 130,
+          "params": [
+            "terminalId"
+          ]
+        },
+        "clearTerminalIndicator": {
+          "line": 142,
+          "params": [
+            "terminalId"
+          ],
+          "purpose": "terminal, the project's row dot too."
+        },
+        "clearProjectIndicator": {
+          "line": 158,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "project row dot AND every terminal-tab dot under that project."
+        },
+        "paintIndicators": {
+          "line": 172,
+          "purpose": "safe to call after any state change."
+        }
+      },
+      "ipc": {
+        "listens": [
+          "TERMINAL_COMPLETED"
+        ],
+        "emits": [
+          "DOCK_BOUNCE",
+          "WINDOW_FOCUS_AND_SHOW"
+        ]
+      }
     }
   },
   "ipcChannels": {
@@ -5885,6 +7304,156 @@
       },
       "GET_GIT_DIFF": {
         "name": "get-git-diff",
+        "direction": "",
+        "description": ""
+      },
+      "RENAME_PROJECT": {
+        "name": "rename-project",
+        "direction": "",
+        "description": ""
+      },
+      "TERMINAL_MARK_ACTIVE": {
+        "name": "terminal-mark-active",
+        "direction": "",
+        "description": ""
+      },
+      "TERMINAL_COMPLETED": {
+        "name": "terminal-completed",
+        "direction": "",
+        "description": ""
+      },
+      "DOCK_BOUNCE": {
+        "name": "dock-bounce",
+        "direction": "",
+        "description": ""
+      },
+      "WINDOW_FOCUS_AND_SHOW": {
+        "name": "window-focus-and-show",
+        "direction": "",
+        "description": ""
+      },
+      "PICK_REFERENCE_FILE": {
+        "name": "pick-reference-file",
+        "direction": "",
+        "description": ""
+      },
+      "OPEN_REFERENCE": {
+        "name": "open-reference",
+        "direction": "",
+        "description": ""
+      },
+      "GET_TOOL_FLAGS": {
+        "name": "get-tool-flags",
+        "direction": "",
+        "description": ""
+      },
+      "SET_TOOL_FLAGS": {
+        "name": "set-tool-flags",
+        "direction": "",
+        "description": ""
+      },
+      "LOAD_GLOBAL_DASHBOARD": {
+        "name": "load-global-dashboard",
+        "direction": "",
+        "description": ""
+      },
+      "SYNC_GLOBAL_DASHBOARD": {
+        "name": "sync-global-dashboard",
+        "direction": "",
+        "description": ""
+      },
+      "ADD_GLOBAL_PROJECT": {
+        "name": "add-global-project",
+        "direction": "",
+        "description": ""
+      },
+      "REMOVE_GLOBAL_PROJECT": {
+        "name": "remove-global-project",
+        "direction": "",
+        "description": ""
+      },
+      "UPDATE_GLOBAL_PROJECT_METADATA": {
+        "name": "update-global-project-metadata",
+        "direction": "",
+        "description": ""
+      },
+      "SET_GLOBAL_PROJECT_FILTER": {
+        "name": "set-global-project-filter",
+        "direction": "",
+        "description": ""
+      },
+      "GLOBAL_DASHBOARD_DATA": {
+        "name": "global-dashboard-data",
+        "direction": "",
+        "description": ""
+      },
+      "GLOBAL_DASHBOARD_SYNC_PROGRESS": {
+        "name": "global-dashboard-sync-progress",
+        "direction": "",
+        "description": ""
+      },
+      "TOGGLE_GLOBAL_DASHBOARD": {
+        "name": "toggle-global-dashboard",
+        "direction": "",
+        "description": ""
+      },
+      "PROMPT_GLOBAL_DASHBOARD_ENROLL": {
+        "name": "prompt-global-dashboard-enroll",
+        "direction": "",
+        "description": ""
+      },
+      "REFRESH_GLOBAL_PROJECT": {
+        "name": "refresh-global-project",
+        "direction": "",
+        "description": ""
+      },
+      "PICK_FOLDER": {
+        "name": "pick-folder",
+        "direction": "",
+        "description": ""
+      },
+      "CREATE_CHAT_SESSION": {
+        "name": "create-chat-session",
+        "direction": "",
+        "description": ""
+      },
+      "CHAT_SESSION_CREATED": {
+        "name": "chat-session-created",
+        "direction": "",
+        "description": ""
+      },
+      "LIST_CHAT_SESSIONS": {
+        "name": "list-chat-sessions",
+        "direction": "",
+        "description": ""
+      },
+      "CHAT_SESSIONS_DATA": {
+        "name": "chat-sessions-data",
+        "direction": "",
+        "description": ""
+      },
+      "DELETE_CHAT_SESSION": {
+        "name": "delete-chat-session",
+        "direction": "",
+        "description": ""
+      },
+      "GET_CHAT_START_COMMAND": {
+        "name": "get-chat-start-command",
+        "direction": "",
+        "description": ""
+      },
+      "CHAT_SUGGESTIONS_DATA": {
+        "name": "chat-suggestions-data",
+        "direction": "",
+        "description": ""
+      },
+      "APPLY_CHAT_SUGGESTION": {
+        "name": "apply-chat-suggestion",
+        "direction": "",
+        "description": ""
+      },
+      "DISMISS_CHAT_SUGGESTION": {
+        "name": "dismiss-chat-suggestion",
         "direction": "",
         "description": ""
       }
@@ -6283,6 +7852,20 @@
         "description": "App Loader"
       }
     ],
+    "chat": [
+      {
+        "module": "renderer/chatPanel",
+        "file": "src/renderer/chatPanel.js",
+        "description": "Cross-Project Chat Panel"
+      }
+    ],
+    "chat-session": [
+      {
+        "module": "main/chatSessionManager",
+        "file": "src/main/chatSessionManager.js",
+        "description": "Chat Session Manager"
+      }
+    ],
     "cheat-sheet": [
       {
         "module": "renderer/cheatSheet",
@@ -6422,6 +8005,25 @@
         "description": "GitHub Panel Module"
       }
     ],
+    "global-dashboard": [
+      {
+        "module": "main/globalDashboardManager",
+        "file": "src/main/globalDashboardManager.js",
+        "description": "Global Dashboard Manager"
+      },
+      {
+        "module": "renderer/globalDashboard",
+        "file": "src/renderer/globalDashboard.js",
+        "description": "Global Dashboard (cross-project view)"
+      }
+    ],
+    "global-dashboard-detail": [
+      {
+        "module": "renderer/globalDashboardDetail",
+        "file": "src/renderer/globalDashboardDetail.js",
+        "description": "Global Dashboard — Task Detail & Add-Task"
+      }
+    ],
     "history": [
       {
         "module": "main/promptLogger",
@@ -6548,6 +8150,13 @@
         "module": "renderer/sidebarResize",
         "file": "src/renderer/sidebarResize.js",
         "description": "Sidebar Resize Module"
+      }
+    ],
+    "sidebar-collapse": [
+      {
+        "module": "renderer/sidebarCollapse",
+        "file": "src/renderer/sidebarCollapse.js",
+        "description": "Sidebar Collapse Module"
       }
     ],
     "spec": [
@@ -6691,6 +8300,13 @@
         "module": "renderer/terminalTabBar",
         "file": "src/renderer/terminalTabBar.js",
         "description": "Terminal Tab Bar Module"
+      }
+    ],
+    "terminal-notifier": [
+      {
+        "module": "renderer/terminalNotifier",
+        "file": "src/renderer/terminalNotifier.js",
+        "description": "Terminal Notifier Module (lemo-7)"
       }
     ],
     "update-checker": [

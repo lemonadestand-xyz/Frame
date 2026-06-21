@@ -28,9 +28,15 @@ let currentBranchEl = null;
 let newBranchNameInput = null;
 let runBtn = null;
 let cancelBtn = null;
+// Subtask multi-select (shown only when running a task that has children)
+let subtasksSection = null;
+let subtasksList = null;
+let subtasksAllBtn = null;
+let subtasksNoneBtn = null;
 
 let initialized = false;
 let activeTask = null;
+let activeChildren = [];
 let activeOnRun = null;
 let activeOnCancel = null;
 
@@ -55,6 +61,18 @@ function init() {
 
   // Toggle new-branch input enabled state based on branch choice
   branchRadios.forEach(r => r.addEventListener('change', updateBranchChoiceUI));
+
+  subtasksSection = document.getElementById('task-run-subtasks-section');
+  subtasksList = document.getElementById('task-run-subtasks-list');
+  subtasksAllBtn = document.getElementById('task-run-subtasks-all');
+  subtasksNoneBtn = document.getElementById('task-run-subtasks-none');
+
+  if (subtasksAllBtn) {
+    subtasksAllBtn.addEventListener('click', () => setAllSubtasksChecked(true));
+  }
+  if (subtasksNoneBtn) {
+    subtasksNoneBtn.addEventListener('click', () => setAllSubtasksChecked(false));
+  }
 
   cancelBtn.addEventListener('click', cancel);
   runBtn.addEventListener('click', confirm);
@@ -158,14 +176,19 @@ async function loadCurrentBranch() {
  * Open the modal for a given task.
  * @param {object} task
  * @param {object} opts
- * @param {function} opts.onRun     - called with chosen options on confirm
+ * @param {function} opts.onRun       - called with chosen options on confirm
  * @param {function} [opts.onCancel]
+ * @param {object[]} [opts.children]  - subtasks of `task` (parents only).
+ *   When present the modal renders a multi-select so the user can
+ *   include/exclude specific subtasks — confirm() returns the chosen IDs
+ *   on `options.includedSubtaskIds`.
  */
 function open(task, opts = {}) {
   if (!initialized) init();
   if (!modalEl) return;
 
   activeTask = task;
+  activeChildren = Array.isArray(opts.children) ? opts.children.slice() : [];
   activeOnRun = typeof opts.onRun === 'function' ? opts.onRun : null;
   activeOnCancel = typeof opts.onCancel === 'function' ? opts.onCancel : null;
 
@@ -180,6 +203,7 @@ function open(task, opts = {}) {
   newBranchNameInput.disabled = true;
 
   populateCliOptions();
+  populateSubtasks();
   updateTerminalChoiceUI();
   loadCurrentBranch();
 
@@ -187,10 +211,53 @@ function open(task, opts = {}) {
   requestAnimationFrame(() => runBtn && runBtn.focus());
 }
 
+/**
+ * Paint the subtask multi-select. Defaults every checkbox to checked so
+ * "click Run, done" still launches the full initiative. Hidden entirely
+ * when the task has no children.
+ */
+function populateSubtasks() {
+  if (!subtasksSection || !subtasksList) return;
+  subtasksList.innerHTML = '';
+
+  if (!activeChildren || activeChildren.length === 0) {
+    subtasksSection.style.display = 'none';
+    return;
+  }
+
+  subtasksSection.style.display = '';
+  for (const child of activeChildren) {
+    const row = document.createElement('label');
+    row.className = 'task-run-subtask-row';
+    const completed = child.status === 'completed';
+    row.innerHTML = `
+      <input type="checkbox" data-subtask-id="${escapeHtml(child.id)}" ${completed ? '' : 'checked'}>
+      <span class="task-run-subtask-status status-${(child.status || 'pending').replace('_', '-')}" title="${escapeHtml(child.status || 'pending').replace('_', ' ')}"></span>
+      <span class="task-run-subtask-title${completed ? ' completed' : ''}">${escapeHtml(child.title || 'Untitled')}</span>
+    `;
+    subtasksList.appendChild(row);
+  }
+}
+
+function setAllSubtasksChecked(checked) {
+  if (!subtasksList) return;
+  subtasksList.querySelectorAll('input[type="checkbox"][data-subtask-id]').forEach(cb => {
+    cb.checked = checked;
+  });
+}
+
+function getIncludedSubtaskIds() {
+  if (!subtasksList) return [];
+  return Array.from(
+    subtasksList.querySelectorAll('input[type="checkbox"][data-subtask-id]:checked')
+  ).map(cb => cb.dataset.subtaskId);
+}
+
 function close() {
   if (!modalEl) return;
   modalEl.classList.remove('visible');
   activeTask = null;
+  activeChildren = [];
   activeOnRun = null;
   activeOnCancel = null;
 }
@@ -200,7 +267,8 @@ function confirm() {
     useNewTerminal: getTerminalChoice() === 'new',
     toolId: getCliChoice(),
     branchMode: getBranchChoice(),
-    newBranchName: newBranchNameInput.value.trim() || null
+    newBranchName: newBranchNameInput.value.trim() || null,
+    includedSubtaskIds: getIncludedSubtaskIds()
   };
   const cb = activeOnRun;
   close();

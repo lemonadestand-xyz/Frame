@@ -21,10 +21,14 @@ const promptsPanel = require('./promptsPanel');
 const specPanel = require('./specPanel');
 const specPanelResize = require('./specPanelResize');
 const specsDashboard = require('./specsDashboard');
+const globalDashboard = require('./globalDashboard');
+const chatPanel = require('./chatPanel');
 const state = require('./state');
 const projectListUI = require('./projectListUI');
 const editor = require('./editor');
 const sidebarResize = require('./sidebarResize');
+const sidebarCollapse = require('./sidebarCollapse');
+const terminalNotifier = require('./terminalNotifier');
 const aiToolSelector = require('./aiToolSelector');
 const commandRegistry = require('./commandRegistry');
 const commandPalette = require('./commandPalette');
@@ -133,9 +137,29 @@ function init() {
   // Initialize specs dashboard (full-page card grid, opened from panel header)
   specsDashboard.init();
 
+  // Initialize global cross-project dashboard
+  globalDashboard.init();
+
+  // Initialize cross-project chat panel (overview-session chat)
+  chatPanel.init();
+
   // Initialize sidebar resize
   sidebarResize.init(() => {
     terminal.fitTerminal();
+  });
+
+  // Initialize sidebar collapse toggle (chevron in the header).
+  // Fire-and-forget — init reads the saved state asynchronously.
+  sidebarCollapse.init();
+
+  // Terminal completion notifier (lemo-7). Listens for TERMINAL_COMPLETED
+  // and raises dock bounce + system notif + in-app indicator dots.
+  // Needs references to multiTerminalUI (active-terminal lookup) and
+  // projectListUI (selectProject on notification click). Both are
+  // available on the renderer's terminal module / sidebar by this point.
+  terminalNotifier.init({
+    multiTerminalUI: terminal.getMultiTerminalUI ? terminal.getMultiTerminalUI() : null,
+    projectListUI
   });
 
   // Setup state change listeners
@@ -268,6 +292,12 @@ function setupButtonHandlers() {
         const startCommand = aiToolSelector.getStartCommand();
         setTimeout(() => {
           terminal.sendCommand(startCommand, newTerminalId);
+          // Arm the completion-notification timer so the user gets
+          // pulled back when the CLI finishes thinking and is awaiting
+          // them again.
+          if (typeof window.terminalMarkActive === 'function') {
+            window.terminalMarkActive(newTerminalId);
+          }
         }, 1000);
       }
     }
@@ -288,15 +318,27 @@ function setupButtonHandlers() {
     state.selectProjectFolder();
   });
 
+  // Open global cross-project dashboard
+  const globalDashBtn = document.getElementById('btn-global-dashboard');
+  if (globalDashBtn) {
+    globalDashBtn.addEventListener('click', () => globalDashboard.toggle());
+  }
+
   // Initialize as Frame project
   document.getElementById('btn-initialize-frame').addEventListener('click', () => {
     state.initializeAsFrameProject();
   });
 
-  // Sidebar tabs
+  // Sidebar tabs — use currentTarget so clicks on the nested SVG icon
+  // still resolve to the button's dataset. Also: in collapsed-mode the
+  // tabs act as an activity bar — clicking an icon expands the sidebar
+  // back to full width and switches to that tab in one motion.
   document.querySelectorAll('.sidebar-tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const tab = e.target.dataset.sidebarTab;
+      const tab = e.currentTarget.dataset.sidebarTab;
+      if (sidebarCollapse.isCollapsed()) {
+        sidebarCollapse.expand();
+      }
       document.querySelectorAll('.sidebar-tab-btn').forEach(b => {
         b.classList.toggle('active', b.dataset.sidebarTab === tab);
       });
@@ -304,6 +346,21 @@ function setupButtonHandlers() {
         el.style.display = el.dataset.sidebarTabContent === tab ? '' : 'none';
       });
     });
+  });
+
+  // Cmd/Ctrl+B — standard sidebar toggle shortcut (VS Code, JetBrains
+  // and most editors). Bound at the document level so it works no
+  // matter what's focused.
+  document.addEventListener('keydown', (e) => {
+    const mod = navigator.platform.toLowerCase().includes('mac') ? e.metaKey : e.ctrlKey;
+    if (mod && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'b') {
+      // Don't hijack when the user is typing in an input/textarea —
+      // they might be using ⌘B for bold or similar.
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
+      e.preventDefault();
+      sidebarCollapse.toggle();
+    }
   });
 }
 

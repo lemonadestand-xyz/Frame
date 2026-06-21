@@ -87,11 +87,16 @@ function createProjectItem(project, index) {
   icon.textContent = project.isFrameProject ? '📦' : '📁';
   item.appendChild(icon);
 
-  // Project name
+  // Project name — double-click also enters rename mode for users who
+  // prefer that over the pencil button.
   const name = document.createElement('span');
   name.className = 'project-name';
   name.textContent = project.name;
-  name.title = project.path;
+  name.title = `${project.path}\n\nDouble-click to rename`;
+  name.addEventListener('dblclick', (e) => {
+    e.stopPropagation();
+    startRename(item, project);
+  });
   item.appendChild(name);
 
   // Frame badge
@@ -101,6 +106,22 @@ function createProjectItem(project, index) {
     badge.textContent = 'Frame';
     item.appendChild(badge);
   }
+
+  // Rename button (visible on hover) — pencil icon, sits next to the
+  // remove button to keep all per-row actions in one cluster.
+  const renameBtn = document.createElement('button');
+  renameBtn.className = 'project-rename-btn';
+  renameBtn.title = 'Rename';
+  renameBtn.innerHTML = `
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 20h9"/>
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+    </svg>`;
+  renameBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    startRename(item, project);
+  });
+  item.appendChild(renameBtn);
 
   // Remove button (visible on hover)
   const removeBtn = document.createElement('button');
@@ -119,6 +140,87 @@ function createProjectItem(project, index) {
   });
 
   return item;
+}
+
+/**
+ * Swap the project-name span for an inline <input> so the user can rename
+ * without leaving the sidebar. Submit on Enter or blur; cancel on Escape.
+ * Clicking the input itself does not bubble to the project row (which
+ * would select the project and discard the edit).
+ */
+function startRename(itemEl, project) {
+  const nameEl = itemEl.querySelector('.project-name');
+  if (!nameEl) return;
+  // Avoid stacking inputs if a previous rename hasn't unmounted yet
+  // (e.g. user rapid-clicks the pencil).
+  if (itemEl.querySelector('.project-name-input')) return;
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'project-name-input';
+  input.value = project.name;
+  input.setAttribute('aria-label', 'Project name');
+
+  nameEl.replaceWith(input);
+
+  // Block clicks from triggering project selection while editing.
+  input.addEventListener('click', (e) => e.stopPropagation());
+  input.addEventListener('dblclick', (e) => e.stopPropagation());
+
+  let committed = false;
+  const commit = () => {
+    if (committed) return;
+    committed = true;
+    const newName = input.value.trim();
+    if (newName && newName !== project.name) {
+      ipcRenderer.send(IPC.RENAME_PROJECT, {
+        projectPath: project.path,
+        newName
+      });
+      // The main process will re-broadcast WORKSPACE_UPDATED, which
+      // re-renders the whole list with the new name. No optimistic update
+      // needed.
+    } else {
+      // No change — restore the static name span.
+      restoreNameSpan(input, project);
+    }
+  };
+  const cancel = () => {
+    if (committed) return;
+    committed = true;
+    restoreNameSpan(input, project);
+  };
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commit();
+      input.blur();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancel();
+      input.blur();
+    }
+  });
+  input.addEventListener('blur', commit);
+
+  requestAnimationFrame(() => {
+    input.focus();
+    input.select();
+  });
+}
+
+function restoreNameSpan(input, project) {
+  const span = document.createElement('span');
+  span.className = 'project-name';
+  span.textContent = project.name;
+  span.title = `${project.path}\n\nDouble-click to rename`;
+  span.addEventListener('dblclick', (e) => {
+    e.stopPropagation();
+    const item = span.closest('.project-item');
+    if (item) startRename(item, project);
+  });
+  input.replaceWith(span);
 }
 
 /**
@@ -147,11 +249,28 @@ function confirmRemoveProject(projectPath, projectName) {
 }
 
 /**
- * Select a project
- * Terminal session switching is handled by state.js via multiTerminalUI
+ * Select a project. Clicking the currently-active project deselects it
+ * (returns to the no-project state so the user can reach the global
+ * dashboard / Frame-only actions without manually clearing).
  */
 function selectProject(projectPath) {
+  if (projectPath && projectPath === activeProjectPath) {
+    setActiveProject(null);
+    if (onProjectSelectCallback) onProjectSelectCallback(null);
+    return;
+  }
+
   setActiveProject(projectPath);
+
+  // Clear the project's "needs attention" dot (lemo-7) the moment the
+  // user actually switches to it. Lazy-required to dodge any load-
+  // order circularity with the notifier module.
+  try {
+    require('./terminalNotifier').clearProjectIndicator(projectPath);
+  } catch (err) {
+    // Notifier not initialized yet — fine, paint pass on next event
+    // covers it.
+  }
 
   if (onProjectSelectCallback) {
     onProjectSelectCallback(projectPath);

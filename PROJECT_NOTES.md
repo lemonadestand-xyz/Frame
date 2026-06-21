@@ -716,3 +716,17 @@ Frame is gaining native spec-driven development as a core feature (4-slice plan 
 **Validator**: `validateSpecStatus(obj)` lives in `src/main/specManager.js`. Shape check only — phase enum, required fields, ISO date strings. No deep semantic validation.
 
 **Watcher**: `fs.watch` with `recursive: true` on `.frame/specs/`. Debounced 250ms. On any change, re-scans the directory and pushes `SPEC_DATA` to the renderer with the changed slug + fresh content.
+
+### [2026-05-31] Cross-project Global Dashboard — registry decisions
+
+Decided to add a top-level Global Dashboard that pulls tasks across every enrolled Frame project, backed by an indexed cache. Key calls:
+
+- **Storage**: `~/.frame/registry.json` (next to `workspaces.json`). Per-machine, not per-project — matches the workspace pattern.
+- **Enrollment**: explicit and tracked. Backfill prompts the user on first dashboard open with their existing workspace projects (per-row opt-out). New `initializeFrameProject()` calls fire a renderer event that prompts to enroll. No silent auto-enroll.
+- **Two flags per project**: `tracked` (in/out of registry) and `filterHidden` (registered but hidden from current view). Removing wipes metadata; hiding preserves it.
+- **Sync model**: manual only in v1. A Sync button re-reads `tasks.json` from every tracked project sequentially and updates `taskSnapshot` + `lastSyncedAt`. No background scan; no inotify across projects. Avoids surprising the user with cross-project disk activity.
+- **Pathmissing**: marked at sync time, surfaced in the UI with a Remove/Fix option. No background path probing.
+- **Layout**: split — sidebar with project list (visibility checkboxes + counts), main pane unified task list when "All projects" is selected, or per-project metadata editor + filtered tasks when a single project is selected.
+- **LLM summary**: deferred to follow-up. Depends on the same "open new terminal + wait for AI ready + inject prompt" pattern as `task-discuss-button`, which is also still pending. v1 reserves UI space but no behavior yet.
+
+Rationale for deferring LLM summary: shipping a half-working version that opens an unconfigured terminal would be a worse experience than reserving space and shipping the rest. Once the discuss-button machinery lands, both summary buttons can light up at once.

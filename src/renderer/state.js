@@ -319,7 +319,13 @@ function setupSpotlightListeners() {
 function updateProjectUI() {
   if (currentProjectPath) {
     if (pathElement) {
-      pathElement.textContent = currentProjectPath;
+      // Show basename only — the full path eats too much vertical real
+      // estate in the narrow sidebar. Hovering shows the absolute path
+      // via the native title tooltip so nothing is hidden.
+      const segments = currentProjectPath.split(/[/\\]/).filter(Boolean);
+      const basename = segments[segments.length - 1] || currentProjectPath;
+      pathElement.textContent = basename;
+      pathElement.title = currentProjectPath;
       pathElement.style.color = '#569cd6';
     }
     if (startClaudeBtn) {
@@ -333,6 +339,7 @@ function updateProjectUI() {
   } else {
     if (pathElement) {
       pathElement.textContent = 'No project selected';
+      pathElement.removeAttribute('title');
       pathElement.style.color = '#666';
     }
     if (startClaudeBtn) {

@@ -96,6 +96,17 @@ function setActiveTerminal(terminalId) {
 // Expose sendCommand globally for modules that can't import terminal directly (circular dependency)
 window.terminalSendCommand = sendCommand;
 
+// Mark a terminal "active / awaiting" so the main process arms its
+// idle timer for completion notifications (lemo-7). Targets the
+// currently-active terminal when no id is passed. No-op if no terminal
+// is selected.
+window.terminalMarkActive = function(terminalId = null) {
+  const manager = multiTerminalUI && multiTerminalUI.getManager();
+  const targetId = terminalId || (manager && manager.activeTerminalId);
+  if (!targetId) return;
+  ipcRenderer.send(IPC.TERMINAL_MARK_ACTIVE, { terminalId: targetId });
+};
+
 // Expose new-terminal orchestration so tasksPanel can spawn a fresh terminal
 // and (optionally) launch an AI CLI inside it without importing terminal.js
 // directly. Returns the new terminal id, or null on failure.

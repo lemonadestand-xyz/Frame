@@ -10,6 +10,67 @@
   padding: var(--space-lg);
   position: relative;
   flex-shrink: 0;
+  transition: width 180ms cubic-bezier(0.4, 0, 0.2, 1),
+              padding 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Collapsed rail. Width is the smallest size that still leaves the
+   toggle button comfortably clickable. Everything else is hidden by
+   the rules further down; resize handle is disabled so the user
+   can't accidentally drag back to a half-collapsed state. */
+#sidebar.collapsed {
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  padding: var(--space-md) 6px;
+}
+
+#sidebar.collapsed #sidebar-resize-handle {
+  pointer-events: none;
+  opacity: 0;
+}
+
+#sidebar.collapsed .sidebar-header-text,
+#sidebar.collapsed .sidebar-tab-content,
+#sidebar.collapsed #update-dot {
+  display: none !important;
+}
+
+#sidebar.collapsed #sidebar-header {
+  justify-content: center;
+  margin-bottom: var(--space-md);
+}
+
+/* Activity-bar pattern: when the sidebar is collapsed, the tab row
+   becomes a vertical icon column. Each icon click expands the sidebar
+   AND switches to that tab — matches the muscle memory of VS Code,
+   JetBrains, etc. */
+#sidebar.collapsed .sidebar-tabs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+}
+
+#sidebar.collapsed .sidebar-tab-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#sidebar.collapsed .sidebar-tab-label {
+  display: none;
+}
+
+/* Rotate the chevron 180° to indicate "click to expand" when collapsed. */
+#sidebar.collapsed .sidebar-collapse-icon {
+  transform: rotate(180deg);
 }
 
 #sidebar::after {
@@ -80,6 +141,32 @@ body.sidebar-resizing * {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+}
+
+.sidebar-collapse-toggle {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-tertiary);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-collapse-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.sidebar-collapse-icon {
+  transition: transform 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #app-version {
@@ -224,6 +311,10 @@ body.sidebar-resizing * {
   transition: all var(--transition-fast);
   flex: 1;
   text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .sidebar-tab-btn:hover {
@@ -233,6 +324,29 @@ body.sidebar-resizing * {
 .sidebar-tab-btn.active {
   color: var(--accent-primary);
   border-bottom-color: var(--accent-primary);
+}
+
+.sidebar-tab-icon {
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+/* In the collapsed rail the icon is the whole button — give it some
+   breathing room + a clear hover state, like a VS Code activity bar. */
+#sidebar.collapsed .sidebar-tab-btn {
+  border-bottom: none;
+  color: var(--text-tertiary);
+}
+
+#sidebar.collapsed .sidebar-tab-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+#sidebar.collapsed .sidebar-tab-btn.active {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  border-bottom: none;
 }
 
 .sidebar-tab-content {
@@ -401,6 +515,59 @@ body.sidebar-resizing * {
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+/* When the project row gets narrow (collapsed sidebar, long names,
+   etc.) the Frame pill is the least useful chip on the row — drop it
+   first so the actual project name keeps its space. Container query
+   reads the item's own inline size, so it stays correct regardless of
+   the parent sidebar's current width. */
+.project-item {
+  container-type: inline-size;
+}
+
+@container (max-width: 180px) {
+  .project-item .frame-badge {
+    display: none;
+  }
+}
+
+/* ---------- Terminal completion notification dots (lemo-7) ---------- */
+
+/* Tiny pulsing dot in the top-right of a terminal tab or project row
+   when one of its terminals just went idle after a Run/Start. Cleared
+   when the user selects that terminal/project. */
+.terminal-tab.has-notification,
+.project-item.has-notification {
+  position: relative;
+}
+
+.terminal-tab.has-notification::after,
+.project-item.has-notification::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--bg-secondary), 0 0 6px var(--accent-primary);
+  animation: frame-notification-pulse 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Project rows have a larger sidebar background; nudge the offset so
+   the dot lines up with the row's corner rather than the icon. */
+.project-item.has-notification::after {
+  top: 6px;
+  right: 8px;
+}
+
+@keyframes frame-notification-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.35); opacity: 0.6; }
 }
 
 .project-item .project-remove-btn {
@@ -426,6 +593,50 @@ body.sidebar-resizing * {
 .project-item .project-remove-btn:hover {
   background: var(--error);
   color: white;
+}
+
+.project-item .project-rename-btn {
+  opacity: 0;
+  visibility: hidden;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 2px 4px;
+  margin-left: var(--space-xs);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-item:hover .project-rename-btn {
+  opacity: 1;
+  visibility: visible;
+}
+
+.project-item .project-rename-btn:hover {
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+}
+
+.project-name-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-deep);
+  border: 1px solid var(--accent-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  outline: none;
+  font-family: inherit;
+}
+
+.project-name-input:focus {
+  box-shadow: 0 0 0 2px var(--accent-subtle);
 }
 
 .no-projects-message {

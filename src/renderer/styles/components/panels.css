@@ -471,6 +471,20 @@
   color: var(--text-muted);
 }
 
+.task-due {
+  font-size: 10px;
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.task-due.overdue {
+  background: var(--error-subtle);
+  color: var(--error);
+  font-weight: 600;
+}
+
 /* Task Delete Button */
 .task-delete {
   background: transparent;

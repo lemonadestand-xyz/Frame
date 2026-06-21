@@ -1,54 +1,59 @@
 /* ==================== DESIGN SYSTEM - FRAME ==================== */
 :root,
 [data-theme="dark"] {
-  /* Color Palette - Warm Neutrals with Amber Accent */
-  --bg-deep: #0f0f10;
-  --bg-primary: #151516;
-  --bg-secondary: #1a1a1c;
-  --bg-tertiary: #222225;
-  --bg-elevated: #28282c;
-  --bg-hover: #2e2e33;
+  /* Color Palette — JetBrains Darcula / New UI Dark inspired.
+     Replaces the original "warm amber" palette. The cool grays and
+     muted blue accent reduce visual weight on highlights so list
+     selections and hover states stop dominating the eye. */
+  --bg-deep: #1E1F22;          /* deepest background (under panels)   */
+  --bg-primary: #1E1F22;       /* main editor / terminal area          */
+  --bg-secondary: #2B2D30;     /* sidebar / panels                     */
+  --bg-tertiary: #2B2D30;      /* nested panels (same as secondary)    */
+  --bg-elevated: #43454A;      /* buttons / inputs background          */
+  --bg-hover: #2E3033;         /* row hover                            */
 
   /* Text Colors */
-  --text-primary: #e8e6e3;
-  --text-secondary: #a09b94;
-  --text-tertiary: #6b6660;
-  --text-muted: #4a4642;
+  --text-primary: #DFE1E5;
+  --text-secondary: #B4B8BF;
+  --text-tertiary: #9DA0A8;
+  --text-muted: #6F737A;
 
-  /* Accent Colors */
-  --accent-primary: #d4a574;
-  --accent-secondary: #c9956a;
-  --accent-subtle: rgba(212, 165, 116, 0.15);
-  --accent-glow: rgba(212, 165, 116, 0.08);
+  /* Accent Colors — JetBrains blue */
+  --accent-primary: #3574F0;
+  --accent-secondary: #467FF2;
+  --accent-subtle: rgba(53, 116, 240, 0.18);
+  --accent-glow: rgba(53, 116, 240, 0.10);
 
-  /* Semantic Colors */
-  --success: #7cb382;
-  --success-subtle: rgba(124, 179, 130, 0.15);
-  --warning: #e0a458;
-  --error: #d47878;
-  --error-subtle: rgba(212, 120, 120, 0.15);
-  --info: #78a5d4;
+  /* Semantic Colors — muted to match the editor's lower contrast */
+  --success: #5FAD65;
+  --success-subtle: rgba(95, 173, 101, 0.16);
+  --warning: #D6AE49;
+  --error: #D85E5E;
+  --error-subtle: rgba(216, 94, 94, 0.16);
+  --info: #5391E5;
 
-  /* Diff colors (GitHub-style, dark) */
-  --diff-ins-bg: rgba(63, 185, 80, 0.15);
-  --diff-ins-fg: #c9d1d9;
-  --diff-ins-mark-bg: rgba(63, 185, 80, 0.40);
-  --diff-ins-mark-fg: #e6ffec;
-  --diff-del-bg: rgba(248, 81, 73, 0.15);
-  --diff-del-fg: #c9d1d9;
-  --diff-del-mark-bg: rgba(248, 81, 73, 0.40);
-  --diff-del-mark-fg: #ffebe9;
+  /* Diff colors — Darcula gutter palette (low-saturation green / red).
+     Keeps additions/deletions readable without the loud GitHub greens
+     and pinks that were dominating screenshots. */
+  --diff-ins-bg: rgba(95, 173, 101, 0.18);
+  --diff-ins-fg: #C5C8CE;
+  --diff-ins-mark-bg: rgba(95, 173, 101, 0.35);
+  --diff-ins-mark-fg: #DCEEDF;
+  --diff-del-bg: rgba(216, 94, 94, 0.18);
+  --diff-del-fg: #C5C8CE;
+  --diff-del-mark-bg: rgba(216, 94, 94, 0.35);
+  --diff-del-mark-fg: #F0DDDD;
 
-  /* Borders */
+  /* Borders — visible separator lines, JetBrains style */
   --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-default: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.12);
+  --border-default: #393B40;
+  --border-strong: #4E5157;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px var(--accent-glow);
+  /* Shadows — flatter than the original, JetBrains uses minimal drop */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.32);
+  --shadow-lg: 0 6px 20px rgba(0, 0, 0, 0.40);
+  --shadow-glow: 0 0 16px var(--accent-glow);
 
   /* Spacing */
   --space-xs: 4px;

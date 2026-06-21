@@ -38,6 +38,7 @@ const IPC = {
   WORKSPACE_UPDATED: 'workspace-updated',
   ADD_PROJECT_TO_WORKSPACE: 'add-project-to-workspace',
   REMOVE_PROJECT_FROM_WORKSPACE: 'remove-project-from-workspace',
+  RENAME_PROJECT: 'rename-project',
 
   // Frame Project
   INITIALIZE_FRAME_PROJECT: 'initialize-frame-project',
@@ -64,6 +65,15 @@ const IPC = {
   TERMINAL_FOCUS: 'terminal-focus',
   GET_AVAILABLE_SHELLS: 'get-available-shells',
   AVAILABLE_SHELLS_DATA: 'available-shells-data',
+  // Terminal completion notifications (lemo-7)
+  TERMINAL_MARK_ACTIVE: 'terminal-mark-active',
+  TERMINAL_COMPLETED: 'terminal-completed',
+  DOCK_BOUNCE: 'dock-bounce',
+  WINDOW_FOCUS_AND_SHOW: 'window-focus-and-show',
+  // Task references (lemo-4) — picker for files/folders, opener for the
+  // shell so a click on a reference reveals it in Finder / opens the URL.
+  PICK_REFERENCE_FILE: 'pick-reference-file',
+  OPEN_REFERENCE: 'open-reference',
 
   // Tasks Panel
   LOAD_TASKS: 'load-tasks',
@@ -125,6 +135,8 @@ const IPC = {
   SET_AI_TOOL: 'set-ai-tool',
   AI_TOOL_CHANGED: 'ai-tool-changed',
   CHECK_AI_TOOL_AVAILABLE: 'check-ai-tool-available',
+  GET_TOOL_FLAGS: 'get-tool-flags',
+  SET_TOOL_FLAGS: 'set-tool-flags',
 
   // User Settings (renderer-side preferences persisted to userData JSON)
   GET_USER_SETTING: 'get-user-setting',
@@ -158,7 +170,34 @@ const IPC = {
 
   // Spec-Driven Development opt-in (Slice 1.5)
   IS_SPEC_DRIVEN_ENABLED: 'is-spec-driven-enabled',
-  ENABLE_SPEC_DRIVEN: 'enable-spec-driven'
+  ENABLE_SPEC_DRIVEN: 'enable-spec-driven',
+
+  // Global cross-project dashboard (lemo-global-dashboard)
+  LOAD_GLOBAL_DASHBOARD: 'load-global-dashboard',
+  SYNC_GLOBAL_DASHBOARD: 'sync-global-dashboard',
+  ADD_GLOBAL_PROJECT: 'add-global-project',
+  REMOVE_GLOBAL_PROJECT: 'remove-global-project',
+  UPDATE_GLOBAL_PROJECT_METADATA: 'update-global-project-metadata',
+  SET_GLOBAL_PROJECT_FILTER: 'set-global-project-filter',
+  GLOBAL_DASHBOARD_DATA: 'global-dashboard-data',
+  GLOBAL_DASHBOARD_SYNC_PROGRESS: 'global-dashboard-sync-progress',
+  TOGGLE_GLOBAL_DASHBOARD: 'toggle-global-dashboard',
+  PROMPT_GLOBAL_DASHBOARD_ENROLL: 'prompt-global-dashboard-enroll',
+  REFRESH_GLOBAL_PROJECT: 'refresh-global-project',
+  // Side-effect-free folder picker (does not switch the active project)
+  PICK_FOLDER: 'pick-folder',
+
+  // Cross-project chat sessions (overview-session chat, distinct from
+  // per-project execution terminals)
+  CREATE_CHAT_SESSION: 'create-chat-session',
+  CHAT_SESSION_CREATED: 'chat-session-created',
+  LIST_CHAT_SESSIONS: 'list-chat-sessions',
+  CHAT_SESSIONS_DATA: 'chat-sessions-data',
+  DELETE_CHAT_SESSION: 'delete-chat-session',
+  GET_CHAT_START_COMMAND: 'get-chat-start-command',
+  CHAT_SUGGESTIONS_DATA: 'chat-suggestions-data',
+  APPLY_CHAT_SUGGESTION: 'apply-chat-suggestion',
+  DISMISS_CHAT_SUGGESTION: 'dismiss-chat-suggestion'
 };
 
 module.exports = { IPC };

@@ -169,6 +169,36 @@ async function showInitializeConfirmation(projectPath) {
 }
 
 /**
+ * Add `tasks.json` to the project's .gitignore if not already present.
+ * Idempotent — safe to call on every init. Non-fatal: a failure here
+ * (no write permission, etc.) is logged but doesn't break init.
+ */
+function ensureTasksGitignored(projectPath) {
+  try {
+    const gitignorePath = path.join(projectPath, '.gitignore');
+    let existing = '';
+    if (fs.existsSync(gitignorePath)) {
+      existing = fs.readFileSync(gitignorePath, 'utf8');
+      // Match a bare `tasks.json` entry anywhere in the file, ignoring
+      // commented lines and surrounding whitespace.
+      const lines = existing.split(/\r?\n/);
+      const already = lines.some(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) return false;
+        return trimmed === 'tasks.json' || trimmed === '/tasks.json';
+      });
+      if (already) return;
+    }
+    const addition = (existing && !existing.endsWith('\n') ? '\n' : '')
+      + (existing ? '\n# Frame: per-machine task tracking (Unicode-normalized on every save)\n' : '# Frame: per-machine task tracking (Unicode-normalized on every save)\n')
+      + 'tasks.json\n';
+    fs.writeFileSync(gitignorePath, existing + addition, 'utf8');
+  } catch (err) {
+    console.warn('[frame] could not update .gitignore for tasks.json (non-fatal):', err.message);
+  }
+}
+
+/**
  * Initialize a project as Frame project
  */
 function initializeFrameProject(projectPath, projectName) {
@@ -285,6 +315,13 @@ function initializeFrameProject(projectPath, projectName) {
     path.join(projectPath, FRAME_FILES.TASKS),
     templates.getTasksTemplate(name)
   );
+
+  // tasks.json is per-machine state — Frame's linter normalizes Unicode
+  // escapes on every edit (so even cosmetic activity produces large
+  // commits) and the file is bound to a single user's workflow. Ignore
+  // by default; teams that want a shared baseline can opt in via a
+  // separate tasks.shared.json (future work).
+  ensureTasksGitignored(projectPath);
 
   createFileIfNotExists(
     path.join(projectPath, FRAME_FILES.QUICKSTART),
@@ -445,6 +482,17 @@ function setupIPC(ipcMain) {
       // Also send updated workspace
       const projects = workspace.getProjects();
       event.sender.send(IPC.WORKSPACE_UPDATED, projects);
+
+      // Offer to enroll the freshly initialized project in the global
+      // dashboard if it isn't already tracked. Renderer shows a modal.
+      try {
+        const globalDashboardManager = require('./globalDashboardManager');
+        if (!globalDashboardManager.isTracked(projectPath)) {
+          globalDashboardManager.notifyEnrollPrompt(projectPath, projectName);
+        }
+      } catch (err) {
+        console.warn('global-dashboard enroll prompt failed:', err.message);
+      }
     } catch (err) {
       console.error('Error initializing Frame project:', err);
       event.sender.send(IPC.FRAME_PROJECT_INITIALIZED, {

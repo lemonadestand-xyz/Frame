@@ -279,6 +279,15 @@ class TerminalTabBar {
     newBtn.title = newBtn.disabled
       ? `Maximum terminals (${this.manager.maxTerminals}) reached for this project`
       : 'New Terminal (Ctrl+Shift+T)';
+
+    // Re-apply any pending completion-notification dots after a full
+    // re-render — fresh DOM means stale class state. Lazy-required to
+    // dodge a circular load at module init time.
+    try {
+      require('./terminalNotifier').paintIndicators();
+    } catch (err) {
+      // notifier not loaded yet — paint will happen on its next event
+    }
   }
 
   _setupEventHandlers() {

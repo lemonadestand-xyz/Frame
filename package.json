@@ -51,6 +51,7 @@
       "target": [
         "dmg"
       ],
+      "icon": "assets/frame-icon.icns",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "identity": "KAAN OZHAN (WU73QKZJ64)",

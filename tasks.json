@@ -7,7 +7,7 @@
   },
   "project": "Frame",
   "version": "2.0",
-  "lastUpdated": "2026-05-09T12:08:22.395Z",
+  "lastUpdated": "2026-05-31T14:16:44.662Z",
   "taskSchema": {
     "_comment": "This schema shows the expected structure for each task",
     "id": "unique-id (task-xxx format)",
@@ -20,25 +20,69 @@
     "priority": "high | medium | low",
     "category": "feature | fix | refactor | docs | test",
     "context": "Session date and context",
+    "startDate": "YYYY-MM-DD | null — planned start date (optional)",
+    "endDate": "YYYY-MM-DD | null — due date (optional)",
     "createdAt": "ISO timestamp",
     "updatedAt": "ISO timestamp",
     "completedAt": "ISO timestamp | null"
   },
   "tasks": [
     {
-      "id": "task-structure-bootstrap",
-      "title": "Ship STRUCTURE.json auto-fill machinery to user projects",
-      "description": "Today the STRUCTURE.json auto-fill mechanism only works in Frame's own repo because scripts/update-structure.js, scripts/find-module.js, and .githooks/pre-commit live there. User projects initialized via 'Initialize as Frame Project' get an empty STRUCTURE.json with no tooling to fill it — AI is told to maintain it manually but rarely does, so the index stays {}.\n\nThis task ships the same machinery into user projects without disturbing their existing setup:\n\n1. Make scripts/update-structure.js and scripts/find-module.js portable via FRAME_PROJECT_ROOT env var (one-line tweak each). Frame's own usage stays identical because the env var falls back to __dirname/..\n2. Add 'scripts/**/*' to package.json electron-builder files array so the scripts ship in the asar bundle.\n3. Create src/main/structureBootstrap.js with: copyParserScripts(), detectHookSetup(), installPreCommitHook(), runInitialFullScan().\n4. Add a hook template string to src/shared/frameTemplates.js (getStructurePreCommitHookTemplate()) that calls 'node .frame/bin/update-structure.js --changed' with FRAME_PROJECT_ROOT set, then 'git add STRUCTURE.json'. Guards against missing node (silent skip).\n5. Detect existing hook setups: vanilla (.git/hooks/pre-commit), husky (.husky/pre-commit + core.hooksPath check), lefthook (lefthook.yml present). For vanilla-empty/sample: install. For husky/lefthook: append our line idempotently. For custom vanilla: log a console warning + show the line to add manually (don't auto-append in v1, safer).\n6. Wire bootstrap calls into initializeFrameProject() in frameProject.js AFTER existing logic. Only run runInitialFullScan if STRUCTURE.json was just created by us (track via createFileIfNotExists return value), never if user had a pre-existing one.\n7. Skip hook install when .git/ doesn't exist; still run initial full scan if applicable.\n\nFiles affected: scripts/update-structure.js (1-line), scripts/find-module.js (1-line), package.json (files array), src/main/frameProject.js (call sites), src/main/structureBootstrap.js (new), src/shared/frameTemplates.js (hook template).",
-      "userRequest": "User said: structure.json mekanızması frame için kusursuz çalışıyor, ama bir kullanıcıda, baştan geliştirmeye başlamasına rağmen doğru doldurulmadığını gördük. inceleyip edge caseleri düşünelim mi? — followed by extensive discussion landing on: pre-commit is the right trigger (user's original conviction), ship scripts to .frame/bin/, install hook safely with detection for husky/lefthook/custom, never touch user's package.json, never overwrite existing hooks, one-time full scan at init end to populate STRUCTURE.json. Final approval: tamamdur bu haliyle ikna oldum, devam edebiliririz bence implemente etmeye",
-      "acceptanceCriteria": "(1) Frame's own repo: 'npm run structure' and 'npm run find-module terminal' produce byte-identical output to before the change. (2) After 'Initialize as Frame Project' on an existing JS project with src/, STRUCTURE.json is fully populated (modules + intentIndex) before the user does anything else. (3) .frame/bin/update-structure.js and .frame/bin/find-module.js exist in the user project. (4) Pre-commit hook is installed in the correct location based on detection — .git/hooks/pre-commit for vanilla, .husky/pre-commit for husky projects, lefthook.yml for lefthook projects. (5) User's existing pre-commit content is never overwritten — appended for husky/lefthook, surfaced as manual instructions for custom vanilla hooks. (6) Idempotent: re-running init does not duplicate the hook line. (7) On 'git commit' with staged JS changes in src/, STRUCTURE.json updates and is auto-staged into the same commit. (8) If user has no .git/ folder, init still succeeds, initial scan still runs, hook install is silently skipped. (9) If user's project has a pre-existing non-empty STRUCTURE.json, we never overwrite it on init — full scan is skipped.",
-      "notes": "Scope constraints (decided during design): (1) Parser logic untouched — only ROOT_DIR resolution gets an env var fallback. STRUCTURE.json schema, regexes, intentIndex generation, IPC sync all stay byte-identical. (2) Only single-src/ JS projects fully covered in v1; non-standard layouts (monorepo, app/, lib/, TypeScript, Python) deferred to spec .frame/specs/structure-non-standard-layouts/. Parser silently returns empty modules for those — no crash, no garbage. (3) Custom vanilla hook case is intentionally manual-only in v1 (we don't auto-append) — safer first ship. Can revisit. (4) IDE-side watcher idea was explored and rejected — pre-commit is the canonical truth-anchor moment. (5) No package.json modification in user projects; hook invokes node directly. (6) Uninstall command deferred — single-line append is easy to remove manually. (7) Hook must 'exit 0' on parser error so a parser bug never blocks the user's commit.",
+      "id": "lemo-global-dashboard",
+      "parentId": null,
+      "title": "Cross-project Global Dashboard with indexed cache",
+      "description": "Add a top-level dashboard that aggregates tasks across all enrolled Frame projects, backed by an indexed cache at ~/.frame/registry.json. Each project entry stores name, path, description, freeform metadata (key/value pairs), tracked flag, filterHidden flag, lastSyncedAt, and a taskSnapshot. Backfill on first open with the user's existing workspace projects. New Frame project init prompts the user to enroll. Manual Sync button re-reads tasks.json from every tracked project. Layout: split view — sidebar with project list (visibility checkboxes + counts + Add/Sync), main pane with unified task list (project chip + due chip per row, filters) OR per-project metadata editor + filtered tasks when a single project is selected. LLM weekly/daily summary deferred to follow-up.\n\nFiles affected: src/shared/ipcChannels.js (new channels), src/main/globalDashboardManager.js (new), src/main/index.js (wiring), src/main/frameProject.js (post-init enrollment hook), index.html (markup + sidebar entry), src/renderer/globalDashboard.js (new), src/renderer/styles/components/global-dashboard.css (new), src/renderer/index.js (init + button), src/renderer/projectListUI.js (tracking indicator).",
+      "userRequest": "User said: I'd like to add a dashboard in frame across all of my projects that will pull all the tasks across projects. Ideally I can add meta data to a project like description and key value pairs for freeform input that I can add metadata to a project. Things like budget, large initiatives due, etc I'd like to surface across projects so I know where to prioritize / put effort and how to organize across projects. Ideally, I can pass this and associated tasks to LLM and get summary for week objectives / daily objectives to stay on top of tasks. — Followed by clarifications: Maintain an indexed cache, there should be a sync button on the dashboard. Enrollment tracked in Frame, backfill current projects, new Frame init prompts for global tracking, select+remove from global, filter view without untracking. Layout: split project sidebar + task list. LLM summary: open terminal with selected AI tool.",
+      "acceptanceCriteria": "(1) ~/.frame/registry.json created on first dashboard open, populated by backfill from the user's existing workspace projects (prompted, with per-row opt-out). (2) Dashboard accessible via a top-level entry/button. (3) Tracked projects show in dashboard sidebar with task-count badges and visibility checkboxes (filterHidden persists). (4) Sync button re-reads tasks.json from every tracked project and refreshes taskSnapshot + lastSyncedAt; shows progress. (5) Adding a new Frame project (via Initialize as Frame Project) prompts to enroll in the dashboard. (6) Selecting a single project in the dashboard surfaces an editable description + freeform key/value metadata table and filtered task list. (7) Selecting 'All projects' shows unified task list with project chips and due chips. (8) Remove-from-dashboard control deletes the entry; toggling filterHidden hides without removing. (9) Pathmissing projects (folder deleted/moved) are surfaced clearly with a Remove/Fix option. (10) IPC channels: LOAD_GLOBAL_DASHBOARD, SYNC_GLOBAL_DASHBOARD, ADD_GLOBAL_PROJECT, REMOVE_GLOBAL_PROJECT, UPDATE_GLOBAL_PROJECT_METADATA, SET_GLOBAL_PROJECT_FILTER, GLOBAL_DASHBOARD_DATA, plus prompt channel for post-init.",
+      "notes": "v1 explicitly defers the LLM weekly/daily summary buttons because the underlying 'open new terminal + wait for AI ready + inject prompt' pattern (also designed for the still-pending task-discuss-button) is not built yet. The dashboard will reserve UI space for these buttons but mark them as 'coming soon' so the deferred work has a clear landing pad. Storage chosen at ~/.frame/registry.json (next to workspaces.json) so the indexed cache is per-machine, not per-project, matching the workspace pattern. Pathmissing handling is sync-time only in v1 — no background scanning. Cross-project search and background sync deferred.",
+      "status": "in_progress",
+      "priority": "high",
+      "category": "feature",
+      "context": "Session 2026-05-31 — Cross-project oversight and prioritization. v1 implementation landed (registry manager, IPC, dashboard view, backfill + enroll prompts, metadata editor, sync). Awaiting user verification before close. LLM weekly/daily summary buttons explicitly deferred.",
+      "createdAt": "2026-05-31T00:00:00Z",
+      "updatedAt": "2026-05-31T00:00:00Z",
+      "completedAt": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-due-dates",
+      "parentId": null,
+      "title": "Add start/due dates to tasks (schema + UI)",
+      "description": "Extend the task schema with optional startDate and endDate (YYYY-MM-DD). Add date inputs to both the dashboard add form and the tasks panel add/edit modal. Surface due dates on Kanban cards, sidebar task rows, and initiative subcards. Show overdue state (past endDate while not completed) with red styling. Add an editable Schedule section to the initiative left pane so dates can be changed without opening the modal. Self-heal old tasks to null on load. Files affected: src/main/tasksManager.js, tasks.json (schema doc), index.html (forms), src/renderer/tasksDashboard.js, src/renderer/tasksPanel.js, src/renderer/styles/components/tasks-dashboard.css, src/renderer/styles/components/panels.css.",
+      "userRequest": "User said: I'd like to add due dates to our frame tasks / sub tasks -- can you update the application to show this if it's set and add start / end date to our json tasks schema so we know when tasks are due",
+      "acceptanceCriteria": "(1) tasks.json schema documents startDate and endDate fields with format YYYY-MM-DD | null. (2) Adding a task via either form persists provided dates. (3) Editing an existing task can clear or change either date. (4) Past-due tasks (endDate < today, status != completed) display overdue styling on every surface. (5) Old tasks without these fields are migrated to null on load without rewriting other data. (6) Initiative view Schedule section is editable inline and saves on change.",
+      "notes": "Implemented before lemo-global-dashboard in the same session. normalizeDate() in tasksManager strips junk and accepts both YYYY-MM-DD and full ISO timestamps so external edits remain robust.",
       "status": "completed",
       "priority": "high",
       "category": "feature",
-      "context": "Session 2026-05-13 — STRUCTURE.json auto-fill not working for new users",
-      "createdAt": "2026-05-13T00:00:00Z",
-      "updatedAt": "2026-05-13T00:00:00Z",
-      "completedAt": "2026-05-13T00:00:00Z"
+      "context": "Session 2026-05-31 — Task scheduling",
+      "createdAt": "2026-05-31T00:00:00Z",
+      "updatedAt": "2026-05-31T00:00:00Z",
+      "completedAt": "2026-05-31T00:00:00Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-8",
+      "parentId": null,
+      "title": "VS Code extension as team-adoption surface (analysis)",
+      "description": "Findings from the team-adoption / IntelliJ-vs-VS-Code-extension discussion. Captured here as a tracking ticket so the recommendation doesn't evaporate at session end. Status stays pending until we decide whether to actually scaffold the extension.",
+      "userRequest": "User said: \"Let's write the findings on an extension as ticket in our frame project\"",
+      "acceptanceCriteria": "Decision documented: (a) we proceed with a VS Code extension and convert this ticket into an initiative with implementation subtasks, OR (b) we keep Frame-only and close this with a why-not note. Either way, a written decision lands in PROJECT_NOTES.md.",
+      "notes": "## Recommendation (TL;DR)\nBuild a VS Code extension as a thin client over the same tasks.json. Keep Frame as your personal lab. tasks.json becomes the contract between the two clients. Skip IntelliJ unless the team is JetBrains-heavy — Kotlin/Swing port is ~2-3x the work of a TS/HTML port.\n\n## VS Code maps Frame's surface 1:1\n- Tasks panel + hierarchy -> TreeDataProvider (drag & drop included natively)\n- Initiative detail / inline editing -> Webview (drop in the existing HTML/CSS from tasksDashboard.js's initiative view)\n- Run task -> window.createTerminal() + terminal.sendText(buildTaskPrompt(...)). The prompt builder ports as-is.\n- Project switching -> native workspaces\n- Multi-terminal grid -> native (terminal.split, terminal groups)\n- Settings persistence -> contributes.configuration (native settings UI)\n- Commands / shortcuts -> contributes.commands + contributes.keybindings (native palette)\n- File watcher for tasks.json -> workspace.createFileSystemWatcher()\n- OAuth for ClickUp/Linear/Jira -> standard Node HTTPS, or compose with existing extensions\n- Distribution -> one upload to Marketplace + Open VSX -> works in VS Code, Cursor, Windsurf, Kiro, Codium\n\n## Why this beats \"ask team to adopt Frame\"\n- Friction: install another app vs install an extension. Senior devs resist context-switching out of their IDE.\n- Coverage: team's IDE landscape is already mixed (Cursor + VS Code + maybe holdouts). One extension serves all.\n- Existing integrations: ClickUp, Linear, Jira all already have mature VS Code extensions to compose with.\n\n## v1 scope (1-2 weeks if disciplined)\n1. TasksTreeProvider -> reads tasks.json, hierarchical render, expand/collapse\n2. Initiative Webview -> copy renderInitiativeLeft/Right from Frame, mount in WebviewPanel\n3. Run command -> opens terminal, sends buildTaskPrompt output. Port buildTaskPrompt as-is.\n4. ClickUp sync (pick the team's primary tracker) -> one-way pull into tasks.json for v1\n\n## Skip in v1\n- Multi-terminal grid (native), file tree (native), editor (native), git diff (native + GitLens)\n- Spec-driven workflow (defer)\n- Multi-AI tool selector (start with Claude Code only)\n- IntelliJ port\n\n## tasks.json as the protocol\nBoth clients write to the same file (with the file watcher each already has). ClickUp sync lands in the same file. .gitignore keeps it per-machine; tasks.shared.json (lemo-6.3) becomes the committed team baseline. Schema becomes the spec — document it in AGENTS.md + extension README.\n\n## IntelliJ analysis (for completeness)\n- IntelliJ CAN do everything (ToolWindow + JBList + JCEF webviews + TerminalToolWindowManager).\n- Blocker is language (Kotlin/Java) + Swing ergonomics, not capability.\n- Air (JetBrains' new agentic IDE) is a separate app and does NOT support the IntelliJ plugin SDK — assumption it would is incorrect.\n\n## Open questions to resolve before scaffolding\n- Which tracker first? (ClickUp seems primary given the lemo-* tasks reference it)\n- Two-way ClickUp sync semantics — what's the source of truth when both sides edit a task? Suggest: tasks.json wins for fields the user just edited; tracker wins for everything else.\n- Status mapping — Frame uses pending/in_progress/completed; ClickUp has many. Need an explicit mapping doc.\n",
+      "status": "pending",
+      "priority": "high",
+      "category": "research",
+      "context": "2026-05-23 - Captured during the Frame fork session.",
+      "createdAt": "2026-05-23T18:21:56Z",
+      "updatedAt": "2026-05-23T18:21:56Z",
+      "completedAt": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-discuss-button",
@@ -53,7 +97,11 @@
       "context": "Session 2026-04-29 - Tasks panel: Discuss button design",
       "createdAt": "2026-04-29T18:00:00Z",
       "updatedAt": "2026-04-29T18:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-s5",
@@ -65,7 +113,11 @@
       "context": "todos.json - shortTerm",
       "createdAt": "2026-01-21T00:00:00Z",
       "updatedAt": "2026-01-24T16:30:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-m6",
@@ -77,7 +129,11 @@
       "context": "todos.json - mediumTerm",
       "createdAt": "2026-01-21T00:00:00Z",
       "updatedAt": "2026-01-24T16:30:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-pn",
@@ -89,19 +145,11 @@
       "context": "Session 2026-01-24 - Frame dokuman sistemi",
       "createdAt": "2026-01-24T16:00:00Z",
       "updatedAt": "2026-01-24T16:30:00Z",
-      "completedAt": null
-    },
-    {
-      "id": "task-rm",
-      "title": "README.md kurallarini belirle",
-      "description": "README.md icin guncelleme kurallari ve CLAUDE.md'ye eklenecek detayli talimatlari belirle",
-      "status": "pending",
-      "priority": "low",
-      "category": "docs",
-      "context": "Session 2026-01-24 - Frame dokuman sistemi",
-      "createdAt": "2026-01-24T16:00:00Z",
-      "updatedAt": "2026-01-24T16:30:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-struct-desc",
@@ -113,7 +161,11 @@
       "context": "Session 2026-01-25 - Structure auto-update script",
       "createdAt": "2026-01-25T00:00:00Z",
       "updatedAt": "2026-01-25T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-struct-graph",
@@ -125,7 +177,11 @@
       "context": "Session 2026-01-25 - Token efficiency discussion",
       "createdAt": "2026-01-25T00:00:00Z",
       "updatedAt": "2026-01-25T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-claude-detect",
@@ -137,7 +193,11 @@
       "context": "Session 2026-01-25 - Task delegation feature",
       "createdAt": "2026-01-25T00:00:00Z",
       "updatedAt": "2026-01-25T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-model-router",
@@ -152,7 +212,11 @@
       "context": "Session 2026-03-27 - Model routing discussion",
       "createdAt": "2026-03-27T00:00:00Z",
       "updatedAt": "2026-03-27T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-s1",
@@ -164,7 +228,11 @@
       "context": "todos.json - shortTerm",
       "createdAt": "2026-01-21T00:00:00Z",
       "updatedAt": "2026-01-24T23:15:10.001Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-refactor-panels-css",
@@ -179,7 +247,11 @@
       "context": "Session 2026-04-26 - LOC review surfaced panels.css as a monolith",
       "createdAt": "2026-04-26T14:30:00Z",
       "updatedAt": "2026-04-26T14:30:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-keybinding-remap",
@@ -194,7 +266,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-empty-states",
@@ -209,7 +285,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-window-restore",
@@ -224,7 +304,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-crash-reporting",
@@ -239,7 +323,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-diagnostic-export",
@@ -254,7 +342,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-brand-audit",
@@ -269,7 +361,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-microcopy",
@@ -284,7 +380,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-a11y",
@@ -299,7 +399,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-i18n",
@@ -314,7 +418,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-detach-window",
@@ -329,7 +437,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-account-sync",
@@ -344,7 +456,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-licensing",
@@ -359,7 +475,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-legal",
@@ -374,7 +494,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-e2e",
@@ -389,7 +513,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-changelog",
@@ -404,7 +532,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T12:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-spec-agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f-T02",
@@ -417,7 +549,11 @@
       "context": "From spec: agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f",
       "createdAt": "2026-04-30T15:56:06.716Z",
       "updatedAt": "2026-04-30T15:56:06.716Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-spec-agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f-T03",
@@ -430,7 +566,11 @@
       "context": "From spec: agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f",
       "createdAt": "2026-04-30T15:56:06.716Z",
       "updatedAt": "2026-04-30T15:56:06.716Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-spec-agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f-T04",
@@ -443,7 +583,11 @@
       "context": "From spec: agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f",
       "createdAt": "2026-04-30T15:56:06.716Z",
       "updatedAt": "2026-04-30T15:56:06.716Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-spec-agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f-T05",
@@ -456,7 +600,11 @@
       "context": "From spec: agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f",
       "createdAt": "2026-04-30T15:56:06.716Z",
       "updatedAt": "2026-04-30T15:56:06.716Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-2.4",
@@ -471,7 +619,11 @@
       "context": "Session 2026-05-01 - Slice 2",
       "createdAt": "2026-05-01T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-2.5",
@@ -486,7 +638,11 @@
       "context": "Session 2026-05-01 - Slice 2",
       "createdAt": "2026-05-01T00:00:00Z",
       "updatedAt": "2026-05-01T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-3.1",
@@ -501,7 +657,11 @@
       "context": "Session 2026-05-01 — Slice 3 design",
       "createdAt": "2026-05-02T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-3.2",
@@ -516,7 +676,11 @@
       "context": "Session 2026-05-01 — Slice 3 design",
       "createdAt": "2026-05-02T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-3.3",
@@ -531,7 +695,11 @@
       "context": "Session 2026-05-01 — Slice 3 design",
       "createdAt": "2026-05-02T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-3.4",
@@ -546,7 +714,11 @@
       "context": "Session 2026-05-01 — Slice 3 design",
       "createdAt": "2026-05-02T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-3.5",
@@ -561,7 +733,11 @@
       "context": "Session 2026-05-01 — Slice 3 design",
       "createdAt": "2026-05-02T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-4.1",
@@ -576,7 +752,11 @@
       "context": "Session 2026-04-29 — Slice 4 design (autopilot)",
       "createdAt": "2026-05-02T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-4.2",
@@ -591,7 +771,11 @@
       "context": "Session 2026-04-29 — Slice 4 design (autopilot)",
       "createdAt": "2026-05-02T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-4.3",
@@ -606,7 +790,11 @@
       "context": "Session 2026-04-29 — Slice 4 design (autopilot)",
       "createdAt": "2026-05-02T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-4.4",
@@ -621,7 +809,11 @@
       "context": "Session 2026-04-29 — Slice 4 design (autopilot)",
       "createdAt": "2026-05-02T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-4.5",
@@ -636,7 +828,11 @@
       "context": "Session 2026-04-29 — Slice 4 design (autopilot)",
       "createdAt": "2026-05-02T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-4.6",
@@ -651,7 +847,68 @@
       "context": "Session 2026-04-29 — Slice 4 design (autopilot)",
       "createdAt": "2026-05-02T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-4",
+      "parentId": null,
+      "title": "File / URL references on tasks",
+      "description": "Add \"References\" to each task — a list of pointers to files, URLs, Loom links, etc. References live as paths/URLs, not copies. Surface them in the initiative view and pass them into the run prompt so the AI has the context the user has.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "Schema supports references[] on every task. UI surfaces them in initiative view (parent + each subtask). Add / remove / open works. Run prompt includes references in a dedicated section.",
+      "notes": "Native file picker for local paths (existing dialogs.js can be reused). For URLs, just a text input. For Loom, we just store the URL — no embed.",
+      "status": "pending",
+      "priority": "high",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T17:58:19Z",
+      "completedAt": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-5",
+      "parentId": null,
+      "title": "Parent-context-aware subtask runs",
+      "description": "When running a subtask, give the AI the relevant slice of the parent's context — title + acceptance criteria + relevant references — without dumping the full parent + every sibling subtask. Acceptance criteria are currently dropped entirely; this is the bug fix plus the bigger improvement.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "Running a subtask injects: parent title + parent acceptance criteria + the subtask's own description + criteria + references. Sibling subtasks are NOT included. User can toggle the injection level in the run modal.",
+      "notes": "Inspired by the Claude Skill model — slim contextual headers, just-in-time loading. Light LLM wrapper not needed for v1; a templated prompt covers it.",
+      "status": "pending",
+      "priority": "high",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T17:58:19Z",
+      "completedAt": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-6",
+      "parentId": null,
+      "title": "Per-machine tasks.json (stop tracking cosmetic diffs)",
+      "description": "tasks.json gets re-written by Frame on every edit (including Unicode normalization). The cosmetic churn is noise in PRs and the file ends up being a constant \"stash or track\" prompt. Move it to local-by-default; provide an opt-in shared baseline.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "tasks.json is gitignored by default in Frame-initialized projects. A separate tasks.shared.json (committed) holds a baseline that teammates can sync into their local tasks.json.",
+      "notes": "Decision needed on merge semantics for tasks.shared.json. Simplest v1: tasks.json is local; tasks.shared.json is read-only baseline; an explicit \"Sync from shared\" command merges into local.",
+      "status": "pending",
+      "priority": "medium",
+      "category": "refactor",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T17:58:19Z",
+      "completedAt": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-s4",
@@ -663,7 +920,11 @@
       "context": "todos.json - shortTerm",
       "createdAt": "2026-01-21T00:00:00Z",
       "updatedAt": "2026-01-24T23:22:41.232Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-sysprompt",
@@ -675,7 +936,11 @@
       "context": "Session 2026-01-25 - Task delegation feature",
       "createdAt": "2026-01-25T00:00:00Z",
       "updatedAt": "2026-01-25T22:51:37.595Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-s3",
@@ -687,7 +952,11 @@
       "context": "todos.json - shortTerm",
       "createdAt": "2026-01-21T00:00:00Z",
       "updatedAt": "2026-01-24T23:22:23.000Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-reverse-deps",
@@ -702,7 +971,11 @@
       "context": "Session 2026-03-19 - HN post discussion on intentIndex edge cases",
       "createdAt": "2026-03-19T00:00:00Z",
       "updatedAt": "2026-04-24T12:50:58.600Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-driven-dev",
@@ -717,7 +990,30 @@
       "context": "Session 2026-04-29 - Spec-driven dev framework design",
       "createdAt": "2026-04-29T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": null
+      "completedAt": null,
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "task-structure-bootstrap",
+      "title": "Ship STRUCTURE.json auto-fill machinery to user projects",
+      "description": "Today the STRUCTURE.json auto-fill mechanism only works in Frame's own repo because scripts/update-structure.js, scripts/find-module.js, and .githooks/pre-commit live there. User projects initialized via 'Initialize as Frame Project' get an empty STRUCTURE.json with no tooling to fill it — AI is told to maintain it manually but rarely does, so the index stays {}.\n\nThis task ships the same machinery into user projects without disturbing their existing setup:\n\n1. Make scripts/update-structure.js and scripts/find-module.js portable via FRAME_PROJECT_ROOT env var (one-line tweak each). Frame's own usage stays identical because the env var falls back to __dirname/..\n2. Add 'scripts/**/*' to package.json electron-builder files array so the scripts ship in the asar bundle.\n3. Create src/main/structureBootstrap.js with: copyParserScripts(), detectHookSetup(), installPreCommitHook(), runInitialFullScan().\n4. Add a hook template string to src/shared/frameTemplates.js (getStructurePreCommitHookTemplate()) that calls 'node .frame/bin/update-structure.js --changed' with FRAME_PROJECT_ROOT set, then 'git add STRUCTURE.json'. Guards against missing node (silent skip).\n5. Detect existing hook setups: vanilla (.git/hooks/pre-commit), husky (.husky/pre-commit + core.hooksPath check), lefthook (lefthook.yml present). For vanilla-empty/sample: install. For husky/lefthook: append our line idempotently. For custom vanilla: log a console warning + show the line to add manually (don't auto-append in v1, safer).\n6. Wire bootstrap calls into initializeFrameProject() in frameProject.js AFTER existing logic. Only run runInitialFullScan if STRUCTURE.json was just created by us (track via createFileIfNotExists return value), never if user had a pre-existing one.\n7. Skip hook install when .git/ doesn't exist; still run initial full scan if applicable.\n\nFiles affected: scripts/update-structure.js (1-line), scripts/find-module.js (1-line), package.json (files array), src/main/frameProject.js (call sites), src/main/structureBootstrap.js (new), src/shared/frameTemplates.js (hook template).",
+      "userRequest": "User said: structure.json mekanızması frame için kusursuz çalışıyor, ama bir kullanıcıda, baştan geliştirmeye başlamasına rağmen doğru doldurulmadığını gördük. inceleyip edge caseleri düşünelim mi? — followed by extensive discussion landing on: pre-commit is the right trigger (user's original conviction), ship scripts to .frame/bin/, install hook safely with detection for husky/lefthook/custom, never touch user's package.json, never overwrite existing hooks, one-time full scan at init end to populate STRUCTURE.json. Final approval: tamamdur bu haliyle ikna oldum, devam edebiliririz bence implemente etmeye",
+      "acceptanceCriteria": "(1) Frame's own repo: 'npm run structure' and 'npm run find-module terminal' produce byte-identical output to before the change. (2) After 'Initialize as Frame Project' on an existing JS project with src/, STRUCTURE.json is fully populated (modules + intentIndex) before the user does anything else. (3) .frame/bin/update-structure.js and .frame/bin/find-module.js exist in the user project. (4) Pre-commit hook is installed in the correct location based on detection — .git/hooks/pre-commit for vanilla, .husky/pre-commit for husky projects, lefthook.yml for lefthook projects. (5) User's existing pre-commit content is never overwritten — appended for husky/lefthook, surfaced as manual instructions for custom vanilla hooks. (6) Idempotent: re-running init does not duplicate the hook line. (7) On 'git commit' with staged JS changes in src/, STRUCTURE.json updates and is auto-staged into the same commit. (8) If user has no .git/ folder, init still succeeds, initial scan still runs, hook install is silently skipped. (9) If user's project has a pre-existing non-empty STRUCTURE.json, we never overwrite it on init — full scan is skipped.",
+      "notes": "Scope constraints (decided during design): (1) Parser logic untouched — only ROOT_DIR resolution gets an env var fallback. STRUCTURE.json schema, regexes, intentIndex generation, IPC sync all stay byte-identical. (2) Only single-src/ JS projects fully covered in v1; non-standard layouts (monorepo, app/, lib/, TypeScript, Python) deferred to spec .frame/specs/structure-non-standard-layouts/. Parser silently returns empty modules for those — no crash, no garbage. (3) Custom vanilla hook case is intentionally manual-only in v1 (we don't auto-append) — safer first ship. Can revisit. (4) IDE-side watcher idea was explored and rejected — pre-commit is the canonical truth-anchor moment. (5) No package.json modification in user projects; hook invokes node directly. (6) Uninstall command deferred — single-line append is easy to remove manually. (7) Hook must 'exit 0' on parser error so a parser bug never blocks the user's commit.",
+      "status": "completed",
+      "priority": "high",
+      "category": "feature",
+      "context": "Session 2026-05-13 — STRUCTURE.json auto-fill not working for new users",
+      "createdAt": "2026-05-13T00:00:00Z",
+      "updatedAt": "2026-05-13T00:00:00Z",
+      "completedAt": "2026-05-13T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-autoupdate-ux",
@@ -732,7 +1028,11 @@
       "context": "Session 2026-04-28 - Telemetry + Settings + Update UX",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-28T17:00:00Z",
-      "completedAt": "2026-04-28T17:00:00Z"
+      "completedAt": "2026-04-28T17:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-telemetry",
@@ -747,7 +1047,11 @@
       "context": "Session 2026-04-28 - Telemetry v1",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-28T16:00:00Z",
-      "completedAt": "2026-04-28T16:00:00Z"
+      "completedAt": "2026-04-28T16:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-m5",
@@ -762,7 +1066,11 @@
       "context": "Session 2026-04-28 - Settings UI v1",
       "createdAt": "2026-01-21T00:00:00Z",
       "updatedAt": "2026-04-28T16:00:00Z",
-      "completedAt": "2026-04-28T16:00:00Z"
+      "completedAt": "2026-04-28T16:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-m2",
@@ -777,7 +1085,11 @@
       "context": "Session 2026-04-28 - Git status integration v1",
       "createdAt": "2026-01-21T00:00:00Z",
       "updatedAt": "2026-04-28T13:00:00Z",
-      "completedAt": "2026-04-28T13:00:00Z"
+      "completedAt": "2026-04-28T13:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-filetree-search",
@@ -792,7 +1104,11 @@
       "context": "Session 2026-04-28 - File tree polish",
       "createdAt": "2026-04-28T10:00:00Z",
       "updatedAt": "2026-04-28T11:30:00Z",
-      "completedAt": "2026-04-28T11:30:00Z"
+      "completedAt": "2026-04-28T11:30:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-filetree-copy-path",
@@ -807,7 +1123,11 @@
       "context": "Session 2026-04-28 - File tree polish",
       "createdAt": "2026-04-28T10:00:00Z",
       "updatedAt": "2026-04-28T11:30:00Z",
-      "completedAt": "2026-04-28T11:30:00Z"
+      "completedAt": "2026-04-28T11:30:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-onboarding",
@@ -822,7 +1142,11 @@
       "context": "Session 2026-04-26 / 2026-04-27 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-27T17:00:00Z",
-      "completedAt": "2026-04-27T17:00:00Z"
+      "completedAt": "2026-04-27T17:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-app-loader",
@@ -837,7 +1161,11 @@
       "context": "Session 2026-04-27 - Welcome flow polish",
       "createdAt": "2026-04-27T16:00:00Z",
       "updatedAt": "2026-04-27T17:00:00Z",
-      "completedAt": "2026-04-27T17:00:00Z"
+      "completedAt": "2026-04-27T17:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-shortcuts-cheatsheet",
@@ -852,7 +1180,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T15:00:00Z",
-      "completedAt": "2026-04-26T15:00:00Z"
+      "completedAt": "2026-04-26T15:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-prod-cmdpalette",
@@ -867,7 +1199,11 @@
       "context": "Session 2026-04-26 - Frame product readiness audit",
       "createdAt": "2026-04-26T12:00:00Z",
       "updatedAt": "2026-04-26T13:50:00Z",
-      "completedAt": "2026-04-26T13:50:00Z"
+      "completedAt": "2026-04-26T13:50:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-st",
@@ -879,7 +1215,11 @@
       "context": "Session 2026-01-25 - Token efficiency protocol",
       "createdAt": "2026-01-24T16:00:00Z",
       "updatedAt": "2026-01-25T00:00:00Z",
-      "completedAt": "2026-01-25T00:00:00Z"
+      "completedAt": "2026-01-25T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-c1",
@@ -891,7 +1231,11 @@
       "context": "Initial development",
       "createdAt": "2026-01-21T00:00:00Z",
       "updatedAt": "2026-01-21T00:00:00Z",
-      "completedAt": "2026-01-21T00:00:00Z"
+      "completedAt": "2026-01-21T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-c2",
@@ -903,7 +1247,11 @@
       "context": "Initial development",
       "createdAt": "2026-01-21T00:00:00Z",
       "updatedAt": "2026-01-21T00:00:00Z",
-      "completedAt": "2026-01-21T00:00:00Z"
+      "completedAt": "2026-01-21T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-c3",
@@ -915,7 +1263,11 @@
       "context": "Initial development",
       "createdAt": "2026-01-21T00:00:00Z",
       "updatedAt": "2026-01-21T00:00:00Z",
-      "completedAt": "2026-01-21T00:00:00Z"
+      "completedAt": "2026-01-21T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-c4",
@@ -927,7 +1279,11 @@
       "context": "todos.json - mediumTerm",
       "createdAt": "2026-01-21T00:00:00Z",
       "updatedAt": "2026-01-21T00:00:00Z",
-      "completedAt": "2026-01-21T00:00:00Z"
+      "completedAt": "2026-01-21T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-c5",
@@ -939,7 +1295,11 @@
       "context": "todos.json - mediumTerm",
       "createdAt": "2026-01-21T00:00:00Z",
       "updatedAt": "2026-01-21T00:00:00Z",
-      "completedAt": "2026-01-21T00:00:00Z"
+      "completedAt": "2026-01-21T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-c6",
@@ -951,7 +1311,11 @@
       "context": "todos.json - mediumTerm",
       "createdAt": "2026-01-21T00:00:00Z",
       "updatedAt": "2026-01-21T00:00:00Z",
-      "completedAt": "2026-01-21T00:00:00Z"
+      "completedAt": "2026-01-21T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-design",
@@ -963,7 +1327,11 @@
       "context": "Session 2026-01-24 - Kullanici talebi",
       "createdAt": "2026-01-24T15:00:00Z",
       "updatedAt": "2026-01-24T15:30:00Z",
-      "completedAt": "2026-01-24T15:30:00Z"
+      "completedAt": "2026-01-24T15:30:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-claude-md",
@@ -975,7 +1343,11 @@
       "context": "Session 2026-01-24 - Frame dokuman sistemi",
       "createdAt": "2026-01-24T15:30:00Z",
       "updatedAt": "2026-01-24T16:00:00Z",
-      "completedAt": "2026-01-24T16:00:00Z"
+      "completedAt": "2026-01-24T16:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-tasks-panel",
@@ -987,7 +1359,11 @@
       "context": "Session 2026-01-24 - Frame dokuman sistemi",
       "createdAt": "2026-01-24T16:00:00Z",
       "updatedAt": "2026-01-24T16:30:00Z",
-      "completedAt": "2026-01-24T16:30:00Z"
+      "completedAt": "2026-01-24T16:30:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-1.5",
@@ -1001,7 +1377,11 @@
       "context": "Session 2026-04-29 - Spec-driven dev Slice 1",
       "createdAt": "2026-04-29T00:00:00Z",
       "updatedAt": "2026-04-30T00:00:00Z",
-      "completedAt": "2026-04-30T00:00:00Z"
+      "completedAt": "2026-04-30T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-1.9",
@@ -1015,7 +1395,11 @@
       "context": "Session 2026-04-29 - Spec-driven dev Slice 1",
       "createdAt": "2026-04-29T00:00:00Z",
       "updatedAt": "2026-04-30T00:00:00Z",
-      "completedAt": "2026-04-30T00:00:00Z"
+      "completedAt": "2026-04-30T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-1.8",
@@ -1029,7 +1413,11 @@
       "context": "Session 2026-04-29 - Spec-driven dev Slice 1",
       "createdAt": "2026-04-29T00:00:00Z",
       "updatedAt": "2026-04-30T00:00:00Z",
-      "completedAt": "2026-04-30T00:00:00Z"
+      "completedAt": "2026-04-30T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-1.7",
@@ -1043,7 +1431,11 @@
       "context": "Session 2026-04-29 - Spec-driven dev Slice 1",
       "createdAt": "2026-04-29T00:00:00Z",
       "updatedAt": "2026-04-30T00:00:00Z",
-      "completedAt": "2026-04-30T00:00:00Z"
+      "completedAt": "2026-04-30T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-1.6",
@@ -1057,7 +1449,11 @@
       "context": "Session 2026-04-29 - Spec-driven dev Slice 1",
       "createdAt": "2026-04-29T00:00:00Z",
       "updatedAt": "2026-04-30T00:00:00Z",
-      "completedAt": "2026-04-30T00:00:00Z"
+      "completedAt": "2026-04-30T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-1.3",
@@ -1071,7 +1467,11 @@
       "context": "Session 2026-04-29 - Spec-driven dev Slice 1",
       "createdAt": "2026-04-29T00:00:00Z",
       "updatedAt": "2026-04-29T00:00:00Z",
-      "completedAt": "2026-04-29T00:00:00Z"
+      "completedAt": "2026-04-29T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-1.4",
@@ -1085,7 +1485,11 @@
       "context": "Session 2026-04-29 - Spec-driven dev Slice 1",
       "createdAt": "2026-04-29T00:00:00Z",
       "updatedAt": "2026-04-29T00:00:00Z",
-      "completedAt": "2026-04-29T00:00:00Z"
+      "completedAt": "2026-04-29T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-1.2",
@@ -1099,7 +1503,11 @@
       "context": "Session 2026-04-29 - Spec-driven dev Slice 1",
       "createdAt": "2026-04-29T00:00:00Z",
       "updatedAt": "2026-04-29T00:00:00Z",
-      "completedAt": "2026-04-29T00:00:00Z"
+      "completedAt": "2026-04-29T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-1.1",
@@ -1113,7 +1521,11 @@
       "context": "Session 2026-04-29 - Spec-driven dev Slice 1",
       "createdAt": "2026-04-29T00:00:00Z",
       "updatedAt": "2026-04-29T00:00:00Z",
-      "completedAt": "2026-04-29T00:00:00Z"
+      "completedAt": "2026-04-29T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "task-spec-agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f-T01",
@@ -1126,7 +1538,11 @@
       "context": "From spec: agentlar-iin-roller-tanmlamay-dnyorum-aklmdaki-f",
       "createdAt": "2026-04-30T15:56:06.716Z",
       "updatedAt": "2026-05-01T14:15:03.484Z",
-      "completedAt": "2026-05-01T14:15:03.484Z"
+      "completedAt": "2026-05-01T14:15:03.484Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-2.1",
@@ -1141,7 +1557,11 @@
       "context": "Session 2026-04-30 - Slice 2.1",
       "createdAt": "2026-04-30T00:00:00Z",
       "updatedAt": "2026-05-01T00:00:00Z",
-      "completedAt": "2026-05-01T00:00:00Z"
+      "completedAt": "2026-05-01T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-2.2",
@@ -1156,7 +1576,11 @@
       "context": "Session 2026-05-01 - Slice 2 design + outcome capture",
       "createdAt": "2026-05-01T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": "2026-05-02T00:00:00Z"
+      "completedAt": "2026-05-02T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-2.3",
@@ -1171,7 +1595,11 @@
       "context": "Session 2026-05-01 - Slice 2",
       "createdAt": "2026-05-01T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": "2026-05-02T00:00:00Z"
+      "completedAt": "2026-05-02T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
     },
     {
       "id": "spec-2.6",
@@ -1186,12 +1614,586 @@
       "context": "Session 2026-05-01 — naming + rename design",
       "createdAt": "2026-05-02T00:00:00Z",
       "updatedAt": "2026-05-02T00:00:00Z",
-      "completedAt": "2026-05-02T00:00:00Z"
+      "completedAt": "2026-05-02T00:00:00Z",
+      "parentId": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-1",
+      "parentId": null,
+      "title": "Collapsible left sidebar",
+      "description": "Make the left sidebar (projects + project actions + tasks panel area) collapsible with a chevron toggle. Persist the state to user settings so it survives restarts.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "Sidebar can be collapsed to ~52px rail showing only icons. Toggle icon visible in both states. Collapsed state persists across app restarts.",
+      "notes": "",
+      "status": "completed",
+      "priority": "high",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T18:04:05Z",
+      "completedAt": "2026-05-23T18:04:05Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-2",
+      "parentId": null,
+      "title": "Project-name truncation order",
+      "description": "When the sidebar (or project row) is narrow, the project name should be the last thing to truncate — not the Frame pill. Reorder DOM/CSS so the name dominates visual real estate.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "At narrow widths, the project name remains visible while the \"FRAME\" pill collapses/hides first.",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "refactor",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T18:04:05Z",
+      "completedAt": "2026-05-23T18:04:05Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-3",
+      "parentId": null,
+      "title": "Compress current-project banner",
+      "description": "The CURRENT PROJECT block in the left sidebar currently shows the full absolute path which eats vertical space. Show only the basename; on hover, surface the full path via tooltip.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "Banner renders basename only (e.g. \"develop\"); hovering shows the full path. Banner height drops by at least 1 line.",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "refactor",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T18:04:05Z",
+      "completedAt": "2026-05-23T18:04:05Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-7",
+      "parentId": null,
+      "title": "Terminal completion notifications (per-project)",
+      "description": "When an AI CLI session goes idle after activity, signal the user via (1) macOS dock bounce, (2) system notification, and (3) in-app visual indicators on the terminal tab + the project row in the sidebar. Goal: user kicks off a task, switches to another project / tab, gets pulled back when their attention is actually needed.",
+      "userRequest": "User said: \"We need notification on specific project when a command line prompt has completed so user knows to check back in. This should be bouncing icon / computer notification + in app visual indicator\"",
+      "acceptanceCriteria": "Running a task -> dock bounces + system notification fires + indicator dots appear on the source terminal tab AND the source project row in the sidebar. Indicators clear when the user clicks the terminal tab or selects the project. Notifications and dock bounce are suppressed when the window is focused AND that terminal is the active tab.",
+      "notes": "Detection heuristic: a terminal is \"awaiting\" from the moment we issue a sendCommand for a Run / Start AI flow until 4 seconds of no PTY output pass. The 4s threshold covers Claude's thinking spinner (which streams characters) and trips only when the model actually stops emitting. Edge case: long tool calls (npm install etc.) that go silent may trigger a false completion — acceptable v1 noise.",
+      "status": "completed",
+      "priority": "high",
+      "category": "feature",
+      "context": "2026-05-23 - Captured during the Frame fork session.",
+      "createdAt": "2026-05-23T18:21:56Z",
+      "updatedAt": "2026-05-23T19:40:16Z",
+      "completedAt": "2026-05-23T19:40:16Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-1.1",
+      "parentId": "lemo-1",
+      "title": "Toggle button + icon",
+      "description": "Add a chevron toggle button at the sidebar header. Click toggles a `.collapsed` class on the sidebar.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T18:04:05Z",
+      "completedAt": "2026-05-23T18:04:05Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-1.2",
+      "parentId": "lemo-1",
+      "title": "Persist collapsed state",
+      "description": "Save collapse state via the existing user-settings IPC (GET_USER_SETTING / SET_USER_SETTING). Restore on app boot.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T18:04:05Z",
+      "completedAt": "2026-05-23T18:04:05Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-1.3",
+      "parentId": "lemo-1",
+      "title": "CSS for collapsed/expanded transitions",
+      "description": "Narrow sidebar to a rail when collapsed; hide labels; keep icons clickable; transition smoothly.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T18:04:05Z",
+      "completedAt": "2026-05-23T18:04:05Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-2.1",
+      "parentId": "lemo-2",
+      "title": "Re-order DOM in project row",
+      "description": "Put name first in source order, badges last. Adjust flex to let name flex:1 with overflow ellipsis while badge stays flex-shrink:0 but `hidden` below threshold.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T18:04:05Z",
+      "completedAt": "2026-05-23T18:04:05Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-2.2",
+      "parentId": "lemo-2",
+      "title": "Demote Frame pill below threshold",
+      "description": "Add a container query (or width-based class) that hides the Frame pill when the row is below ~180px wide.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T18:04:05Z",
+      "completedAt": "2026-05-23T18:04:05Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-3.1",
+      "parentId": "lemo-3",
+      "title": "Show basename only",
+      "description": "Replace the full-path rendering in projectListUI / wherever the banner is drawn with `path.basename(projectPath)`.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T18:04:05Z",
+      "completedAt": "2026-05-23T18:04:05Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-3.2",
+      "parentId": "lemo-3",
+      "title": "Full path on hover",
+      "description": "Set the element's `title` attribute to the full path so the native tooltip shows on hover.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T18:04:05Z",
+      "completedAt": "2026-05-23T18:04:05Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-4.1",
+      "parentId": "lemo-4",
+      "title": "Schema: references[] field",
+      "description": "Extend tasksManager.js so addTask / updateTask accept `references` (array of { kind: \"file\"|\"url\", value: string, label?: string }). Backward-compatible default = empty array.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-25T05:14:17Z",
+      "completedAt": "2026-05-25T05:14:17Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-4.2",
+      "parentId": "lemo-4",
+      "title": "References UI block in initiative view",
+      "description": "Render references list under each editable section, with status badges (file exists? URL reachable? — best-effort).",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-25T05:14:17Z",
+      "completedAt": "2026-05-25T05:14:17Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-4.3",
+      "parentId": "lemo-4",
+      "title": "File picker affordance",
+      "description": "Wire IPC to open the native file/folder picker; selected paths get appended as { kind: \"file\", value: absolutePath }.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-25T05:14:17Z",
+      "completedAt": "2026-05-25T05:14:17Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-4.4",
+      "parentId": "lemo-4",
+      "title": "Render references in detail aside + edit modal",
+      "description": "Same references list shows in the dashboard detail aside (read-only) and inside the edit modal (editable).",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T17:58:19Z",
+      "completedAt": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-4.5",
+      "parentId": "lemo-4",
+      "title": "Include references in run prompt",
+      "description": "Append a \"References to consult before starting\" section to buildTaskPrompt, listing every reference inline.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-25T05:14:17Z",
+      "completedAt": "2026-05-25T05:14:17Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-5.1",
+      "parentId": "lemo-5",
+      "title": "Pass acceptance criteria into run prompt",
+      "description": "Bug fix: buildTaskPrompt currently ignores acceptanceCriteria. Append it as an explicit \"Done when:\" section.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "high",
+      "category": "fix",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T18:04:05Z",
+      "completedAt": "2026-05-23T18:04:05Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-5.2",
+      "parentId": "lemo-5",
+      "title": "Inject parent context when running a subtask",
+      "description": "When the task being run has a parentId, look up the parent and prepend a \"This subtask belongs to initiative {parent.title}.\" line + parent.acceptanceCriteria.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T18:04:05Z",
+      "completedAt": "2026-05-23T18:04:05Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-5.3",
+      "parentId": "lemo-5",
+      "title": "Run modal toggle for context level",
+      "description": "Add a small \"Context\" radio in the run modal: none / title only / + criteria / full parent description. Defaults to \"+ criteria\".",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "pending",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T17:58:19Z",
+      "completedAt": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-6.1",
+      "parentId": "lemo-6",
+      "title": "Add tasks.json to .gitignore for new Frame projects",
+      "description": "Update Frame's init flow (frameProject.js) to add tasks.json to the project's .gitignore on init. Also add to Frame's OWN .gitignore so this project stops nagging.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "high",
+      "category": "fix",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T18:04:05Z",
+      "completedAt": "2026-05-23T18:04:05Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-6.2",
+      "parentId": "lemo-6",
+      "title": "Document the local-by-default convention",
+      "description": "AGENTS.md / QUICKSTART.md update: tasks.json is per-machine; commit tasks.shared.json for the team baseline.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "pending",
+      "priority": "medium",
+      "category": "docs",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T17:58:19Z",
+      "completedAt": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-6.3",
+      "parentId": "lemo-6",
+      "title": "tasks.shared.json + Sync command",
+      "description": "Optional follow-up: support a tasks.shared.json that gets diffed/merged into tasks.json via an explicit command.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "pending",
+      "priority": "low",
+      "category": "feature",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T17:58:19Z",
+      "completedAt": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-6.4",
+      "parentId": "lemo-6",
+      "title": "README note about Unicode normalization",
+      "description": "Add a note: Frame normalizes Unicode escapes (\\u2014 → —); diffs are cosmetic.",
+      "userRequest": "User said: \"Let's start working on these tasks -- I will iterate within frame after\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "pending",
+      "priority": "low",
+      "category": "docs",
+      "context": "2026-05-23 - Backlog populated during the Lemonade Stand fork session.",
+      "createdAt": "2026-05-23T17:58:19Z",
+      "updatedAt": "2026-05-23T17:58:19Z",
+      "completedAt": null,
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-7.1",
+      "parentId": "lemo-7",
+      "title": "Activity tracking + idle detection in ptyManager",
+      "description": "Track per-terminal { awaiting: bool, idleTimer: Timeout } in the existing ptyInstances map. New IPC: TERMINAL_MARK_ACTIVE (renderer -> main) sets awaiting=true and starts the timer. Each ptyProcess.onData chunk resets the timer. When the timer fires AND awaiting is still true, set awaiting=false and emit TERMINAL_COMPLETED (main -> renderer) with { terminalId, projectPath }.",
+      "userRequest": "User said: \"Let's write the findings on an extension as ticket in our frame project\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "high",
+      "category": "feature",
+      "context": "2026-05-23 - Captured during the Frame fork session.",
+      "createdAt": "2026-05-23T18:21:56Z",
+      "updatedAt": "2026-05-23T19:40:16Z",
+      "completedAt": "2026-05-23T19:40:16Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-7.2",
+      "parentId": "lemo-7",
+      "title": "Wire mark-active on every Run / Start AI flow",
+      "description": "After every terminal.sendCommand for a Run / Start (sidebar play button, dashboard run, initiative-view run, Start Claude Code button, task-run modal), dispatch TERMINAL_MARK_ACTIVE. Centralize so we don't miss a path — wrap sendCommand in a helper that takes a \"kind\" flag.",
+      "userRequest": "User said: \"Let's write the findings on an extension as ticket in our frame project\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Captured during the Frame fork session.",
+      "createdAt": "2026-05-23T18:21:56Z",
+      "updatedAt": "2026-05-23T19:40:16Z",
+      "completedAt": "2026-05-23T19:40:16Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-7.3",
+      "parentId": "lemo-7",
+      "title": "Renderer notifier module: system notification + dock bounce",
+      "description": "New module renderer/terminalNotifier.js. Subscribes to TERMINAL_COMPLETED. Fires `new Notification(\"Claude finished\", { body: \"Terminal N · <project name>\", icon: app-icon })`. Calls IPC.DOCK_BOUNCE (main -> app.dock.bounce(\"informational\")) for macOS. Suppresses both when window has focus AND the source terminal tab is active.",
+      "userRequest": "User said: \"Let's write the findings on an extension as ticket in our frame project\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Captured during the Frame fork session.",
+      "createdAt": "2026-05-23T18:21:56Z",
+      "updatedAt": "2026-05-23T19:40:16Z",
+      "completedAt": "2026-05-23T19:40:16Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-7.4",
+      "parentId": "lemo-7",
+      "title": "In-app indicator: terminal tab dot",
+      "description": "Add a `.has-notification` class to the source tab in terminalTabBar when TERMINAL_COMPLETED fires. CSS renders a small accent-colored dot. Class is cleared when the tab becomes the active terminal.",
+      "userRequest": "User said: \"Let's write the findings on an extension as ticket in our frame project\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Captured during the Frame fork session.",
+      "createdAt": "2026-05-23T18:21:56Z",
+      "updatedAt": "2026-05-23T19:40:16Z",
+      "completedAt": "2026-05-23T19:40:16Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-7.5",
+      "parentId": "lemo-7",
+      "title": "In-app indicator: project row dot",
+      "description": "Add a `.has-notification` class to the project row in projectListUI when any of the project's terminals fires TERMINAL_COMPLETED. Dot clears when the project is selected (any of its terminals is focused).",
+      "userRequest": "User said: \"Let's write the findings on an extension as ticket in our frame project\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "medium",
+      "category": "feature",
+      "context": "2026-05-23 - Captured during the Frame fork session.",
+      "createdAt": "2026-05-23T18:21:56Z",
+      "updatedAt": "2026-05-23T19:40:16Z",
+      "completedAt": "2026-05-23T19:40:16Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-7.6",
+      "parentId": "lemo-7",
+      "title": "Notification click -> focus + reveal",
+      "description": "Native notification onclick: focus the main window, switch active project to the one that fired, switch active terminal to the source. Reuses existing setProjectPath + multiTerminalUI.setActiveTerminal.",
+      "userRequest": "User said: \"Let's write the findings on an extension as ticket in our frame project\"",
+      "acceptanceCriteria": "",
+      "notes": "",
+      "status": "completed",
+      "priority": "low",
+      "category": "feature",
+      "context": "2026-05-23 - Captured during the Frame fork session.",
+      "createdAt": "2026-05-23T18:21:56Z",
+      "updatedAt": "2026-05-23T19:40:16Z",
+      "completedAt": "2026-05-23T19:40:16Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
+    },
+    {
+      "id": "lemo-1.4",
+      "parentId": "lemo-1",
+      "title": "Activity-bar pattern in collapsed sidebar + Cmd+B shortcut",
+      "description": "When the sidebar is collapsed, the tab row reflows into a vertical icon column (Projects / Files / Changes) — clicking an icon expands the sidebar AND switches to that tab in one motion. Cmd+B (Ctrl+B on win/linux) toggles collapse from anywhere.",
+      "userRequest": "User said: \"One item I noticed is the left sidebar isn't collapsible like other sections\"",
+      "acceptanceCriteria": "Collapsed sidebar shows 3 vertical icons; click each → expand + switch tab. Cmd+B toggles collapse globally (suppressed when typing in inputs).",
+      "notes": "",
+      "status": "completed",
+      "priority": "high",
+      "category": "feature",
+      "context": "2026-05-25 - Iteration on collapsed-sidebar UX.",
+      "createdAt": "2026-05-25T05:14:17Z",
+      "updatedAt": "2026-05-25T05:14:17Z",
+      "completedAt": "2026-05-25T05:14:17Z",
+      "references": [],
+      "startDate": null,
+      "endDate": null
     }
   ],
   "metadata": {
-    "totalCreated": 73,
-    "totalCompleted": 20
+    "totalCreated": 107,
+    "totalCompleted": 45
   },
   "categories": {
     "feature": "New features",
