@@ -31,5 +31,6 @@ module.exports = {
   // dialog.showOpenDialog so the renderer never touches @electron/remote.
   SUPERVISOR_PICK_BRIEF_FILE: 'supervisor:pick-brief-file',
   // Phase E
-  SUPERVISOR_NOTIFY: 'supervisor:notify',
+  SUPERVISOR_NOTIFY: 'supervisor:notify',                // renderer → main: show OS notification {title, body, kind, taskId}
+  SUPERVISOR_NOTIFY_CLICK: 'supervisor:notify-click',    // main → renderer: notification clicked, focus + scroll-to-task {taskId}
 };

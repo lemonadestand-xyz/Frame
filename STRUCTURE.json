@@ -7611,36 +7611,37 @@
         "tailReader",
         "profilesLister",
         "taskSubmitter",
+        "notifier",
         "electron"
       ],
       "functions": {
         "listProjectDocs": {
-          "line": 22,
+          "line": 23,
           "params": [
             "{ project_id",
             "project_path }"
           ]
         },
         "listWorkspaceProjects": {
-          "line": 85,
+          "line": 86,
           "purpose": "Returns [{ name, path, isFrameProject }] for the active workspace, or []."
         },
         "listProjectSpecs": {
-          "line": 117,
+          "line": 118,
           "params": [
             "{ project_path }"
           ],
           "purpose": "[{ slug, phase, files: [{ path, label }] }]"
         },
         "listBriefs": {
-          "line": 159,
+          "line": 160,
           "params": [
             "{ supervisor_root }"
           ],
           "purpose": "recent brief."
         },
         "register": {
-          "line": 184,
+          "line": 185,
           "params": [
             "ipcMain"
           ]
@@ -7674,20 +7675,27 @@
         "header",
         "kanban",
         "projectTree",
-        "commandRegistry"
+        "commandRegistry",
+        "notifications"
       ],
       "functions": {
         "injectStylesOnce": {
-          "line": 23
+          "line": 28
         },
         "createViewport": {
-          "line": 35
+          "line": 40
         },
         "open": {
-          "line": 100
+          "line": 107
+        },
+        "handleNotifyClick": {
+          "line": 114,
+          "params": [
+            "{ taskId }"
+          ]
         },
         "init": {
-          "line": 107
+          "line": 133
         }
       }
     },
@@ -8325,6 +8333,116 @@
         "isOpen": {
           "line": 321
         }
+      }
+    },
+    "main/supervisor-bridge/notifier": {
+      "file": "src/main/supervisor-bridge/notifier.js",
+      "description": "Supervisor OS notifier (main) — Phase E.",
+      "exports": [
+        "register",
+        "show"
+      ],
+      "depends": [
+        "electron",
+        "../shared/supervisor-ipc"
+      ],
+      "functions": {
+        "show": {
+          "line": 17,
+          "params": [
+            "{ title",
+            "body",
+            "kind",
+            "taskId } = {}"
+          ]
+        },
+        "register": {
+          "line": 35,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP"
+        ],
+        "emits": [
+          "SUP"
+        ]
+      }
+    },
+    "renderer/supervisor-ui/notifications": {
+      "file": "src/renderer/supervisor-ui/notifications.js",
+      "description": "Supervisor notifications detector (renderer) — Phase E.",
+      "exports": [
+        "start",
+        "stop"
+      ],
+      "depends": [
+        "path",
+        "electron",
+        "../shared/supervisor-ipc",
+        "header"
+      ],
+      "functions": {
+        "fetchJson": {
+          "line": 55,
+          "params": [
+            "p"
+          ]
+        },
+        "shouldNotify": {
+          "line": 61,
+          "params": [
+            "key"
+          ]
+        },
+        "notify": {
+          "line": 74,
+          "params": [
+            "payload"
+          ]
+        },
+        "applyHeartbeat": {
+          "line": 78,
+          "params": [
+            "hb"
+          ]
+        },
+        "checkStale": {
+          "line": 84
+        },
+        "pollWorkspace": {
+          "line": 118
+        },
+        "schedulePoll": {
+          "line": 173
+        },
+        "announceSupervisorRoot": {
+          "line": 181
+        },
+        "tryInit": {
+          "line": 200
+        },
+        "start": {
+          "line": 218,
+          "params": [
+            "opts"
+          ]
+        },
+        "stop": {
+          "line": 247
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP",
+          "SUP"
+        ],
+        "emits": [
+          "SUP"
+        ]
       }
     }
   },
@@ -9261,6 +9379,20 @@
         "module": "main/menu",
         "file": "src/main/menu.js",
         "description": "Application Menu Module"
+      }
+    ],
+    "notifications": [
+      {
+        "module": "renderer/supervisor-ui/notifications",
+        "file": "src/renderer/supervisor-ui/notifications.js",
+        "description": "Supervisor notifications detector (renderer) — Phase E."
+      }
+    ],
+    "notifier": [
+      {
+        "module": "main/supervisor-bridge/notifier",
+        "file": "src/main/supervisor-bridge/notifier.js",
+        "description": "Supervisor OS notifier (main) — Phase E."
       }
     ],
     "oauth": [

@@ -13,6 +13,7 @@ const stateWatcher = require('./stateWatcher');
 const tailReader = require('./tailReader');
 const profilesLister = require('./profilesLister');
 const taskSubmitter = require('./taskSubmitter');
+const notifier = require('./notifier');
 
 const DOC_CAP = 100;
 const SPEC_CAP = 50;
@@ -265,6 +266,11 @@ function register(ipcMain) {
   ipcMain.handle(SUP.SUPERVISOR_RESPOND_ESCALATION, async (_evt, payload) => {
     return taskSubmitter.respondEscalation(payload || {});
   });
+
+  // Phase E: OS notifications. The renderer's notifications.js diff-detector
+  // sends SUPERVISOR_NOTIFY payloads; notifier surfaces them via Electron's
+  // Notification API and forwards click events back as SUPERVISOR_NOTIFY_CLICK.
+  notifier.register(ipcMain);
 }
 
 module.exports = {

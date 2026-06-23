@@ -19,6 +19,11 @@ const SUP = require('../../shared/supervisor-ipc');
 
 let seq = 0;
 let stylesInjected = false;
+// Phase E: the OS-notification click handler needs to drive kanban.scrollToTask
+// on whichever supervisor viewport is currently mounted. createViewport keeps
+// its own `controllers` in closure for normal teardown; we mirror the last
+// rendered set here purely so the click path can find it without plumbing.
+let latestControllers = null;
 
 function injectStylesOnce() {
   if (stylesInjected) return;
@@ -70,6 +75,7 @@ function createViewport() {
       { onScrollToTask: (id) => kanban.scrollToTask(id) }
     );
     controllers = { header, tree, kanban };
+    latestControllers = controllers;
     rendered = true;
   }
 
@@ -81,6 +87,7 @@ function createViewport() {
       try { controllers.header.stop(); } catch {}
       try { controllers.tree.stop(); } catch {}
       try { controllers.kanban.stop(); } catch {}
+      if (latestControllers === controllers) latestControllers = null;
       controllers = null;
     }
     rendered = false;
@@ -104,6 +111,25 @@ function open() {
   host.openSection('supervisor', null, api, { newTab: false });
 }
 
+function handleNotifyClick({ taskId }) {
+  // Always open / focus the section first so a closed tab still routes to the
+  // task. open() reuses the existing viewport when one is present.
+  open();
+  if (!taskId) return;
+  // multiTerminalUI.openSection() runs render() synchronously when it creates
+  // a new viewport, but state propagation through notifySectionChanged() is
+  // async (it goes through _onStateChange). Defer the scroll one tick so the
+  // kanban is mounted + visible before we ask it to scroll.
+  setTimeout(() => {
+    const k = latestControllers && latestControllers.kanban;
+    if (k && typeof k.scrollToTask === 'function') {
+      try { k.scrollToTask(taskId); } catch (err) {
+        console.warn('[supervisor] scrollToTask failed:', err);
+      }
+    }
+  }, 120);
+}
+
 function init() {
   const { register } = require('../commandRegistry');
   register({
@@ -113,6 +139,12 @@ function init() {
     shortcut: 'CmdOrCtrl+Shift+U',
     run: () => open(),
   });
+  // Phase E: start the OS-notification detector at init() so escalations /
+  // failures / daemon-stale alerts fire for the whole Frame session, not just
+  // while the supervisor tab is open. The detector itself is idempotent —
+  // calling start() twice is a no-op.
+  const notifications = require('./notifications');
+  notifications.start({ onNotifyClick: handleNotifyClick });
 }
 
 const api = { init, open, createViewport };
