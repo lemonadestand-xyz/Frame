@@ -4242,7 +4242,9 @@
         "show",
         "isVisible"
       ],
-      "depends": [],
+      "depends": [
+        "supervisor-ui/sidebarChip"
+      ],
       "functions": {
         "init": {
           "line": 25,
@@ -4252,55 +4254,55 @@
           "purpose": "Initialize sidebar resize functionality"
         },
         "handleMouseDown": {
-          "line": 65,
+          "line": 67,
           "params": [
             "e"
           ],
           "purpose": "Handle mouse down on resize handle"
         },
         "handleMouseMove": {
-          "line": 79,
+          "line": 81,
           "params": [
             "e"
           ],
           "purpose": "Handle mouse move during resize"
         },
         "handleMouseUp": {
-          "line": 95,
+          "line": 97,
           "params": [
             "e"
           ],
           "purpose": "Handle mouse up to finish resize"
         },
         "resetWidth": {
-          "line": 115,
+          "line": 117,
           "purpose": "Reset sidebar width to default"
         },
         "getWidth": {
-          "line": 128,
+          "line": 130,
           "purpose": "Get current sidebar width"
         },
         "setWidth": {
-          "line": 136,
+          "line": 138,
           "params": [
             "width"
           ],
           "purpose": "Set sidebar width programmatically"
         },
         "toggle": {
-          "line": 151,
+          "line": 153,
           "purpose": "Toggle sidebar visibility"
         },
         "hide": {
-          "line": 164,
+          "line": 166,
           "purpose": "Hide sidebar"
         },
         "show": {
-          "line": 180,
+          "line": 182,
           "purpose": "Show sidebar"
         },
         "isVisible": {
-          "line": 196,
+          "line": 198,
           "purpose": "Check if sidebar is hidden"
         }
       }
@@ -7675,8 +7677,11 @@
         "header",
         "kanban",
         "projectTree",
+        "electron",
         "commandRegistry",
-        "notifications"
+        "submitTaskPanel",
+        "notifications",
+        "sidebar-ui/sidebarChip"
       ],
       "functions": {
         "injectStylesOnce": {
@@ -7694,8 +7699,12 @@
             "{ taskId }"
           ]
         },
+        "isSupervisorActive": {
+          "line": 137,
+          "purpose": "even one in a background tab. Ask multiTerminalUI for the active section."
+        },
         "init": {
-          "line": 133
+          "line": 148
         }
       }
     },
@@ -7747,7 +7756,8 @@
       "file": "src/renderer/supervisor-ui/kanban.js",
       "description": "Supervisor kanban — Phase C (reactive nudge + fallback poll).",
       "exports": [
-        "create"
+        "create",
+        "expandTailOnFirstInflight"
       ],
       "depends": [
         "path",
@@ -7756,7 +7766,8 @@
         "header",
         "taskCard",
         "escalationCard",
-        "editor"
+        "editor",
+        "index"
       ],
       "functions": {
         "fetchJson": {
@@ -7770,6 +7781,10 @@
           "params": [
             "root"
           ]
+        },
+        "expandTailOnFirstInflight": {
+          "line": 276,
+          "purpose": "a module-level shim so the command-registry entry stays a one-liner."
         }
       },
       "ipc": {
@@ -8443,6 +8458,50 @@
         "emits": [
           "SUP"
         ]
+      }
+    },
+    "renderer/supervisor-ui/sidebarChip": {
+      "file": "src/renderer/supervisor-ui/sidebarChip.js",
+      "description": "Supervisor sidebar-footer heartbeat chip — Phase F.",
+      "exports": [
+        "mount"
+      ],
+      "depends": [
+        "electron",
+        "../shared/supervisor-ipc",
+        "index"
+      ],
+      "functions": {
+        "injectStylesOnce": {
+          "line": 30
+        },
+        "setState": {
+          "line": 85,
+          "params": [
+            "kind"
+          ]
+        },
+        "applyHeartbeat": {
+          "line": 98,
+          "params": [
+            "hb"
+          ]
+        },
+        "armStaleTimer": {
+          "line": 106
+        },
+        "mount": {
+          "line": 114,
+          "params": [
+            "anchor"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP"
+        ],
+        "emits": []
       }
     }
   },
@@ -9534,6 +9593,13 @@
         "module": "renderer/sidebarResize",
         "file": "src/renderer/sidebarResize.js",
         "description": "Sidebar Resize Module"
+      }
+    ],
+    "sidebar-chip": [
+      {
+        "module": "renderer/supervisor-ui/sidebarChip",
+        "file": "src/renderer/supervisor-ui/sidebarChip.js",
+        "description": "Supervisor sidebar-footer heartbeat chip — Phase F."
       }
     ],
     "spec": [

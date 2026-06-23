@@ -130,7 +130,23 @@ function handleNotifyClick({ taskId }) {
   }, 120);
 }
 
+// Phase F: predicate for the palette `when` clause. A command should only be
+// offered when the supervisor section is the currently-active tab. We can't
+// just check `latestControllers` because that's truthy for any open viewport,
+// even one in a background tab. Ask multiTerminalUI for the active section.
+function isSupervisorActive() {
+  try {
+    const host = require('../terminal').getMultiTerminalUI();
+    if (!host || !host.isSectionVisible) return false;
+    const active = typeof host._activeSection === 'function' ? host._activeSection() : null;
+    return !!(active && active.type === 'supervisor');
+  } catch {
+    return false;
+  }
+}
+
 function init() {
+  const { ipcRenderer } = require('electron');
   const { register } = require('../commandRegistry');
   register({
     id: 'supervisor.open',
@@ -139,13 +155,55 @@ function init() {
     shortcut: 'CmdOrCtrl+Shift+U',
     run: () => open(),
   });
+  // Phase F: palette commands for the four most common supervisor actions.
+  // Submit-task and Tail are section-gated so they don't surface when the
+  // user is in some unrelated view; daemon start/stop are global because the
+  // daemon affects every supervisor session regardless of which tab is open.
+  register({
+    id: 'supervisor.submit-task',
+    title: 'Supervisor — Submit task',
+    category: 'Supervisor',
+    shortcut: 'CmdOrCtrl+Shift+N',
+    when: () => isSupervisorActive(),
+    run: () => require('./submitTaskPanel').open(),
+  });
+  register({
+    id: 'supervisor.start-daemon',
+    title: 'Supervisor — Start daemon',
+    category: 'Supervisor',
+    run: () => {
+      ipcRenderer.invoke(SUP.SUPERVISOR_DAEMON_START)
+        .catch((err) => console.warn('[supervisor] daemon start failed:', err));
+    },
+  });
+  register({
+    id: 'supervisor.stop-daemon',
+    title: 'Supervisor — Stop daemon (confirm)',
+    category: 'Supervisor',
+    run: () => {
+      if (!window.confirm('Stop the supervisor daemon? In-flight tasks finish first.')) return;
+      ipcRenderer.invoke(SUP.SUPERVISOR_DAEMON_STOP)
+        .catch((err) => console.warn('[supervisor] daemon stop failed:', err));
+    },
+  });
+  register({
+    id: 'supervisor.tail-current',
+    title: 'Supervisor — Tail current in-flight task',
+    category: 'Supervisor',
+    when: () => isSupervisorActive(),
+    run: () => require('./kanban').expandTailOnFirstInflight(),
+  });
   // Phase E: start the OS-notification detector at init() so escalations /
   // failures / daemon-stale alerts fire for the whole Frame session, not just
   // while the supervisor tab is open. The detector itself is idempotent —
   // calling start() twice is a no-op.
   const notifications = require('./notifications');
   notifications.start({ onNotifyClick: handleNotifyClick });
+  // Phase F: the sidebar-footer heartbeat chip mounts itself when the host
+  // calls require('./sidebar-ui/sidebarChip').mount(); subscribing to
+  // SUPERVISOR_STATE is started lazily on mount and runs for the whole
+  // Frame session.
 }
 
-const api = { init, open, createViewport };
+const api = { init, open, createViewport, __getLatestControllers: () => latestControllers };
 module.exports = api;

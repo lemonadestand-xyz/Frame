@@ -34,7 +34,7 @@
   height: 9px;
   border-radius: 50%;
   background: var(--text-muted);
-  box-shadow: 0 0 0 4px rgba(124, 179, 130, 0);
+  box-shadow: 0 0 0 4px transparent;
   transition: background var(--transition-fast), box-shadow var(--transition-fast);
 }
 .supervisor-header .sup-dot.alive {
@@ -325,12 +325,16 @@
   font-weight: 700;
   flex-shrink: 0;
 }
-.sup-tag.running { color: var(--info); background: rgba(120, 165, 212, 0.15); }
+/* `--info-subtle` and `--warning-subtle` aren't part of Frame's token set
+   (only success / error / accent have subtle variants). Reference them via
+   `var(--token, fallback)` so a future token addition wins automatically;
+   the fallback alpha tracks each base color at 15% opacity. */
+.sup-tag.running { color: var(--info); background: var(--info-subtle, rgba(120, 165, 212, 0.15)); }
 .sup-tag.escalate { color: var(--error); background: var(--error-subtle); }
 .sup-tag.done { color: var(--success); background: var(--success-subtle); }
 .sup-tag.failed { color: var(--error); background: var(--error-subtle); }
 .sup-tag.pending { color: var(--text-tertiary); background: var(--bg-elevated); }
-.sup-tag.revising { color: var(--warning); background: rgba(224, 164, 88, 0.15); }
+.sup-tag.revising { color: var(--warning); background: var(--warning-subtle, rgba(224, 164, 88, 0.15)); }
 .sup-tid {
   font-family: var(--font-mono);
   font-size: 9.5px;
@@ -481,7 +485,7 @@
 .sup-sub-mode.active {
   background: var(--bg-primary);
   color: var(--text-primary);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-sm);
 }
 .sup-sub-close {
   margin-left: auto;

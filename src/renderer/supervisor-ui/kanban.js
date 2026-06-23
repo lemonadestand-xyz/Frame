@@ -229,6 +229,23 @@ function create(root) {
     poll();
   }
 
+  // Phase F: command-palette "Tail current in-flight task". Locate the first
+  // in-flight card, scroll it into view, and synthesize a click on its
+  // "▾ Tail log" button so the live pane mounts. No-op when nothing is
+  // in-flight or supervisorRoot hasn't been resolved (the tail button is only
+  // rendered then anyway).
+  function expandTailOnFirstInflight() {
+    const list = root.querySelector('#sup-list-active');
+    if (!list) return false;
+    const firstCard = list.querySelector('.sup-card[data-task-id]');
+    if (!firstCard) return false;
+    const btn = firstCard.querySelector('.sup-card-tail-btn');
+    if (!btn) return false;
+    firstCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (!firstCard.querySelector('.sup-card-tail-area.open')) btn.click();
+    return true;
+  }
+
   // Initial paint
   poll();
 
@@ -250,7 +267,18 @@ function create(root) {
     refetchDebounce = null;
   }
 
-  return { stop, refresh: poll, scrollToTask };
+  return { stop, refresh: poll, scrollToTask, expandTailOnFirstInflight };
 }
 
-module.exports = { create };
+// Phase F helper for the "Supervisor — Tail current in-flight task" command.
+// The kanban controller is owned by index.js (latestControllers); we surface
+// a module-level shim so the command-registry entry stays a one-liner.
+function expandTailOnFirstInflight() {
+  const idx = require('./index');
+  const controllers = idx.__getLatestControllers && idx.__getLatestControllers();
+  const k = controllers && controllers.kanban;
+  if (!k || typeof k.expandTailOnFirstInflight !== 'function') return false;
+  return k.expandTailOnFirstInflight();
+}
+
+module.exports = { create, expandTailOnFirstInflight };
