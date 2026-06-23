@@ -1,0 +1,15 @@
+{
+  "slug": "frame-supervisor-bridge",
+  "title": "Frame ↔ Supervisor profile + memory bridge",
+  "phase": "done",
+  "ai_tool": null,
+  "generated_task_ids": [
+    "task-spec-frame-supervisor-bridge-T01",
+    "task-spec-frame-supervisor-bridge-T02",
+    "task-spec-frame-supervisor-bridge-T03",
+    "task-spec-frame-supervisor-bridge-T04"
+  ],
+  "created_at": "2026-06-22T20:00:00.000Z",
+  "updated_at": "2026-06-22T20:00:00.000Z",
+  "last_phase_at": "2026-06-22T20:00:00.000Z"
+}

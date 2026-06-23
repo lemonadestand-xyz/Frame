@@ -28,6 +28,8 @@ const projectSection = require('./projectSection');
 const projectStatusBadges = require('./projectStatusBadges');
 const agentPanel = require('./agentPanel');
 const orchestrator = require('./orchestrator');
+const supervisorClient = require('./supervisorClient');
+const escalationModal = require('./escalationModal');
 const editor = require('./editor');
 const sidebarResize = require('./sidebarResize');
 const aiToolSelector = require('./aiToolSelector');
@@ -144,6 +146,12 @@ function init() {
 
   // Initialize specs dashboard (full-page card grid, opened from panel header)
   specsDashboard.init();
+
+  // Initialize supervisor client (subscribes to cross-project state push)
+  // and the escalation modal that surfaces drafted questions from the
+  // supervisor loop. See .frame/specs/frame-supervisor-loop/.
+  supervisorClient.init();
+  escalationModal.init();
 
   // Initialize sidebar resize
   sidebarResize.init(() => {

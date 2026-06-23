@@ -351,7 +351,11 @@ class TerminalManager {
       assignment: null
     };
 
-    this.terminals.set(terminalId, { terminal, fitAddon, element, state });
+    // Scroll-anchoring: track whether the user is following the tail.
+    // Set false when the user wheels/keys up; flipped back to true once they
+    // scroll all the way down. Writes only auto-scroll when this is true so
+    // history reads aren't yanked to the bottom by Claude Code's TUI redraws.
+    this.terminals.set(terminalId, { terminal, fitAddon, element, state, followBottom: true });
 
     // Allow app-level shortcuts to pass through when terminal has focus
     terminal.attachCustomKeyEventHandler((event) => {
@@ -500,6 +504,7 @@ class TerminalManager {
       if (!instance.opened) {
         instance.terminal.open(instance.element);
         instance.opened = true;
+        this._attachScrollAnchor(instance);
       }
 
       // Fit after a short delay to ensure container is sized
@@ -641,8 +646,23 @@ class TerminalManager {
       const instance = this.terminals.get(this.activeTerminalId);
       if (instance) {
         instance.terminal.scrollToBottom();
+        instance.followBottom = true;
       }
     }
+  }
+
+  // Watch scroll on the open terminal's viewport and flip `followBottom`
+  // to reflect "is the user currently at the tail?". The output handler
+  // captures this value BEFORE term.write, so transient mid-write scrolls
+  // (e.g. Claude Code's \033[2J\033[H clear-and-home) can't corrupt the
+  // decision to snap back to bottom.
+  _attachScrollAnchor(instance) {
+    const viewport = instance.element.querySelector('.xterm-viewport');
+    if (!viewport) return;
+    viewport.addEventListener('scroll', () => {
+      const buf = instance.terminal.buffer.active;
+      instance.followBottom = buf.viewportY >= buf.baseY;
+    }, { passive: true });
   }
 
   fitAll() {
@@ -755,15 +775,13 @@ class TerminalManager {
       const instance = this.terminals.get(terminalId);
       if (instance) {
         const term = instance.terminal;
-
+        // Capture intent BEFORE write — Claude Code's TUI redraws
+        // (\033[2J\033[H, status-line spinners) can transiently move
+        // viewportY mid-write, so we can't read followBottom inside the
+        // write callback.
+        const wasFollowing = instance.followBottom;
         term.write(data, () => {
-          const buf = term.buffer.active;
-          // If viewport is at the very top but there's content below,
-          // escape codes (e.g. Claude Code's \033[2J\033[H) forced the scroll.
-          // Auto-scroll back to bottom.
-          if (buf.viewportY === 0 && buf.baseY > 5) {
-            term.scrollToBottom();
-          }
+          if (wasFollowing) term.scrollToBottom();
         });
       }
     });

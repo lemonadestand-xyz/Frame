@@ -1,0 +1,277 @@
+/* Supervisor surfaces — escalation modal + cross-project board.
+   Color tokens borrow from the supervisor PWA for visual continuity:
+   --escalate #e0556b (red), --auto #3fb27f (green), --signal #e7d49e (yellow). */
+
+:root {
+  --supervisor-escalate: #e0556b;
+  --supervisor-auto:     #3fb27f;
+  --supervisor-signal:   #e7d49e;
+  --supervisor-info:     #88a8ff;
+}
+
+/* ─── Escalation modal ──────────────────────────────────── */
+
+.supervisor-escalation-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+  animation: supervisorFadeIn 0.12s ease-out;
+}
+@keyframes supervisorFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.supervisor-escalation-modal {
+  width: 560px; max-width: 92vw; max-height: 86vh; overflow-y: auto;
+  background: var(--bg, #1c1a18);
+  color: var(--ink, #d4d4d4);
+  border: 1px solid rgba(224, 85, 107, 0.4);
+  border-left: 4px solid var(--supervisor-escalate);
+  border-radius: 8px;
+  padding: 20px 22px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+.supervisor-escalation-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px;
+}
+.supervisor-escalation-tag {
+  font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--supervisor-escalate);
+  font-weight: 600;
+}
+.supervisor-escalation-meta {
+  font-size: 11px; color: rgba(212, 212, 212, 0.55);
+  font-family: 'Space Mono', Consolas, monospace;
+}
+.supervisor-escalation-question {
+  font-size: 17px; font-weight: 600; line-height: 1.35;
+  margin: 0 0 16px 0;
+}
+.supervisor-escalation-suggested {
+  background: rgba(63, 178, 127, 0.08);
+  border-left: 3px solid var(--supervisor-auto);
+  padding: 12px 14px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+.supervisor-escalation-suggested-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--supervisor-auto);
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.supervisor-escalation-suggested-body { font-size: 14px; line-height: 1.4; }
+.supervisor-escalation-confidence {
+  margin-top: 6px; font-size: 11px;
+  color: rgba(212, 212, 212, 0.55);
+  font-family: 'Space Mono', Consolas, monospace;
+}
+.supervisor-escalation-options {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px;
+}
+.supervisor-escalation-option {
+  padding: 6px 12px; border-radius: 4px; cursor: pointer;
+  background: rgba(136, 168, 255, 0.08);
+  border: 1px solid rgba(136, 168, 255, 0.4);
+  color: var(--supervisor-info);
+  font-size: 13px;
+}
+.supervisor-escalation-option:hover {
+  background: rgba(136, 168, 255, 0.18);
+}
+.supervisor-escalation-field-label {
+  display: block; font-size: 12px; margin-bottom: 6px;
+  color: rgba(212, 212, 212, 0.7);
+}
+.supervisor-escalation-textarea {
+  width: 100%; min-height: 80px; padding: 10px; border-radius: 4px;
+  background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1);
+  color: inherit; font-family: inherit; font-size: 13px; resize: vertical;
+}
+.supervisor-escalation-actions {
+  display: flex; gap: 8px; margin-top: 14px;
+}
+.supervisor-escalation-actions .btn { flex: 1; }
+.supervisor-escalation-approve {
+  background: var(--supervisor-auto) !important;
+  color: #fff !important;
+}
+.supervisor-escalation-redirect {
+  opacity: 0.7;
+}
+
+/* ─── Spec section Supervise button ─────────────────────── */
+
+.spec-supervisor-btn {
+  margin-left: 6px;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: rgba(63, 178, 127, 0.08);
+  color: var(--supervisor-auto);
+  border: 1px solid rgba(63, 178, 127, 0.4);
+  cursor: pointer;
+  font-weight: 500;
+}
+.spec-supervisor-btn:hover {
+  background: rgba(63, 178, 127, 0.18);
+}
+.spec-supervisor-btn-on {
+  background: var(--supervisor-auto);
+  color: #fff;
+  border-color: var(--supervisor-auto);
+}
+.spec-supervisor-btn-on:hover {
+  background: #2f8e60;
+  border-color: #2f8e60;
+}
+
+/* ─── Lane board: Across-projects button ────────────────── */
+
+.lane-board-xp-btn {
+  margin-left: 10px;
+  font-size: 12px;
+}
+
+/* ─── Cross-project board ───────────────────────────────── */
+
+.xp-board {
+  padding: 18px 22px;
+  color: var(--ink, #d4d4d4);
+}
+.xp-board-toolbar {
+  display: flex; align-items: center; gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 16px;
+}
+.xp-board-title {
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  font-weight: 700;
+}
+.xp-board-meta {
+  font-size: 12px; color: rgba(212,212,212,0.6);
+  font-family: 'Space Mono', Consolas, monospace;
+}
+.xp-board-pause-all { margin-left: auto; }
+.xp-board-empty {
+  text-align: center; padding: 40px 0;
+  color: rgba(212,212,212,0.5); font-size: 13px;
+}
+
+.xp-project {
+  margin-bottom: 22px;
+}
+.xp-project-header {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 10px;
+}
+.xp-project-label {
+  font-size: 14px; font-weight: 600;
+}
+.xp-project-counts {
+  font-size: 11px; color: rgba(212,212,212,0.5);
+  font-family: 'Space Mono', Consolas, monospace;
+}
+
+.xp-spec-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+.xp-empty { color: rgba(212,212,212,0.4); font-size: 12px; padding: 6px 0; }
+
+.xp-spec {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.xp-spec:hover { background: rgba(255,255,255,0.06); }
+.xp-spec-escalation {
+  background: rgba(224, 85, 107, 0.06);
+  border-color: rgba(224, 85, 107, 0.35);
+  border-left: 3px solid var(--supervisor-escalate);
+}
+
+.xp-spec-tags {
+  display: flex; gap: 6px; align-items: center; margin-bottom: 6px;
+}
+.xp-tag {
+  font-size: 10px; padding: 2px 6px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+}
+.xp-confidence {
+  margin-left: auto; font-size: 10px;
+  font-family: 'Space Mono', Consolas, monospace;
+  color: rgba(212,212,212,0.55);
+}
+.xp-spec-title {
+  font-size: 13px; font-weight: 500; word-break: break-all;
+  margin-bottom: 6px;
+}
+.xp-spec-reasoning {
+  font-size: 11px; line-height: 1.4; color: rgba(212,212,212,0.65);
+  margin-bottom: 6px;
+}
+.xp-spec-escalation-q {
+  font-size: 12px; line-height: 1.4; color: var(--supervisor-escalate);
+  margin-bottom: 6px; font-weight: 500;
+}
+.xp-spec-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 8px;
+}
+.xp-spec-meta {
+  font-size: 10px; color: rgba(212,212,212,0.45);
+  font-family: 'Space Mono', Consolas, monospace;
+}
+.xp-spec-action {
+  font-size: 11px; padding: 3px 8px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05); color: inherit;
+  border-radius: 3px; cursor: pointer;
+}
+.xp-spec-action:hover { background: rgba(255,255,255,0.12); }
+.xp-spec-status {
+  font-size: 10px; color: rgba(212,212,212,0.5);
+  font-family: 'Space Mono', Consolas, monospace;
+  text-transform: uppercase;
+}
+
+/* ─── Supervisor verdict badge (next to autopilot pill) ───
+   Renders the supervisor loop's lastVerdict (route + confidence) in
+   the spec section header so users can see why the loop is in its
+   current posture without opening the Audit tab. */
+
+.supervisor-verdict-badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 6px; margin-left: 6px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 3px;
+  font-family: 'Space Mono', Consolas, monospace;
+  font-size: 10px; letter-spacing: 0.05em;
+  font-weight: 600; text-transform: uppercase;
+  color: rgba(212,212,212,0.85);
+  background: rgba(255,255,255,0.04);
+}
+.supervisor-verdict-escalate {
+  color: var(--supervisor-escalate);
+  border-color: rgba(224, 85, 107, 0.45);
+  background: rgba(224, 85, 107, 0.08);
+}
+.supervisor-verdict-auto_answer,
+.supervisor-verdict-done {
+  color: var(--supervisor-auto);
+  border-color: rgba(63, 178, 127, 0.45);
+  background: rgba(63, 178, 127, 0.08);
+}
+.supervisor-verdict-research,
+.supervisor-verdict-wait,
+.supervisor-verdict-paused {
+  color: var(--supervisor-info);
+  border-color: rgba(136, 168, 255, 0.45);
+  background: rgba(136, 168, 255, 0.08);
+}

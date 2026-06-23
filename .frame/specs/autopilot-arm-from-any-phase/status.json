@@ -1,0 +1,23 @@
+{
+  "slug": "autopilot-arm-from-any-phase",
+  "title": "Autopilot arm-from-any-phase",
+  "phase": "done",
+  "ai_tool": null,
+  "generated_task_ids": [
+    "task-spec-autopilot-arm-from-any-phase-T01",
+    "task-spec-autopilot-arm-from-any-phase-T02",
+    "task-spec-autopilot-arm-from-any-phase-T03",
+    "task-spec-autopilot-arm-from-any-phase-T04",
+    "task-spec-autopilot-arm-from-any-phase-T05",
+    "task-spec-autopilot-arm-from-any-phase-T06",
+    "task-spec-autopilot-arm-from-any-phase-T07",
+    "task-spec-autopilot-arm-from-any-phase-T08",
+    "task-spec-autopilot-arm-from-any-phase-T09",
+    "task-spec-autopilot-arm-from-any-phase-T10",
+    "task-spec-autopilot-arm-from-any-phase-T11",
+    "task-spec-autopilot-arm-from-any-phase-T12"
+  ],
+  "created_at": "2026-06-21T23:55:00.000Z",
+  "updated_at": "2026-06-22T00:16:44.865Z",
+  "last_phase_at": "2026-06-22T00:16:44.865Z"
+}

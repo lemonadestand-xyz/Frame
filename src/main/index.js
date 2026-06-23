@@ -31,7 +31,16 @@ const gitStatusManager = require('./gitStatusManager');
 const gitDiffManager = require('./gitDiffManager');
 const telemetry = require('./telemetry');
 const specManager = require('./specManager');
+const specAttachments = require('./specAttachments');
 const orchestrationManager = require('./orchestrationManager');
+const autopilot = require('./autopilot');
+const { setupSupervisorIPC } = require('./supervisorIPC');
+// Populate the worker registry on boot. The supervisor loop and the
+// renderer's agentDispatch both consume `getWorker(toolName)` — requiring
+// the bootstrap module once here guarantees the four built-ins
+// (claude / codex / gemini / fake) are present before either caller hits
+// it.
+require('./workers');
 
 let mainWindow = null;
 
@@ -123,8 +132,19 @@ function setupAllIPC() {
   // Spec-Driven Development — .frame/specs/<slug>/ CRUD + watcher
   specManager.setupIPC(ipcMain);
 
+  // Spec attachments — paste/drop screenshots + reference docs into specs
+  specAttachments.setupIPC(ipcMain);
+
   // Orchestration — conductor-led parallel spec execution
   orchestrationManager.setupIPC(ipcMain);
+
+  // Autopilot — drives /spec.implement turns automatically
+  autopilot.setupIPC(ipcMain);
+
+  // Supervisor loop — LLM-judged spec orchestration (profile + memory +
+  // capabilities + escalation + cross-project). Mirrors the autonomous
+  // supervisor's run loop; see .frame/specs/frame-supervisor-loop/.
+  setupSupervisorIPC(ipcMain, () => mainWindow);
 
   // Telemetry — toggle from Settings
   ipcMain.handle(IPC.TELEMETRY_SET_ENABLED, (event, enabled) =>
@@ -174,6 +194,7 @@ function initModulesWithWindow(window) {
   gitStatusManager.init(window);
   specManager.init(window);
   orchestrationManager.init(window);
+  autopilot.init(window);
 }
 
 // Aptabase MUST be initialized before app.whenReady() because the SDK

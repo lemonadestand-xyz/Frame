@@ -23,6 +23,13 @@ const { ipcRenderer } = require('electron');
 const { IPC } = require('../shared/ipcChannels');
 const laneStatus = require('./laneStatus');
 const state = require('./state');
+// `require('../main/workers')` runs the bootstrap that registers every
+// built-in worker (claude / codex / gemini / fake) into the singleton
+// registry. The renderer-side dispatch and any main-process supervisor
+// loop both consume the same registry — there is no second source of
+// truth for "which worker handles tool X".
+const workersRegistry = require('../main/workers');
+const { Posture } = require('../shared/workerTypes');
 
 let multiTerminalUI = null;
 
@@ -110,37 +117,31 @@ async function dispatch({ terminalId = null, createNew = false, toolId = null, p
       return _fail(targetId, 'No AI CLI selected');
     }
 
-    // Pre-flight: confirm the CLI is installed before sending anything —
-    // otherwise the lane shows "command not found" and the prompt is lost.
-    let check;
+    // Route through the worker registry instead of inlining the
+    // CHECK_AI_TOOL_AVAILABLE → sendCommand → waitForReady sequence here.
+    // Each tool's worker owns its own posture-flag overrides + spawn-args
+    // composition + decision detection; the injected exec adapter funnels
+    // every side-effect back through Frame's existing IPC channels and
+    // multiTerminalUI surface, so the channel contract is identical to
+    // the pre-refactor path.
+    let worker;
     try {
-      check = await ipcRenderer.invoke(IPC.CHECK_AI_TOOL_AVAILABLE, {
-        toolId: chosenToolId,
-        projectPath: state.getProjectPath()
+      worker = workersRegistry.getWorker(chosenToolId);
+    } catch (err) {
+      console.error('agentDispatch: unknown worker for tool', chosenToolId, err);
+      return _fail(targetId, `Unknown AI CLI: ${chosenToolId}`);
+    }
+
+    try {
+      await worker.start({
+        task: { prompt },
+        ctx: { terminalId: targetId, projectPath: state.getProjectPath() },
+        posture: Posture.DEFAULT,
+        exec: _buildExec({ enter }),
       });
     } catch (err) {
-      console.error('agentDispatch: CLI availability check failed', err);
-      return _fail(targetId, 'Could not verify AI CLI availability');
-    }
-    if (!check || !check.available) {
-      const name = (check && check.name) || chosenToolId;
-      return _fail(targetId, `${name} CLI not found on your system`);
-    }
-
-    // Subscribe before sending the start command — a fast CLI could reach
-    // its input box between "send" and "listen" and we'd miss the event.
-    const readyPromise = _waitForAgentReady(targetId);
-    // ui.sendCommand auto-enters the lane when on the board; the orchestrator
-    // (enter:false) must not switch the view, so send via the raw manager.
-    if (enter) {
-      multiTerminalUI.sendCommand(check.resolvedCommand, targetId);
-    } else {
-      multiTerminalUI.getManager().sendCommand(check.resolvedCommand, targetId);
-    }
-
-    const ready = await readyPromise;
-    if (!ready) {
-      return _fail(targetId, `${check.name || chosenToolId} didn't become ready — prompt not sent`);
+      console.error('agentDispatch: worker.start failed', err);
+      return _fail(targetId, (err && err.message) || 'Agent failed to start');
     }
   }
 
@@ -338,6 +339,12 @@ async function dispatchSpecCommand({ slug, title = null, command } = {}) {
     // New-Frame runs re-assign; the old lane is simply unassigned, not closed
     specLanes.set(slug, result.terminalId);
     _notifySpecLane(slug);
+    // If autopilot fired an ARM_REQUEST for this slug while no lane was
+    // attached, satisfy it now. Fire-and-forget — no UI block on success.
+    try {
+      const projectPath = state.getProjectPath();
+      require('./autopilotClient').consumeArmIfPending(projectPath, slug);
+    } catch (err) { console.error('agentDispatch: ARM re-check failed', err); }
   }
   return result;
 }
@@ -532,6 +539,48 @@ function _escapeHtml(s) {
     '"': '&quot;',
     "'": '&#39;'
   }[c]));
+}
+
+/**
+ * Build the per-dispatch execution adapter the worker sees. Encapsulates
+ * the renderer-side surfaces a worker needs (CHECK_AI_TOOL_AVAILABLE,
+ * multiTerminalUI, laneStatus, _waitForAgentReady) without exposing them
+ * to the worker — workers stay process-agnostic and unit-testable with
+ * a mocked exec.
+ *
+ * `enter` toggles the same "switch view to the lane" semantics that
+ * dispatch() honors: orchestration calls pass enter:false so fanning out
+ * several spawns doesn't keep yanking the viewport.
+ */
+function _buildExec({ enter }) {
+  return {
+    async checkAvailable({ toolId, projectPath }) {
+      try {
+        return await ipcRenderer.invoke(IPC.CHECK_AI_TOOL_AVAILABLE, { toolId, projectPath });
+      } catch (err) {
+        console.error('agentDispatch._buildExec: CHECK_AI_TOOL_AVAILABLE failed', err);
+        return { available: false, resolvedCommand: null, name: toolId || null };
+      }
+    },
+    sendCommand(command, terminalId) {
+      // ui.sendCommand auto-enters the lane when on the board; the
+      // orchestrator (enter:false) must not switch the view, so send via
+      // the raw manager.
+      if (enter) {
+        multiTerminalUI.sendCommand(command, terminalId);
+      } else {
+        multiTerminalUI.getManager().sendCommand(command, terminalId);
+      }
+    },
+    waitForReady(terminalId) {
+      return _waitForAgentReady(terminalId);
+    },
+    subscribeToStatus(terminalId, cb) {
+      return laneStatus.onChange((id, payload) => {
+        if (id === terminalId) cb(id, payload);
+      });
+    },
+  };
 }
 
 // How long a cold-started CLI gets to reach its input box before the

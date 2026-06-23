@@ -1,0 +1,22 @@
+{
+  "slug": "frame-worker-abstraction",
+  "title": "Frame worker abstraction — WorkerInterface refactor",
+  "phase": "done",
+  "ai_tool": null,
+  "generated_task_ids": [
+    "task-spec-frame-worker-abstraction-T01",
+    "task-spec-frame-worker-abstraction-T02",
+    "task-spec-frame-worker-abstraction-T03",
+    "task-spec-frame-worker-abstraction-T04",
+    "task-spec-frame-worker-abstraction-T05",
+    "task-spec-frame-worker-abstraction-T06",
+    "task-spec-frame-worker-abstraction-T07",
+    "task-spec-frame-worker-abstraction-T08",
+    "task-spec-frame-worker-abstraction-T09",
+    "task-spec-frame-worker-abstraction-T10",
+    "task-spec-frame-worker-abstraction-T11"
+  ],
+  "created_at": "2026-06-22T02:03:00.000Z",
+  "updated_at": "2026-06-22T08:37:48.135Z",
+  "last_phase_at": "2026-06-22T08:37:48.135Z"
+}

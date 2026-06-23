@@ -12,7 +12,11 @@ const { IPC } = require('../shared/ipcChannels');
 let mainWindow = null;
 let configPath = null;
 
-// Default AI tools configuration
+// Default AI tools configuration.
+// `presets` are well-known launch flags surfaced as checkboxes in the
+// "Start options" popover. Tools without curated presets fall back to
+// the popover's free-form "Additional flags" input — which is also how
+// users add anything we haven't named here.
 const AI_TOOLS = {
   claude: {
     id: 'claude',
@@ -26,7 +30,21 @@ const AI_TOOLS = {
       help: '/help'
     },
     menuLabel: 'Claude Commands',
-    supportsPlugins: true
+    supportsPlugins: true,
+    presets: [
+      {
+        id: 'dangerous',
+        label: 'Skip permissions',
+        flag: '--dangerously-skip-permissions',
+        description: 'Bypass file/command permission prompts. Daily-driver flag for trusted local work.'
+      },
+      {
+        id: 'continue',
+        label: 'Continue last session',
+        flag: '--continue',
+        description: 'Resume the most recent Claude Code session in this directory.'
+      }
+    ]
   },
   codex: {
     id: 'codex',
@@ -41,7 +59,8 @@ const AI_TOOLS = {
       help: '/help'
     },
     menuLabel: 'Codex Commands',
-    supportsPlugins: false
+    supportsPlugins: false,
+    presets: []
   },
   gemini: {
     id: 'gemini',
@@ -57,14 +76,19 @@ const AI_TOOLS = {
       help: '/help'
     },
     menuLabel: 'Gemini Commands',
-    supportsPlugins: false
+    supportsPlugins: false,
+    presets: []
   }
 };
 
-// Current configuration
+// Current configuration. `toolFlags` is the per-tool persistence layer
+// for launch flags: { [toolId]: { enabledPresets: string[], customFlags: string } }.
+// Missing entries get sensible defaults at read time so older config
+// files keep working without a migration step.
 let config = {
   activeTool: 'claude',
-  customTools: {}
+  customTools: {},
+  toolFlags: {}
 };
 
 /**
@@ -119,6 +143,22 @@ function getActiveTool() {
 }
 
 /**
+ * Active tool with flags + fullCommand attached. This is the shape the
+ * renderer expects whenever AI_TOOL_CHANGED fires — without `fullCommand`
+ * here, the renderer's cached currentTool would lose its flag suffix
+ * after every flag toggle and the Start button would silently fall back
+ * to the bare binary.
+ */
+function getActiveToolDecorated() {
+  const active = getActiveTool();
+  return {
+    ...active,
+    flags: getToolFlags(active.id),
+    fullCommand: buildInvocation(active.id)
+  };
+}
+
+/**
  * Set the active AI tool
  */
 function setActiveTool(toolId) {
@@ -127,9 +167,8 @@ function setActiveTool(toolId) {
     config.activeTool = toolId;
     saveConfig();
 
-    // Notify renderer about the change
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send(IPC.AI_TOOL_CHANGED, getActiveTool());
+      mainWindow.webContents.send(IPC.AI_TOOL_CHANGED, getActiveToolDecorated());
     }
 
     return true;
@@ -138,11 +177,102 @@ function setActiveTool(toolId) {
 }
 
 /**
- * Get full configuration for renderer
+ * Read the saved launch-flag config for a tool. Returns the canonical
+ * shape with defaults filled in. Validates `enabledPresets` against the
+ * tool's actual preset list — stale IDs (from preset rename / removal)
+ * are dropped silently so the popover never shows ghost selections.
+ */
+function getToolFlags(toolId) {
+  const tools = getAvailableTools();
+  const tool = tools[toolId];
+  if (!tool) return { enabledPresets: [], customFlags: '' };
+
+  const saved = config.toolFlags && config.toolFlags[toolId];
+  const presetIds = new Set((tool.presets || []).map(p => p.id));
+  const enabledPresets = Array.isArray(saved && saved.enabledPresets)
+    ? saved.enabledPresets.filter(id => presetIds.has(id))
+    : [];
+  const customFlags = typeof (saved && saved.customFlags) === 'string'
+    ? saved.customFlags
+    : '';
+  return { enabledPresets, customFlags };
+}
+
+/**
+ * Persist launch-flag config for a tool. Sanitizes the custom-flags
+ * string (collapses whitespace) so what the user sees and what we
+ * splice into the command line are the same.
+ */
+function setToolFlags(toolId, flags) {
+  const tools = getAvailableTools();
+  const tool = tools[toolId];
+  if (!tool) return false;
+
+  const presetIds = new Set((tool.presets || []).map(p => p.id));
+  const enabledPresets = Array.isArray(flags && flags.enabledPresets)
+    ? flags.enabledPresets.filter(id => presetIds.has(id))
+    : [];
+  const customFlags = typeof (flags && flags.customFlags) === 'string'
+    ? flags.customFlags.replace(/\s+/g, ' ').trim()
+    : '';
+
+  config.toolFlags = config.toolFlags || {};
+  config.toolFlags[toolId] = { enabledPresets, customFlags };
+  saveConfig();
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(IPC.AI_TOOL_CHANGED, getActiveToolDecorated());
+  }
+  return true;
+}
+
+/**
+ * Build the full command-line invocation for a tool: base command +
+ * enabled preset flags (in declared order) + custom flags. This is what
+ * we write into the PTY when the user clicks Start.
+ */
+function buildInvocation(toolId) {
+  const tools = getAvailableTools();
+  const tool = tools[toolId];
+  if (!tool) return null;
+
+  const { enabledPresets, customFlags } = getToolFlags(toolId);
+  const enabledSet = new Set(enabledPresets);
+  const presetFlags = (tool.presets || [])
+    .filter(p => enabledSet.has(p.id))
+    .map(p => p.flag);
+  const parts = [tool.command, ...presetFlags];
+  if (customFlags) parts.push(customFlags);
+  return parts.join(' ');
+}
+
+/**
+ * Build just the flag suffix (no base command) for a given tool —
+ * used by CHECK_AI_TOOL_AVAILABLE so its resolvedCommand matches what
+ * the Start button will actually run.
+ */
+function composeFlagSuffix(toolId) {
+  const tools = getAvailableTools();
+  const tool = tools[toolId];
+  if (!tool) return '';
+  const { enabledPresets, customFlags } = getToolFlags(toolId);
+  const enabledSet = new Set(enabledPresets);
+  const presetFlags = (tool.presets || [])
+    .filter(p => enabledSet.has(p.id))
+    .map(p => p.flag);
+  const parts = [...presetFlags];
+  if (customFlags) parts.push(customFlags);
+  return parts.join(' ');
+}
+
+/**
+ * Get full configuration for renderer. Includes the active tool's
+ * resolved flags + fullCommand so the renderer can render the start
+ * button label / popover state without a second round-trip.
  */
 function getConfig() {
   return {
-    activeTool: getActiveTool(),
+    activeTool: getActiveToolDecorated(),
     availableTools: getAvailableTools()
   };
 }
@@ -281,15 +411,50 @@ function setupIPC() {
       return { available: false, resolvedCommand: null, name: tool.name };
     }
 
+    // Resolve the binary first, then layer the saved flags on top so the
+    // "Send to AI" task flow uses the same invocation as the Start button.
+    const tail = composeFlagSuffix(toolId);
+
     if (primaryOk) {
-      return { available: true, resolvedCommand: tool.command, name: tool.name };
+      return {
+        available: true,
+        resolvedCommand: tail ? `${tool.command} ${tail}` : tool.command,
+        name: tool.name
+      };
     }
 
     if (tool.fallbackCommand && await isCommandAvailable(tool.fallbackCommand, projectPath)) {
-      return { available: true, resolvedCommand: tool.fallbackCommand, name: tool.name };
+      return {
+        available: true,
+        resolvedCommand: tail ? `${tool.fallbackCommand} ${tail}` : tool.fallbackCommand,
+        name: tool.name
+      };
     }
 
     return { available: false, resolvedCommand: null, name: tool.name };
+  });
+
+  ipcMain.removeHandler(IPC.GET_TOOL_FLAGS);
+  ipcMain.handle(IPC.GET_TOOL_FLAGS, (event, toolId) => {
+    const id = toolId || getActiveTool().id;
+    const tools = getAvailableTools();
+    const tool = tools[id];
+    if (!tool) return null;
+    return {
+      toolId: id,
+      presets: tool.presets || [],
+      ...getToolFlags(id),
+      fullCommand: buildInvocation(id)
+    };
+  });
+
+  ipcMain.removeHandler(IPC.SET_TOOL_FLAGS);
+  ipcMain.handle(IPC.SET_TOOL_FLAGS, (event, { toolId, enabledPresets, customFlags } = {}) => {
+    const id = toolId || getActiveTool().id;
+    const ok = setToolFlags(id, { enabledPresets, customFlags });
+    return ok
+      ? { ok: true, fullCommand: buildInvocation(id), flags: getToolFlags(id) }
+      : { ok: false };
   });
 }
 
@@ -302,10 +467,12 @@ function getCommand(action) {
 }
 
 /**
- * Get the start command for active tool
+ * Get the start command for the active tool, including saved launch
+ * flags (preset checkboxes + custom flags). Callers that need the raw
+ * binary should hit `tool.command` directly.
  */
 function getStartCommand() {
-  return getActiveTool().command;
+  return buildInvocation(getActiveTool().id);
 }
 
 module.exports = {
@@ -316,6 +483,9 @@ module.exports = {
   getConfig,
   getCommand,
   getStartCommand,
+  getToolFlags,
+  setToolFlags,
+  buildInvocation,
   addCustomTool,
   removeCustomTool,
   AI_TOOLS

@@ -897,3 +897,99 @@ runs in its own git worktree (`.frame/worktrees/<slug>`, branch
 `.frame/bin/*` orchestration scripts. Backend verified end-to-end headless
 (dispatch → worktree → conflict guard → report-done → merge+drift → teardown →
 rehydrate). Renderer compiles; live UI verification pending an app run.
+
+### [2026-06-21] Autopilot Runner + UI editing + audit trail + `--continue` port
+
+Shipped the `autopilot-runner` spec end-to-end (T01-T10, all green;
+`.frame/specs/autopilot-runner/spec.md`) plus two UI enhancements the
+user asked for in the same cycle, plus a port of the `--continue`
+Start-options popover from `chris-local-pre-orchestration-2026-06-21`.
+Reference: `docs/AUTOPILOT.md`; agent rules in `AGENTS.md`'s new
+"Autopilot", "UI editing", and "Start options + `--continue`" sections.
+
+**Why this cycle existed:** clicking "Implement Next Task" ten times
+for a ten-task spec is the obvious friction point now that spec-driven
+development is the daily driver. Autopilot is the missing driver
+inside Frame for the answer the spec already encodes ("what's next?").
+Shape (loop + bounded retries + budget gate) borrowed from
+`autonomous-supervisor/supervisor/scripts/self-build/queue_runner.py`;
+no code ported — Python in a Python repo doesn't translate.
+
+**Key design decisions (the journey):**
+- **Loop driver in main, not a Claude lane.** The `CONDUCTOR.md`-driven
+  orchestrator (June 15) is autonomy by prompt; autopilot is autonomy
+  by code. Both coexist — the conductor remains the multi-spec
+  lane-based UX; autopilot is the click-Auto-and-walk-away UX.
+- **No new template variant of `spec.implement`.** The diagnostic-retry
+  appendix is appended **at runtime** to the per-turn prompt file under
+  `.frame/runtime/prompts/`, never to the canonical template. Template
+  stays clean; runtime copy carries the appendix.
+- **`tasks.json` mtime + lane idle (Option A) over a sentinel file.**
+  Reuse-only — the agent already marks tasks completed by editing
+  `tasks.json` per the existing template. No new contract with the
+  agent. Option B (turn-completion sentinel) deferred unless A proves
+  unreliable in practice.
+- **Footprint is the parallel-safety gate for cross-spec autopilot.**
+  Extracted `findFootprintConflictAmong(slug, footprint, candidates)`
+  as a pure helper from `orchestrationManager.findFootprintConflict`
+  so autopilot uses the same code-enforced guard the conductor uses,
+  without needing `session.workers` populated.
+- **`budget_usd` shipped as a documented gap.** `claudeUsageManager`
+  exposes only Anthropic's 5-hour / 7-day utilization percentages, not
+  per-message USD. The flag now logs a one-time warning and the
+  pausedReason flips from `max_total_turns` to `budget_proxy_turns` so
+  audit logs distinguish modes. Inline `TODO(autopilot-runner T09)` in
+  `_runSpecLoop` documents the gap at the call site.
+- **Bootstrapped Jest.** `plan.md` said "no new npm deps" but every
+  task assumed Jest existed. Added `jest@^29.7.0` as part of T01 with
+  user approval. **First test runner in the repo** — 51 specs across
+  config merge, signals, the per-spec loop, the project loop, audit
+  emission, and the new specManager edit helpers.
+- **Audit trail = JSONL, not a structured log.** One file per spec at
+  `.frame/specs/<slug>/autopilot-events.jsonl` (and `_project` for the
+  project run's scheduling events). The Audit tab in the spec section
+  is a viewer; the file is the source of truth and is `tail -f`-able.
+  **Reserved name:** never create a spec slug `_project`.
+- **UI editing (spec/plan/tasks) was needed for real testing.** Tasks
+  tab re-runs `syncTasksFromMarkdown` after a save so new markdown
+  rows become pending tasks immediately. Backend refuses to delete
+  tasks that are `in_progress` or `completed` — historical record
+  always wins over UI convenience.
+- **`--continue` port re-creates the per-tool `presets` system from
+  the local pre-orchestration branch.** Capability was lost during
+  upstream pulls; this re-introduces it. Gear button next to Start
+  opens the popover; flags persist per-tool in
+  `userData/ai-tool-config.json`. Resumes Claude sessions across a
+  Frame reload (closest thing to it — PTYs always die with Electron).
+
+**Hard rules (also in AGENTS.md):**
+- Autopilot stop is **always graceful** — the in-flight turn always
+  finishes before the loop exits. Never bypass.
+- Specs without a `## Footprint` block collide with everything — author
+  the footprint to unlock Project Autopilot parallelism.
+- The canonical `spec.implement` template stays read-only. Runtime
+  appendices only.
+- No cross-project autopilot — that's the supervisor app's job.
+
+**T08 dispatch contract:** the renderer collects
+`{ slug → terminalId }` from `agentDispatch.getSpecLaneInfo(slug)` at
+click time and ships it to main as
+`AUTOPILOT_START.terminalAssignments`. Specs without an attached lane
+are *skipped* (surfaced in the `_project` audit log), never failed —
+keeps Project Autopilot predictable and respects user lane choice.
+
+**New modules:** `main/autopilot.js`, `main/autopilot.config.js`,
+`main/autopilot.signals.js`, `renderer/autopilotClient.js`,
+`renderer/autopilotPill.js`, `renderer/autopilotToggle.js`,
+`__tests__/autopilot.test.js`. **Modified:** `main/specManager.js`
+(exported `readPendingCount`, `reconcilePhase`, `writeSpecDoc`,
+`addSpecTask`, `removeSpecTask`), `main/orchestrationManager.js`
+(pure `findFootprintConflictAmong`), `main/aiToolManager.js`
+(`presets` + `toolFlags` + `GET_TOOL_FLAGS`/`SET_TOOL_FLAGS`),
+`renderer/specSection.js` (Audit tab + inline edit + add/remove
+pending), `renderer/laneBoard.js` (project-level toggle row),
+`renderer/aiToolSelector.js` (Start-options popover), `index.html`
+(gear button + popover markup), CSS in `panels.css` + `layout.css`,
+`shared/ipcChannels.js` (10 new channels). New doc:
+`docs/AUTOPILOT.md`. Backend verified by Jest (51/51); live UI
+verification pending a Frame reload + smoke test on a real spec.

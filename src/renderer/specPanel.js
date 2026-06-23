@@ -539,6 +539,13 @@ function showNewSpecPrompt() {
     return;
   }
 
+  // One stagingId per modal open. Files paste/dropped while the user is
+  // composing the spec live under .frame/runtime/spec-attachments-staging/<id>/
+  // until createSpec promotes them into the new spec's attachments dir.
+  // Cancelling the modal purges this dir so abandoned files do not leak.
+  const stagingId = makeStagingId();
+  const stagedFiles = []; // [{ filename, displayName }]
+
   const overlay = document.createElement('div');
   overlay.className = 'spec-modal-overlay';
   overlay.innerHTML = `
@@ -559,12 +566,27 @@ function showNewSpecPrompt() {
       <label class="spec-modal-field-label" for="spec-modal-desc-input">Description <span class="spec-modal-field-optional">(optional)</span></label>
       <textarea
         id="spec-modal-desc-input"
-        class="spec-modal-textarea"
+        class="spec-modal-textarea spec-attach-dropzone"
         rows="6"
         placeholder="Customers viewing a product page have no quick way to share it on social media. We want a Share button next to the cart CTA that opens a Twitter intent URL prefilled with the product title and canonical URL."
         autocomplete="off"
         spellcheck="false"
       ></textarea>
+
+      <div class="spec-attach-row">
+        <button type="button" class="btn btn-secondary spec-attach-add-btn" data-testid="spec-attach-add">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add file
+        </button>
+        <span class="spec-attach-hint">Or paste a screenshot or drop a file onto the description.</span>
+        <input type="file" class="spec-attach-file-input" multiple style="display:none" />
+      </div>
+      <div class="spec-attach-chips" data-testid="spec-attach-chips"></div>
+
+      <label class="spec-modal-checkbox">
+        <input type="checkbox" id="spec-modal-auto-on-tasks" />
+        <span>Run autopilot once tasks are generated and a Frame is attached.</span>
+      </label>
 
       <div class="spec-modal-error" role="alert"></div>
       <div class="spec-modal-actions">
@@ -577,13 +599,124 @@ function showNewSpecPrompt() {
 
   const titleInput = overlay.querySelector('#spec-modal-title-input');
   const descInput = overlay.querySelector('#spec-modal-desc-input');
+  const autoInput = overlay.querySelector('#spec-modal-auto-on-tasks');
   const errorEl = overlay.querySelector('.spec-modal-error');
   const cancelBtn = overlay.querySelector('.spec-modal-cancel');
   const createBtn = overlay.querySelector('.spec-modal-create');
+  const addFileBtn = overlay.querySelector('.spec-attach-add-btn');
+  const fileInput = overlay.querySelector('.spec-attach-file-input');
+  const chipsEl = overlay.querySelector('.spec-attach-chips');
 
   setTimeout(() => titleInput.focus(), 30);
 
-  const close = () => overlay.remove();
+  function renderChips() {
+    if (!chipsEl) return;
+    chipsEl.innerHTML = stagedFiles.map((f, idx) => `
+      <span class="spec-attach-chip" data-idx="${idx}">
+        <span class="spec-attach-chip-name">${escapeHtml(f.displayName)}</span>
+        <button type="button" class="spec-attach-chip-remove" aria-label="Remove ${escapeHtml(f.displayName)}" data-idx="${idx}">×</button>
+      </span>
+    `).join('');
+    chipsEl.querySelectorAll('.spec-attach-chip-remove').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const i = Number(btn.dataset.idx);
+        if (Number.isFinite(i) && stagedFiles[i]) {
+          stagedFiles.splice(i, 1);
+          renderChips();
+        }
+      });
+    });
+  }
+
+  async function stageBlob(blob, originalName) {
+    if (!blob) return;
+    const data = await blobToBase64(blob);
+    const res = await ipcRenderer.invoke(IPC.ATTACH_SPEC_FILE, {
+      projectPath,
+      stagingId,
+      payload: { kind: 'buffer', originalName, data }
+    });
+    if (!res || !res.success) {
+      errorEl.textContent = (res && res.error) || 'Could not attach file.';
+      return;
+    }
+    errorEl.textContent = '';
+    stagedFiles.push({ filename: res.filename, displayName: originalName });
+    renderChips();
+  }
+
+  async function stageFromPath(sourcePath, originalName) {
+    if (!sourcePath) return;
+    const res = await ipcRenderer.invoke(IPC.ATTACH_SPEC_FILE, {
+      projectPath,
+      stagingId,
+      payload: { kind: 'path', originalName, sourcePath }
+    });
+    if (!res || !res.success) {
+      errorEl.textContent = (res && res.error) || 'Could not attach file.';
+      return;
+    }
+    errorEl.textContent = '';
+    stagedFiles.push({ filename: res.filename, displayName: originalName });
+    renderChips();
+  }
+
+  // Add-file button → hidden file picker → buffer-kind upload (works for
+  // packaged builds where DataTransferItem.path is not available).
+  addFileBtn?.addEventListener('click', () => fileInput.click());
+  fileInput?.addEventListener('change', async () => {
+    const files = Array.from(fileInput.files || []);
+    for (const f of files) {
+      // Electron's File objects expose .path in unsandboxed renderers.
+      if (f.path) await stageFromPath(f.path, f.name || 'file');
+      else await stageBlob(f, f.name || 'file');
+    }
+    fileInput.value = '';
+  });
+
+  // Paste: clipboard images come through as DataTransferItems with kind=file.
+  descInput.addEventListener('paste', async (e) => {
+    const items = e.clipboardData ? Array.from(e.clipboardData.items || []) : [];
+    const fileItems = items.filter((it) => it.kind === 'file');
+    if (fileItems.length === 0) return; // let the textarea handle plain text
+    e.preventDefault();
+    for (const it of fileItems) {
+      const blob = it.getAsFile();
+      if (!blob) continue;
+      const ext = blob.type ? `.${blob.type.split('/')[1] || 'bin'}` : '';
+      const fallbackName = `pasted-${Date.now()}${ext}`;
+      await stageBlob(blob, blob.name || fallbackName);
+    }
+  });
+
+  // Drop: drag a file from Finder. Highlight on dragover via CSS class.
+  ['dragenter', 'dragover'].forEach((evt) => {
+    descInput.addEventListener(evt, (e) => {
+      if (!e.dataTransfer || !Array.from(e.dataTransfer.types || []).includes('Files')) return;
+      e.preventDefault();
+      descInput.classList.add('drag-over');
+    });
+  });
+  ['dragleave', 'dragend', 'drop'].forEach((evt) => {
+    descInput.addEventListener(evt, () => descInput.classList.remove('drag-over'));
+  });
+  descInput.addEventListener('drop', async (e) => {
+    if (!e.dataTransfer) return;
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length === 0) return;
+    e.preventDefault();
+    for (const f of files) {
+      if (f.path) await stageFromPath(f.path, f.name || 'file');
+      else await stageBlob(f, f.name || 'file');
+    }
+  });
+
+  const close = (purge) => {
+    if (purge) {
+      ipcRenderer.invoke(IPC.PURGE_STAGED_ATTACHMENTS, { projectPath, stagingId }).catch(() => {});
+    }
+    overlay.remove();
+  };
   const submit = async () => {
     const title = titleInput.value.trim();
     const description = descInput.value.trim();
@@ -602,22 +735,30 @@ function showNewSpecPrompt() {
     createBtn.disabled = true;
     const result = await ipcRenderer.invoke(IPC.CREATE_SPEC, {
       projectPath,
-      opts: { title, description }
+      opts: {
+        title,
+        description,
+        auto_on_tasks: !!(autoInput && autoInput.checked),
+        // The main process promotes staging → spec attachments dir and seeds
+        // a References block into spec.md.
+        pendingAttachments: stagedFiles.length > 0 ? stagingId : undefined
+      }
     });
     if (result && result.error) {
       errorEl.textContent = 'Could not create spec: ' + result.error;
       createBtn.disabled = false;
       return;
     }
-    close();
+    // Spec creation succeeded — files have moved out of staging already.
+    close(false);
   };
 
-  cancelBtn.addEventListener('click', close);
+  cancelBtn.addEventListener('click', () => close(true));
   createBtn.addEventListener('click', submit);
   // Title input: Enter submits
   titleInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); submit(); }
-    if (e.key === 'Escape') close();
+    if (e.key === 'Escape') close(true);
   });
   // Description: Cmd/Ctrl+Enter submits, bare Enter inserts newline
   descInput.addEventListener('keydown', e => {
@@ -625,10 +766,34 @@ function showNewSpecPrompt() {
       e.preventDefault();
       submit();
     }
-    if (e.key === 'Escape') close();
+    if (e.key === 'Escape') close(true);
   });
   overlay.addEventListener('click', e => {
-    if (e.target === overlay) close();
+    if (e.target === overlay) close(true);
+  });
+}
+
+// Stage ids are kept short + url-safe (matches the regex in
+// specAttachments.stageAttachment). crypto.randomUUID is available in
+// the renderer; we strip the hyphens so it stays under 64 chars.
+function makeStagingId() {
+  try {
+    return 'stg-' + (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '') : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  } catch {
+    return `stg-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error || new Error('FileReader failed'));
+    reader.onload = () => {
+      const result = reader.result || '';
+      const comma = String(result).indexOf(',');
+      resolve(comma >= 0 ? String(result).slice(comma + 1) : String(result));
+    };
+    reader.readAsDataURL(blob);
   });
 }
 
@@ -871,5 +1036,8 @@ module.exports = {
   startWatchingForProject,
   stopWatching,
   showNewSpecPrompt,
-  showRenameModal
+  showRenameModal,
+  // exposed for tests
+  makeStagingId,
+  blobToBase64
 };

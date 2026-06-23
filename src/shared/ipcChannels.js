@@ -127,6 +127,8 @@ const IPC = {
   SET_AI_TOOL: 'set-ai-tool',
   AI_TOOL_CHANGED: 'ai-tool-changed',
   CHECK_AI_TOOL_AVAILABLE: 'check-ai-tool-available',
+  GET_TOOL_FLAGS: 'get-tool-flags',                  // renderer → main: { presets, enabledPresets, customFlags, fullCommand }
+  SET_TOOL_FLAGS: 'set-tool-flags',                  // renderer → main: persist { enabledPresets, customFlags }
 
   // User Settings (renderer-side preferences persisted to userData JSON)
   GET_USER_SETTING: 'get-user-setting',
@@ -173,7 +175,55 @@ const IPC = {
   ORCH_SPAWN_WORKER: 'orch-spawn-worker',            // main → renderer: create a worker lane (slug, worktreeDir, env) + dispatch
   ORCH_WORKER_LANE: 'orch-worker-lane',              // renderer → main: report the terminalId it created for a worker
   ORCH_MERGE_WORKER: 'orch-merge-worker',            // renderer → main: merge a worker's branch (per-worker board action)
-  ORCH_REMOVE_WORKER: 'orch-remove-worker'           // renderer → main: cleanup a worker (worktree + branch)
+  ORCH_REMOVE_WORKER: 'orch-remove-worker',          // renderer → main: cleanup a worker (worktree + branch)
+
+  // Autopilot (drives /spec.implement repeatedly without manual clicks)
+  AUTOPILOT_START: 'autopilot-start',                // renderer → main: { projectPath, scope, slug?, terminalId, caps? }
+  AUTOPILOT_STOP: 'autopilot-stop',                  // renderer → main: { projectPath, runId }
+  AUTOPILOT_GET: 'autopilot-get',                    // renderer → main: snapshot of active runs
+  AUTOPILOT_STATE: 'autopilot-state',                // main → renderer: pushed state on every run transition
+  AUTOPILOT_AUDIT: 'autopilot-audit',                // renderer → main: read .frame/specs/<slug>/autopilot-events.jsonl
+  SET_AUTO_ON_TASKS: 'set-auto-on-tasks',            // renderer → main: { projectPath, slug, value } persists pre-arm flag
+  GET_AUTO_ON_TASKS: 'get-auto-on-tasks',            // renderer → main: { projectPath, slug } → boolean
+  AUTOPILOT_ARM_REQUEST: 'autopilot-arm-request',    // main → renderer: { projectPath, slug } fires when an armed spec hits tasks_generated
+
+  // Spec doc / tasks editing from the UI
+  WRITE_SPEC_DOC: 'write-spec-doc',                  // renderer → main: overwrite spec.md | plan.md | tasks.md
+  ADD_SPEC_TASK: 'add-spec-task',                    // renderer → main: append a pending task to tasks.md + tasks.json
+  REMOVE_SPEC_TASK: 'remove-spec-task',              // renderer → main: delete a pending spec task (rejects non-pending)
+
+  // Spec attachments (screenshots / docs referenced from spec.md / plan.md)
+  ATTACH_SPEC_FILE: 'attach-spec-file',              // renderer → main: { projectPath, slug?|stagingId?, payload } → { success, relativePath?, filename?, error? }
+  LIST_SPEC_ATTACHMENTS: 'list-spec-attachments',    // renderer → main: { projectPath, slug } → string[] relative paths
+  PURGE_STAGED_ATTACHMENTS: 'purge-staged-attachments', // renderer → main: { projectPath, stagingId } — cancel cleanup
+
+  // Project profile (.frame/profile.json)
+  LOAD_PROFILE: 'load-profile',                      // renderer → main: { projectPath } → { profile, source, warnings }
+  SAVE_PROFILE: 'save-profile',                      // renderer → main: { projectPath, profile } → { success, error? }
+  WATCH_PROFILE: 'watch-profile',                    // renderer → main: subscribe to profile changes for projectPath
+  UNWATCH_PROFILE: 'unwatch-profile',                // renderer → main: stop the watcher
+  PROFILE_DATA: 'profile-data',                      // main → renderer: pushed on initial load + every watcher fire
+
+  // Basic Memory (per-project markdown notes under ~/memory/<id>/)
+  SEARCH_MEMORY: 'search-memory',                    // renderer → main: { projectPath, query, k? } → Note[]
+  LIST_MEMORY: 'list-memory',                        // renderer → main: { projectPath, category?, spec_slug? } → Note[]
+
+  // Supervisor loop (replaces autopilot for LLM-judged spec orchestration)
+  SUPERVISOR_START: 'supervisor-start',                          // renderer → main: { projectPath, slug, terminalId? }
+  SUPERVISOR_STOP: 'supervisor-stop',                            // renderer → main: { projectPath, slug } — graceful
+  SUPERVISOR_STATE: 'supervisor-state',                          // main → renderer: pushed on every state change
+  SUPERVISOR_AUDIT: 'supervisor-audit',                          // renderer → main: read .frame/specs/<slug>/supervisor-audit.jsonl
+  SUPERVISOR_ESCALATION_OPEN: 'supervisor-escalation-open',      // main → renderer: pause + drafted-question
+  SUPERVISOR_ESCALATION_ANSWERED: 'supervisor-escalation-answered', // renderer → main: { id, answer, answeredBy }
+
+  // Cross-project orchestration (aggregated view across all open projects)
+  LIST_CROSS_PROJECT_SUPERVISORS: 'list-cross-project-supervisors',  // renderer → main: snapshot
+  WATCH_CROSS_PROJECT_SUPERVISORS: 'watch-cross-project-supervisors', // renderer → main: subscribe push
+  CROSS_PROJECT_SUPERVISORS_DATA: 'cross-project-supervisors-data',  // main → renderer: pushed snapshot
+  PAUSE_SPEC_SUPERVISOR: 'pause-spec-supervisor',                    // renderer → main: { projectPath, slug }
+  RESUME_SPEC_SUPERVISOR: 'resume-spec-supervisor',                  // renderer → main: { projectPath, slug, terminalId? }
+  PAUSE_ALL_SUPERVISORS: 'pause-all-supervisors',                    // renderer → main
+  RESUME_ALL_SUPERVISORS: 'resume-all-supervisors'                   // renderer → main
 };
 
 module.exports = { IPC };

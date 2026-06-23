@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-06-18",
+  "lastUpdated": "2026-06-23",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -15,6 +15,9 @@
         "getConfig",
         "getCommand",
         "getStartCommand",
+        "getToolFlags",
+        "setToolFlags",
+        "buildInvocation",
         "addCustomTool",
         "removeCustomTool",
         "AI_TOOLS"
@@ -28,7 +31,7 @@
       ],
       "functions": {
         "init": {
-          "line": 73,
+          "line": 97,
           "params": [
             "window",
             "app"
@@ -36,54 +39,87 @@
           "purpose": "Initialize the AI Tool Manager"
         },
         "loadConfig": {
-          "line": 83,
+          "line": 107,
           "purpose": "Load configuration from file"
         },
         "saveConfig": {
-          "line": 98,
+          "line": 122,
           "purpose": "Save configuration to file"
         },
         "getAvailableTools": {
-          "line": 109,
+          "line": 133,
           "purpose": "Get all available AI tools"
         },
         "getActiveTool": {
-          "line": 116,
+          "line": 140,
           "purpose": "Get the currently active tool"
         },
+        "getActiveToolDecorated": {
+          "line": 152,
+          "purpose": "to the bare binary."
+        },
         "setActiveTool": {
-          "line": 124,
+          "line": 164,
           "params": [
             "toolId"
           ],
           "purpose": "Set the active AI tool"
         },
+        "getToolFlags": {
+          "line": 185,
+          "params": [
+            "toolId"
+          ],
+          "purpose": "are dropped silently so the popover never shows ghost selections."
+        },
+        "setToolFlags": {
+          "line": 206,
+          "params": [
+            "toolId",
+            "flags"
+          ],
+          "purpose": "splice into the command line are the same."
+        },
+        "buildInvocation": {
+          "line": 234,
+          "params": [
+            "toolId"
+          ],
+          "purpose": "we write into the PTY when the user clicks Start."
+        },
+        "composeFlagSuffix": {
+          "line": 254,
+          "params": [
+            "toolId"
+          ],
+          "purpose": "the Start button will actually run."
+        },
         "getConfig": {
-          "line": 143,
-          "purpose": "Get full configuration for renderer"
+          "line": 273,
+          "purpose": "button label / popover state without a second round-trip."
         },
         "addCustomTool": {
-          "line": 153,
+          "line": 283,
           "params": [
             "tool"
           ],
           "purpose": "Add a custom AI tool"
         },
         "removeCustomTool": {
-          "line": 170,
+          "line": 300,
           "params": [
             "toolId"
           ],
           "purpose": "Remove a custom AI tool"
         },
         "isPathLike": {
-          "line": 182,
+          "line": 312,
           "params": [
             "command"
           ]
         },
         "isCommandAvailable": {
-          "line": 196,
+          "line": 326,
           "params": [
             "command",
             "projectPath"
@@ -91,28 +127,31 @@
           "purpose": "shell. Tries the tool's primary command first, then its fallback."
         },
         "setupIPC": {
-          "line": 250,
+          "line": 380,
           "purpose": "Setup IPC handlers"
         },
         "getCommand": {
-          "line": 299,
+          "line": 464,
           "params": [
             "action"
           ],
           "purpose": "Get command for specific action"
         },
         "getStartCommand": {
-          "line": 307,
-          "purpose": "Get the start command for active tool"
+          "line": 474,
+          "purpose": "binary should hit `tool.command` directly."
         }
       },
       "ipc": {
         "listens": [
           "GET_AI_TOOL_CONFIG",
           "SET_AI_TOOL",
-          "CHECK_AI_TOOL_AVAILABLE"
+          "CHECK_AI_TOOL_AVAILABLE",
+          "GET_TOOL_FLAGS",
+          "SET_TOOL_FLAGS"
         ],
         "emits": [
+          "AI_TOOL_CHANGED",
           "AI_TOOL_CHANGED"
         ]
       }
@@ -988,23 +1027,27 @@
         "gitDiffManager",
         "telemetry",
         "specManager",
-        "orchestrationManager"
+        "specAttachments",
+        "orchestrationManager",
+        "autopilot",
+        "supervisorIPC",
+        "workers"
       ],
       "functions": {
         "createWindow": {
-          "line": 41,
+          "line": 50,
           "purpose": "Create main application window"
         },
         "setupAllIPC": {
-          "line": 94,
+          "line": 103,
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 144,
+          "line": 164,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 163,
+          "line": 183,
           "params": [
             "window"
           ],
@@ -1621,6 +1664,12 @@
         "renameSpec",
         "deleteSpec",
         "derivePhase",
+        "reconcilePhase",
+        "readPendingCount",
+        "readUndoneCount",
+        "writeSpecDoc",
+        "addSpecTask",
+        "removeSpecTask",
         "getCommandPrompt",
         "buildSpecCommandFile",
         "parseTasksMarkdown",
@@ -1633,7 +1682,10 @@
         "path",
         "shared/ipcChannels",
         "shared/frameConstants",
-        "tasksManager"
+        "tasksManager",
+        "autopilot",
+        "specAttachments",
+        "autopilot.config"
       ],
       "functions": {
         "getSpecsRoot": {
@@ -1725,8 +1777,24 @@
             "tasksData"
           ]
         },
+        "readPendingCount": {
+          "line": 215,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "reuses collectSpecTasks so the source-prefix rule stays in one place."
+        },
+        "readUndoneCount": {
+          "line": 228,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "double-assignment if a human IS actively in the task."
+        },
         "reconcilePhase": {
-          "line": 212,
+          "line": 236,
           "params": [
             "projectPath",
             "slug",
@@ -1734,14 +1802,14 @@
           ]
         },
         "getDefaultTemplatePath": {
-          "line": 236,
+          "line": 270,
           "params": [
             "aiTool",
             "command"
           ]
         },
         "getOverrideTemplatePath": {
-          "line": 240,
+          "line": 274,
           "params": [
             "projectPath",
             "aiTool",
@@ -1749,7 +1817,7 @@
           ]
         },
         "loadCommandTemplate": {
-          "line": 244,
+          "line": 278,
           "params": [
             "projectPath",
             "aiTool",
@@ -1757,14 +1825,14 @@
           ]
         },
         "interpolate": {
-          "line": 250,
+          "line": 284,
           "params": [
             "template",
             "vars"
           ]
         },
         "getCommandPrompt": {
-          "line": 257,
+          "line": 291,
           "params": [
             "projectPath",
             "slug",
@@ -1773,7 +1841,7 @@
           ]
         },
         "buildSpecCommandFile": {
-          "line": 284,
+          "line": 318,
           "params": [
             "projectPath",
             "slug",
@@ -1782,60 +1850,60 @@
           ]
         },
         "parseTasksMarkdown": {
-          "line": 312,
+          "line": 346,
           "params": [
             "content"
           ]
         },
         "parseFootprintMarkdown": {
-          "line": 338,
+          "line": 372,
           "params": [
             "content"
           ]
         },
         "getSpecFootprint": {
-          "line": 357,
+          "line": 391,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "syncTasksFromMarkdown": {
-          "line": 362,
+          "line": 396,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "arraysEqual": {
-          "line": 442,
+          "line": 476,
           "params": [
             "a",
             "b"
           ]
         },
         "syncAllSpecTasks": {
-          "line": 449,
+          "line": 483,
           "params": [
             "projectPath"
           ]
         },
         "getSpec": {
-          "line": 466,
+          "line": 500,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "createSpec": {
-          "line": 480,
+          "line": 514,
           "params": [
             "projectPath",
             "opts"
           ]
         },
         "updateSpecStatus": {
-          "line": 522,
+          "line": 592,
           "params": [
             "projectPath",
             "slug",
@@ -1843,14 +1911,14 @@
           ]
         },
         "deleteSpec": {
-          "line": 540,
+          "line": 610,
           "params": [
             "projectPath",
             "slug"
           ]
         },
         "renameSpec": {
-          "line": 557,
+          "line": 627,
           "params": [
             "projectPath",
             "oldSlug",
@@ -1859,30 +1927,62 @@
           "purpose": "Returns { success: true, slug, status } on success, { error } on failure."
         },
         "startWatching": {
-          "line": 664,
+          "line": 734,
           "params": [
             "projectPath"
           ],
           "purpose": "across all three platforms — if that ever changes, swap in a poller."
         },
         "stopWatching": {
-          "line": 706
+          "line": 776
         },
         "pushSpecData": {
-          "line": 726,
+          "line": 796,
           "params": [
             "projectPath"
           ]
         },
         "init": {
-          "line": 737,
+          "line": 807,
           "params": [
             "window"
           ],
           "purpose": "─── Init + IPC ────────────────────────────────────────────"
         },
+        "writeSpecDoc": {
+          "line": 815,
+          "params": [
+            "projectPath",
+            "slug",
+            "docType",
+            "content"
+          ]
+        },
+        "_nextTaskId": {
+          "line": 841,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
+        "addSpecTask": {
+          "line": 854,
+          "params": [
+            "projectPath",
+            "slug",
+            "title"
+          ]
+        },
+        "removeSpecTask": {
+          "line": 874,
+          "params": [
+            "projectPath",
+            "slug",
+            "taskId"
+          ]
+        },
         "setupIPC": {
-          "line": 741,
+          "line": 906,
           "params": [
             "ipcMain"
           ]
@@ -1898,7 +1998,10 @@
           "GET_SPEC_PROMPT",
           "BUILD_SPEC_COMMAND_FILE",
           "WATCH_SPECS",
-          "UNWATCH_SPECS"
+          "UNWATCH_SPECS",
+          "WRITE_SPEC_DOC",
+          "ADD_SPEC_TASK",
+          "REMOVE_SPEC_TASK"
         ],
         "emits": [
           "TASKS_DATA",
@@ -2358,41 +2461,70 @@
       ],
       "functions": {
         "init": {
-          "line": 16,
+          "line": 18,
           "params": [
             "onToolChange"
           ],
           "purpose": "Initialize the AI tool selector"
         },
         "setupSelector": {
-          "line": 41,
+          "line": 47,
           "purpose": "Setup the selector dropdown"
         },
         "updateUI": {
-          "line": 73,
+          "line": 78,
           "purpose": "Update UI to reflect current tool"
         },
         "getCurrentTool": {
-          "line": 98,
+          "line": 95,
           "purpose": "Get the current active tool"
         },
         "getAvailableTools": {
-          "line": 105,
+          "line": 102,
           "purpose": "Get all available AI tools (keyed by id)."
         },
         "getStartCommand": {
-          "line": 112,
-          "purpose": "Get the start command for current tool"
+          "line": 111,
+          "purpose": "binary if flags aren't resolved yet."
+        },
+        "isOptionsPopoverOpen": {
+          "line": 118
+        },
+        "setupOptionsPopover": {
+          "line": 123
+        },
+        "openOptionsPopover": {
+          "line": 171
+        },
+        "closeOptionsPopover": {
+          "line": 185
+        },
+        "renderOptionsPopover": {
+          "line": 199,
+          "purpose": "changed between opens."
+        },
+        "commitOptionsFromUI": {
+          "line": 238
+        },
+        "updatePreviewFromUI": {
+          "line": 266,
+          "purpose": "version still comes from setToolFlags on commit."
+        },
+        "updatePreview": {
+          "line": 286,
+          "params": [
+            "fullCommand"
+          ]
         },
         "getCommand": {
-          "line": 119,
+          "line": 294,
           "params": [
             "action"
           ],
           "purpose": "Get a specific command for current tool"
         },
         "supportsFeature": {
-          "line": 127,
+          "line": 302,
           "params": [
             "feature"
           ],
@@ -3290,6 +3422,8 @@
         "projectStatusBadges",
         "agentPanel",
         "orchestrator",
+        "supervisorClient",
+        "escalationModal",
         "editor",
         "sidebarResize",
         "aiToolSelector",
@@ -3306,30 +3440,30 @@
       ],
       "functions": {
         "init": {
-          "line": 46,
+          "line": 48,
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 225,
+          "line": 233,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 308,
+          "line": 316,
           "purpose": "and close on outside click / Escape."
         },
         "setupUpdateDot": {
-          "line": 397,
+          "line": 405,
           "purpose": "→ About → \"Dismiss this version\"). Both click open Settings → About."
         },
         "revealSidebarTab": {
-          "line": 428,
+          "line": 436,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 454,
+          "line": 462,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -3360,8 +3494,11 @@
         "laneStatus",
         "laneRail",
         "lucide",
+        "autopilotToggle",
+        "autopilotClient",
         "orchestrator",
-        "openProjectModal"
+        "openProjectModal",
+        "crossProjectBoard"
       ],
       "functions": {
         "statusLabel": {
@@ -3405,6 +3542,10 @@
           "params": [
             "ts"
           ]
+        },
+        "_openCrossProjectBoard": {
+          "line": 542,
+          "purpose": "Reuses the rendering in src/renderer/crossProjectBoard.js."
         }
       },
       "ipc": {
@@ -4314,7 +4455,8 @@
         "startWatchingForProject",
         "stopWatching",
         "showNewSpecPrompt",
-        "showRenameModal"
+        "showRenameModal",
+        "blobToBase64"
       ],
       "depends": [
         "electron",
@@ -4457,48 +4599,58 @@
           "line": 535,
           "purpose": "`window.prompt` is blocked in Electron's renderer."
         },
+        "makeStagingId": {
+          "line": 779,
+          "purpose": "the renderer; we strip the hyphens so it stays under 64 chars."
+        },
+        "blobToBase64": {
+          "line": 787,
+          "params": [
+            "blob"
+          ]
+        },
         "deriveSlugPreview": {
-          "line": 637,
+          "line": 802,
           "params": [
             "title"
           ],
           "purpose": "can preview without a roundtrip. Keep in sync if the canonical changes."
         },
         "showSuggestionModal": {
-          "line": 655,
+          "line": 820,
           "params": [
             "projectPath"
           ],
           "purpose": "them turn it on or skip. Maximum friction: a one-time, dismissable modal."
         },
         "showRenameModal": {
-          "line": 722,
+          "line": 887,
           "params": [
             "status"
           ],
           "purpose": "status.json — all atomic from the user's perspective."
         },
         "showInlineError": {
-          "line": 815,
+          "line": 980,
           "params": [
             "message"
           ]
         },
         "renderMarkdown": {
-          "line": 835,
+          "line": 1000,
           "params": [
             "md"
           ],
           "purpose": "─── Helpers ────────────────────────────────────────"
         },
         "escapeHtml": {
-          "line": 845,
+          "line": 1010,
           "params": [
             "s"
           ]
         },
         "relativeTime": {
-          "line": 855,
+          "line": 1020,
           "params": [
             "iso"
           ]
@@ -6580,82 +6732,112 @@
         "state",
         "sectionRail",
         "lucide",
+        "autopilotClient",
+        "autopilotPill",
+        "autopilotToggle",
+        "memoryTab",
         "agentDispatch",
-        "specsDashboard"
+        "supervisorClient",
+        "specsDashboard",
+        "path"
       ],
       "functions": {
         "setHost": {
-          "line": 31,
+          "line": 35,
           "params": [
             "h"
           ],
           "purpose": "─── Public API ─────────────────────────────────────"
         },
         "open": {
-          "line": 36,
+          "line": 40,
           "params": [
             "slug"
           ]
         },
         "openInNewTab": {
-          "line": 42,
+          "line": 46,
           "params": [
             "slug"
           ]
         },
         "createViewport": {
-          "line": 48
+          "line": 52
         },
         "nextActionForPhase": {
-          "line": 331,
+          "line": 894,
           "params": [
             "phase"
           ],
           "purpose": "─── Pure helpers ───────────────────────────────────"
         },
+        "_shouldShowPreArmCheckbox": {
+          "line": 910,
+          "params": [
+            "phase"
+          ]
+        },
         "renderNextActionBar": {
-          "line": 347,
+          "line": 917,
           "params": [
             "action",
-            "lane"
+            "lane",
+            "autopilotToggleHtml = ''",
+            "showPreArm = false",
+            "preArmChecked = false"
           ]
         },
         "stepIndexForPhase": {
-          "line": 383,
+          "line": 968,
           "params": [
             "phase"
           ]
         },
         "renderStepper": {
-          "line": 395,
+          "line": 980,
           "params": [
             "phase"
           ]
         },
         "renderSpecTaskRow": {
-          "line": 412,
+          "line": 997,
           "params": [
             "task"
           ]
         },
         "handleTaskAction": {
-          "line": 461,
+          "line": 1050,
           "params": [
             "taskId",
             "action"
           ]
         },
         "renderMarkdown": {
-          "line": 470,
+          "line": 1059,
           "params": [
             "md"
           ]
         },
         "escapeHtml": {
-          "line": 478,
+          "line": 1067,
           "params": [
             "s"
           ]
+        },
+        "buildMarkdownRef": {
+          "line": 1075,
+          "params": [
+            "displayName",
+            "relativePath"
+          ],
+          "purpose": "createViewport mirrors this verbatim."
+        },
+        "renderAttachmentsChip": {
+          "line": 1082,
+          "params": [
+            "list"
+          ],
+          "purpose": "header stays clean for specs without any uploads."
         }
       },
       "ipc": {
@@ -6664,6 +6846,9 @@
           "SPEC_DATA"
         ],
         "emits": [
+          "LOAD_TASKS",
+          "LOAD_TASKS",
+          "LOAD_TASKS",
           "LOAD_TASKS",
           "UPDATE_TASK"
         ]
@@ -6736,18 +6921,21 @@
         "shared/ipcChannels",
         "laneStatus",
         "state",
-        "aiToolSelector"
+        "main/workers",
+        "shared/workerTypes",
+        "aiToolSelector",
+        "autopilotClient"
       ],
       "functions": {
         "init": {
-          "line": 32,
+          "line": 39,
           "params": [
             "ui"
           ],
           "purpose": "Initialize with the MultiTerminalUI instance."
         },
         "dispatch": {
-          "line": 70,
+          "line": 77,
           "params": [
             "{ terminalId = null",
             "createNew = false",
@@ -6759,11 +6947,11 @@
           "purpose": "running (default: current tool)"
         },
         "startDefaultAgent": {
-          "line": 173,
+          "line": 174,
           "purpose": "- Anywhere else (Home / any other tab) it always opens a new Frame."
         },
         "_startAgentIn": {
-          "line": 208,
+          "line": 209,
           "params": [
             "terminalId",
             "{ fresh = false } = {}"
@@ -6771,10 +6959,10 @@
           "purpose": "spawned shell a beat to accept input before the command is typed."
         },
         "_startAgentInNewFrame": {
-          "line": 218
+          "line": 219
         },
         "_askNewOrRestart": {
-          "line": 236,
+          "line": 237,
           "params": [
             "frameName",
             "hasAgent"
@@ -6782,7 +6970,7 @@
           "purpose": "safe default (never silently kills running work)."
         },
         "dispatchSpecCommand": {
-          "line": 293,
+          "line": 294,
           "params": [
             "{ slug",
             "title = null",
@@ -6790,79 +6978,79 @@
           ]
         },
         "getSpecLaneInfo": {
-          "line": 357,
+          "line": 364,
           "params": [
             "slug"
           ],
           "purpose": "states fail open on purpose."
         },
         "getTaskLaneInfo": {
-          "line": 376,
+          "line": 383,
           "params": [
             "taskId"
           ],
           "purpose": "requires a live agent process."
         },
         "specStatusDotHtml": {
-          "line": 397,
+          "line": 404,
           "params": [
             "slug"
           ],
           "purpose": "Presentation helpers kept here so all surfaces share one mapping."
         },
         "taskStatusDotHtml": {
-          "line": 401,
+          "line": 408,
           "params": [
             "taskId"
           ]
         },
         "_activityDotHtml": {
-          "line": 405,
+          "line": 412,
           "params": [
             "info"
           ]
         },
         "onSpecLaneActivity": {
-          "line": 422,
+          "line": 429,
           "params": [
             "callback"
           ],
           "purpose": "Returns an unsubscribe function."
         },
         "_notifySpecLane": {
-          "line": 430,
+          "line": 437,
           "params": [
             "slug"
           ]
         },
         "onTaskLaneActivity": {
-          "line": 450,
+          "line": 457,
           "params": [
             "callback"
           ],
           "purpose": "Returns an unsubscribe function."
         },
         "_notifyTaskLane": {
-          "line": 458,
+          "line": 465,
           "params": [
             "taskId"
           ]
         },
         "_assignedLane": {
-          "line": 476,
+          "line": 483,
           "params": [
             "slug"
           ],
           "purpose": "lane means the spec is unassigned again."
         },
         "_laneName": {
-          "line": 486,
+          "line": 493,
           "params": [
             "terminalId"
           ]
         },
         "_askContinueOrNew": {
-          "line": 495,
+          "line": 502,
           "params": [
             "frameName",
             "specName"
@@ -6870,20 +7058,27 @@
           "purpose": "Resolves 'continue' | 'new' | 'cancel'; continue is the default action."
         },
         "_escapeHtml": {
-          "line": 527,
+          "line": 534,
           "params": [
             "s"
           ]
         },
+        "_buildExec": {
+          "line": 555,
+          "params": [
+            "{ enter }"
+          ],
+          "purpose": "several spawns doesn't keep yanking the viewport."
+        },
         "_waitForAgentReady": {
-          "line": 546,
+          "line": 595,
           "params": [
             "terminalId"
           ],
           "purpose": "the prompt to a y/n chooser, so those lanes time out instead."
         },
         "_fail": {
-          "line": 581,
+          "line": 630,
           "params": [
             "terminalId",
             "message"
@@ -6891,7 +7086,7 @@
           "purpose": "for what is presentation-only."
         },
         "_showToast": {
-          "line": 586,
+          "line": 635,
           "params": [
             "message",
             "type = 'info'"
@@ -6971,19 +7166,54 @@
       "description": "Projects Section",
       "exports": [
         "init",
-        "focusList"
+        "focusList",
+        "openProfile",
+        "openMemory",
+        "switchTab",
+        "TAB_PROFILE",
+        "TAB_MEMORY"
       ],
       "depends": [
         "openProjectModal",
-        "projectListUI"
+        "projectListUI",
+        "profilePanel",
+        "memoryTab",
+        "state"
       ],
       "functions": {
         "focusList": {
-          "line": 19,
-          "purpose": "command."
+          "line": 41,
+          "purpose": "command — switches to the Workspace tab first so the list is visible."
+        },
+        "openProfile": {
+          "line": 47
+        },
+        "openMemory": {
+          "line": 51
+        },
+        "switchTab": {
+          "line": 55,
+          "params": [
+            "tab"
+          ]
+        },
+        "_ensureProfileMounted": {
+          "line": 75
+        },
+        "_ensureMemoryMounted": {
+          "line": 95
+        },
+        "_buildTabStrip": {
+          "line": 112
+        },
+        "_buildProfileTabContainer": {
+          "line": 135
+        },
+        "_buildMemoryTabContainer": {
+          "line": 146
         },
         "init": {
-          "line": 23
+          "line": 157
         }
       }
     },
@@ -7160,6 +7390,8 @@
         "removeWorker",
         "getState",
         "rehydrate",
+        "findFootprintConflictAmong",
+        "footprintsOverlap",
         "envForLane",
         "publishState",
         "drainBus",
@@ -7230,8 +7462,17 @@
             "fb"
           ]
         },
+        "findFootprintConflictAmong": {
+          "line": 119,
+          "params": [
+            "slug",
+            "footprint",
+            "candidates"
+          ],
+          "purpose": "orchestration session."
+        },
         "findFootprintConflict": {
-          "line": 117,
+          "line": 130,
           "params": [
             "slug",
             "footprint"
@@ -7239,7 +7480,7 @@
           "purpose": "workers don't block (their work is already integrated or abandoned)."
         },
         "buildWorkerPrompt": {
-          "line": 129,
+          "line": 142,
           "params": [
             "projectPath",
             "slug"
@@ -7247,50 +7488,50 @@
           "purpose": "from inside the worktree."
         },
         "relayToConductor": {
-          "line": 151,
+          "line": 164,
           "params": [
             "text"
           ]
         },
         "drainRelayQueue": {
-          "line": 157
+          "line": 170
         },
         "materializeBinScripts": {
-          "line": 175,
+          "line": 188,
           "params": [
             "projectPath"
           ],
           "purpose": "Materialize the .frame/bin command scripts for this project."
         },
         "serializeState": {
-          "line": 187,
+          "line": 200,
           "purpose": "─── state publish ────────────────────────────────────────"
         },
         "publishState": {
-          "line": 210
+          "line": 223
         },
         "startBusWatcher": {
-          "line": 228,
+          "line": 241,
           "purpose": "─── bus watcher ──────────────────────────────────────────"
         },
         "drainBus": {
-          "line": 241
+          "line": 254
         },
         "handleRequest": {
-          "line": 265,
+          "line": 278,
           "params": [
             "req"
           ]
         },
         "handleDispatch": {
-          "line": 285,
+          "line": 298,
           "params": [
             "slug"
           ],
           "purpose": "T10 (worktree + worker spawn) + T13 (conflict guard). Cap check is T24."
         },
         "registerWorkerLane": {
-          "line": 353,
+          "line": 366,
           "params": [
             "slug",
             "terminalId"
@@ -7298,14 +7539,14 @@
           "purpose": "manager can track status, relay, and tear it down."
         },
         "handleReportDone": {
-          "line": 365,
+          "line": 378,
           "params": [
             "slug"
           ],
           "purpose": "the conductor with the merge command."
         },
         "handleMerge": {
-          "line": 382,
+          "line": 395,
           "params": [
             "slug",
             "args = []"
@@ -7313,7 +7554,7 @@
           "purpose": "reminder; the conductor performs the actual reconcile per CONDUCTOR.md)."
         },
         "mergeWorker": {
-          "line": 421,
+          "line": 434,
           "params": [
             "slug",
             "force = false"
@@ -7321,45 +7562,45 @@
           "purpose": "Per-worker merge trigger from the board UI (mirrors a conductor merge.js call)."
         },
         "removeWorker": {
-          "line": 427,
+          "line": 440,
           "params": [
             "slug"
           ],
           "purpose": "prune the work branch ONLY if merged (un-merged work is kept — no data loss)."
         },
         "pollStatuses": {
-          "line": 451,
+          "line": 464,
           "purpose": "additionally overlays its richer laneStatus (processing/waiting) per lane."
         },
         "startOrchestration": {
-          "line": 491,
+          "line": 504,
           "params": [
             "args = {}"
           ],
           "purpose": "─── session lifecycle ────────────────────────────────────"
         },
         "stopOrchestration": {
-          "line": 540,
+          "line": 553,
           "purpose": "work branches (un-merged work is kept on its branch), leave main untouched."
         },
         "rehydrate": {
-          "line": 575,
+          "line": 588,
           "params": [
             "projectPath"
           ],
           "purpose": "board/status reflect prior work. Statuses come from git: merged ⇒ done."
         },
         "assignSpecs": {
-          "line": 611,
+          "line": 624,
           "params": [
             "slugs"
           ]
         },
         "getState": {
-          "line": 618
+          "line": 631
         },
         "setupIPC": {
-          "line": 624,
+          "line": 637,
           "params": [
             "ipcMain"
           ],
@@ -7528,6 +7769,2490 @@
         "emits": [
           "ORCH_WORKER_LANE"
         ]
+      }
+    },
+    "__tests__/autopilot.test": {
+      "file": "src/__tests__/autopilot.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "main/autopilot.config",
+        "main/specManager",
+        "main/orchestrationManager",
+        "main/autopilot.signals",
+        "main/autopilot"
+      ],
+      "functions": {
+        "mkProject": {
+          "line": 11
+        },
+        "writeJSON": {
+          "line": 17,
+          "params": [
+            "p",
+            "obj"
+          ]
+        }
+      }
+    },
+    "main/autopilot.config": {
+      "file": "src/main/autopilot.config.js",
+      "description": "Autopilot config",
+      "exports": [
+        "DEFAULTS",
+        "readJSONSafe",
+        "readCaps",
+        "readAutoOnTasks",
+        "writeAutoOnTasks"
+      ],
+      "depends": [
+        "fs",
+        "path"
+      ],
+      "functions": {
+        "readJSONSafe": {
+          "line": 25,
+          "params": [
+            "filePath"
+          ]
+        },
+        "readCaps": {
+          "line": 39,
+          "params": [
+            "{ projectPath",
+            "slug",
+            "globalCaps } = {}"
+          ]
+        },
+        "_specAutopilotPath": {
+          "line": 64,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "about the rest of the caps blob."
+        },
+        "readAutoOnTasks": {
+          "line": 68,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
+        "writeAutoOnTasks": {
+          "line": 74,
+          "params": [
+            "projectPath",
+            "slug",
+            "value"
+          ]
+        }
+      }
+    },
+    "main/autopilot": {
+      "file": "src/main/autopilot.js",
+      "description": "Autopilot runner",
+      "exports": [
+        "init",
+        "setupIPC",
+        "startAutopilot",
+        "stopAutopilot",
+        "emitArmRequest",
+        "getAutopilotState",
+        "setStateListener",
+        "clearAutopilotState",
+        "readAuditEvents",
+        "_runSpecLoop",
+        "_runProjectLoop",
+        "_buildDiagnosticAppendix",
+        "_appendDiagnosticToPromptFile",
+        "_appendAuditEvent",
+        "_defaultDeps"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "shared/ipcChannels",
+        "autopilot.config",
+        "autopilot.signals",
+        "specManager",
+        "ptyManager",
+        "orchestrationManager"
+      ],
+      "functions": {
+        "_emit": {
+          "line": 40
+        },
+        "setStateListener": {
+          "line": 48,
+          "params": [
+            "fn"
+          ]
+        },
+        "_runsFor": {
+          "line": 52,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "_findRun": {
+          "line": 57,
+          "params": [
+            "projectPath",
+            "runId"
+          ]
+        },
+        "_serializeRun": {
+          "line": 61,
+          "params": [
+            "r"
+          ]
+        },
+        "getAutopilotState": {
+          "line": 79
+        },
+        "_buildDiagnosticAppendix": {
+          "line": 91,
+          "params": [
+            "run"
+          ]
+        },
+        "_appendDiagnosticToPromptFile": {
+          "line": 102,
+          "params": [
+            "absPromptPath",
+            "text"
+          ]
+        },
+        "_appendAuditEvent": {
+          "line": 116,
+          "params": [
+            "projectPath",
+            "slug",
+            "event"
+          ],
+          "purpose": "terminal buffers. Best-effort — failures are logged, never thrown."
+        },
+        "_defaultDeps": {
+          "line": 134,
+          "purpose": "Real deps wire to ptyManager + specManager. Tests inject fakes."
+        },
+        "_executeTurn": {
+          "line": 180,
+          "params": [
+            "run",
+            "deps"
+          ],
+          "purpose": "'escalate' based on `run.consecutiveNoProgress` vs caps.max_turns_per_task."
+        },
+        "_runSpecLoop": {
+          "line": 254,
+          "params": [
+            "run",
+            "deps"
+          ],
+          "purpose": "─── Core: _runSpecLoop ────────────────────────────────────"
+        },
+        "_projectLoopSleep": {
+          "line": 348,
+          "params": [
+            "ms"
+          ]
+        },
+        "_activeSpecRunsFor": {
+          "line": 353,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "In-memory snapshot of the project's currently-running spec sub-runs."
+        },
+        "_runProjectLoop": {
+          "line": 358,
+          "params": [
+            "run",
+            "deps"
+          ]
+        },
+        "startAutopilot": {
+          "line": 468,
+          "params": [
+            "{ projectPath",
+            "scope = 'spec'",
+            "slug",
+            "caps: capsOverride",
+            "terminalId",
+            "terminalAssignments",
+            "globalCaps",
+            "deps } = {}"
+          ],
+          "purpose": "─── Public API ────────────────────────────────────────────"
+        },
+        "stopAutopilot": {
+          "line": 529,
+          "params": [
+            "{ projectPath",
+            "runId } = {}"
+          ]
+        },
+        "emitArmRequest": {
+          "line": 554,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "surfaces *why* a run started without a click."
+        },
+        "clearAutopilotState": {
+          "line": 569
+        },
+        "readAuditEvents": {
+          "line": 574,
+          "params": [
+            "projectPath",
+            "slug",
+            "{ limit = 200 } = {}"
+          ]
+        },
+        "init": {
+          "line": 594,
+          "params": [
+            "window"
+          ]
+        },
+        "setupIPC": {
+          "line": 603,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "AUTOPILOT_START",
+          "AUTOPILOT_STOP",
+          "AUTOPILOT_GET",
+          "AUTOPILOT_AUDIT",
+          "SET_AUTO_ON_TASKS",
+          "GET_AUTO_ON_TASKS"
+        ],
+        "emits": [
+          "AUTOPILOT_ARM_REQUEST",
+          "AUTOPILOT_STATE"
+        ]
+      }
+    },
+    "main/autopilot.signals": {
+      "file": "src/main/autopilot.signals.js",
+      "description": "Autopilot signals",
+      "exports": [
+        "tasksJSONMtime",
+        "waitForLaneIdle",
+        "DEFAULT_IDLE_MS",
+        "DEFAULT_POLL_MS",
+        "DEFAULT_TIMEOUT_MS"
+      ],
+      "depends": [
+        "fs",
+        "path"
+      ],
+      "functions": {
+        "tasksJSONMtime": {
+          "line": 23,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "sleep": {
+          "line": 33,
+          "params": [
+            "ms"
+          ]
+        },
+        "waitForLaneIdle": {
+          "line": 48,
+          "params": [
+            "{\n  getLastOutputAt",
+            "now = Date.now",
+            "idleMs = DEFAULT_IDLE_MS",
+            "pollMs = DEFAULT_POLL_MS",
+            "timeoutMs = DEFAULT_TIMEOUT_MS",
+            "sleepFn = sleep",
+            "} = {}"
+          ],
+          "purpose": "grace the orchestrator gives quiet processes)."
+        }
+      }
+    },
+    "renderer/autopilotClient": {
+      "file": "src/renderer/autopilotClient.js",
+      "description": "Autopilot client (renderer-side state cache + IPC adapter)",
+      "exports": [
+        "getState",
+        "getRunFor",
+        "onChange",
+        "start",
+        "stop",
+        "setAutoOnTasks",
+        "getAutoOnTasks",
+        "consumeArmIfPending",
+        "isArmPending"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "agentDispatch"
+      ],
+      "functions": {
+        "_emit": {
+          "line": 24
+        },
+        "_tryArmRun": {
+          "line": 30,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
+        "consumeArmIfPending": {
+          "line": 51,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "with no lane to satisfy it), fire startAutopilot now."
+        },
+        "isArmPending": {
+          "line": 57,
+          "params": [
+            "slug"
+          ]
+        },
+        "_ensureSubscribed": {
+          "line": 61
+        },
+        "getState": {
+          "line": 81
+        },
+        "getRunFor": {
+          "line": 83,
+          "params": [
+            "{ projectPath",
+            "slug",
+            "scope = 'spec' } = {}"
+          ]
+        },
+        "onChange": {
+          "line": 94,
+          "params": [
+            "cb"
+          ]
+        },
+        "start": {
+          "line": 100,
+          "params": [
+            "args"
+          ]
+        },
+        "stop": {
+          "line": 109,
+          "params": [
+            "args"
+          ]
+        },
+        "setAutoOnTasks": {
+          "line": 117,
+          "params": [
+            "{ projectPath",
+            "slug",
+            "value }"
+          ]
+        },
+        "getAutoOnTasks": {
+          "line": 125,
+          "params": [
+            "{ projectPath",
+            "slug }"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "AUTOPILOT_STATE",
+          "AUTOPILOT_ARM_REQUEST"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/autopilotPill": {
+      "file": "src/renderer/autopilotPill.js",
+      "description": "Autopilot pill",
+      "exports": [
+        "renderAutopilotPill"
+      ],
+      "depends": [],
+      "functions": {
+        "escapeHtml": {
+          "line": 17,
+          "params": [
+            "s"
+          ],
+          "purpose": "lives in autopilotClient.js / supervisorClient.js."
+        },
+        "_verdictBadge": {
+          "line": 26,
+          "params": [
+            "verdict"
+          ]
+        },
+        "renderAutopilotPill": {
+          "line": 41,
+          "params": [
+            "run",
+            "totals = null",
+            "verdict = null"
+          ]
+        }
+      }
+    },
+    "renderer/autopilotToggle": {
+      "file": "src/renderer/autopilotToggle.js",
+      "description": "Autopilot toggle button",
+      "exports": [
+        "renderAutopilotToggle",
+        "renderProjectAutopilotToggle"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels",
+        "autopilotClient",
+        "agentDispatch"
+      ],
+      "functions": {
+        "escapeHtml": {
+          "line": 16,
+          "params": [
+            "s"
+          ]
+        },
+        "_isActive": {
+          "line": 25,
+          "params": [
+            "run"
+          ]
+        },
+        "renderAutopilotToggle": {
+          "line": 29,
+          "params": [
+            "{ projectPath",
+            "slug",
+            "scope = 'spec'",
+            "getTerminalId",
+            "surface = 'inline' }"
+          ]
+        },
+        "renderProjectAutopilotToggle": {
+          "line": 74,
+          "params": [
+            "{ projectPath }"
+          ],
+          "purpose": "an attached lane get skipped by the main-process project loop."
+        }
+      }
+    },
+    "__tests__/autopilot.intent.test": {
+      "file": "src/__tests__/autopilot.intent.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "main/autopilot.config"
+      ],
+      "functions": {
+        "mkProject": {
+          "line": 7
+        }
+      }
+    },
+    "__tests__/capabilitiesRegistry.test": {
+      "file": "src/__tests__/capabilitiesRegistry.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "main/capabilities/types",
+        "main/capabilities/registry"
+      ],
+      "functions": {
+        "_mkTmpProject": {
+          "line": 61
+        },
+        "_readAuditLines": {
+          "line": 65,
+          "params": [
+            "projectPath"
+          ]
+        }
+      }
+    },
+    "__tests__/crossProjectGuard.test": {
+      "file": "src/__tests__/crossProjectGuard.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "main/crossProjectGuard"
+      ],
+      "functions": {}
+    },
+    "__tests__/knowledgeSearch.test": {
+      "file": "src/__tests__/knowledgeSearch.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "main/capabilities/knowledgeSearch"
+      ],
+      "functions": {}
+    },
+    "__tests__/memory.test": {
+      "file": "src/__tests__/memory.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "main/memory"
+      ],
+      "functions": {
+        "tmpRoot": {
+          "line": 6
+        },
+        "backendFor": {
+          "line": 10,
+          "params": [
+            "projectId = 'proj'"
+          ]
+        }
+      }
+    },
+    "__tests__/memoryMirror.test": {
+      "file": "src/__tests__/memoryMirror.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "main/memoryMirror",
+        "main/memory"
+      ],
+      "functions": {
+        "tmpProject": {
+          "line": 7
+        }
+      }
+    },
+    "__tests__/profile.test": {
+      "file": "src/__tests__/profile.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "main/profile"
+      ],
+      "functions": {
+        "tmpProject": {
+          "line": 6
+        }
+      }
+    },
+    "__tests__/specReader.test": {
+      "file": "src/__tests__/specReader.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "main/capabilities/specReader"
+      ],
+      "functions": {
+        "tmpProject": {
+          "line": 6
+        }
+      }
+    },
+    "__tests__/supervisorClassifier.test": {
+      "file": "src/__tests__/supervisorClassifier.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "main/supervisorClassifier",
+        "main/supervisorClaudeRunner"
+      ],
+      "functions": {}
+    },
+    "__tests__/supervisorCritic.test": {
+      "file": "src/__tests__/supervisorCritic.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "main/supervisorCritic",
+        "main/supervisorClaudeRunner"
+      ],
+      "functions": {}
+    },
+    "__tests__/supervisorLoop.test": {
+      "file": "src/__tests__/supervisorLoop.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "main/supervisorLoop",
+        "main/supervisorClaudeRunner"
+      ],
+      "functions": {
+        "tmpProject": {
+          "line": 7
+        },
+        "makeExecutors": {
+          "line": 17,
+          "params": [
+            "initial"
+          ]
+        }
+      }
+    },
+    "__tests__/supervisorPolicy.test": {
+      "file": "src/__tests__/supervisorPolicy.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "main/supervisorPolicy"
+      ],
+      "functions": {}
+    },
+    "__tests__/uiAdapter.test": {
+      "file": "src/__tests__/uiAdapter.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "main/adapters/uiAdapter"
+      ],
+      "functions": {
+        "tmpProject": {
+          "line": 6
+        }
+      }
+    },
+    "__tests__/workers.test": {
+      "file": "src/__tests__/workers.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "main/workers/types",
+        "main/workers/registry",
+        "shared/workerTypes",
+        "main/workers/_eventQueue",
+        "main/workers/fakeWorker",
+        "main/workers/claudeCodeWorker",
+        "main/workers/codexWorker",
+        "main/workers/geminiWorker",
+        "main/workers"
+      ],
+      "functions": {}
+    },
+    "main/adapters/registry": {
+      "file": "src/main/adapters/registry.js",
+      "description": "Adapter registry — picks the right escalation channel per role.",
+      "exports": [
+        "buildAdapters",
+        "routeAdapter"
+      ],
+      "depends": [
+        "uiAdapter",
+        "slackAdapter",
+        "emailAdapter"
+      ],
+      "functions": {
+        "buildAdapters": {
+          "line": 17,
+          "params": [
+            "profile",
+            "hooks = {}"
+          ]
+        },
+        "routeAdapter": {
+          "line": 29,
+          "params": [
+            "adapters",
+            "escalation",
+            "profile"
+          ]
+        }
+      }
+    },
+    "main/adapters/types": {
+      "file": "src/main/adapters/types.js",
+      "description": "Escalation adapter base class.",
+      "exports": [
+        "EscalationAdapter"
+      ],
+      "depends": [],
+      "functions": {}
+    },
+    "main/adapters/uiAdapter": {
+      "file": "src/main/adapters/uiAdapter.js",
+      "description": "UI escalation adapter — writes the escalation to disk, emits an IPC",
+      "exports": [
+        "UIAdapter"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "types"
+      ],
+      "functions": {}
+    },
+    "main/capabilities/index": {
+      "file": "src/main/capabilities/index.js",
+      "description": "Capabilities bootstrap — registers built-in capabilities by name.",
+      "exports": [],
+      "depends": [
+        "registry",
+        "specReader",
+        "knowledgeSearch",
+        "webResearch"
+      ],
+      "functions": {}
+    },
+    "main/capabilities/knowledgeSearch": {
+      "file": "src/main/capabilities/knowledgeSearch.js",
+      "description": "KnowledgeSearch capability — backed by BasicMemoryBackend.",
+      "exports": [
+        "KnowledgeSearch"
+      ],
+      "depends": [
+        "types"
+      ],
+      "functions": {}
+    },
+    "main/capabilities/registry": {
+      "file": "src/main/capabilities/registry.js",
+      "description": "Capability registry — built per project profile.",
+      "exports": [
+        "buildRegistry",
+        "runAll",
+        "register",
+        "listRegistered",
+        "_resetForTests",
+        "AUDIT_RELATIVE_PATH"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "types"
+      ],
+      "functions": {
+        "buildRegistry": {
+          "line": 30,
+          "params": [
+            "profile",
+            "deps"
+          ]
+        },
+        "runAll": {
+          "line": 55,
+          "params": [
+            "registry",
+            "question",
+            "ctx",
+            "profile"
+          ],
+          "purpose": "path can be resolved from `ctx.projectPath` or the capability instance."
+        },
+        "_resolveProjectPath": {
+          "line": 91,
+          "params": [
+            "ctx",
+            "capsEntries"
+          ]
+        },
+        "_writeAudit": {
+          "line": 103,
+          "params": [
+            "projectPath",
+            "record"
+          ]
+        },
+        "_withTimeout": {
+          "line": 114,
+          "params": [
+            "promise",
+            "ms",
+            "label"
+          ]
+        },
+        "register": {
+          "line": 127,
+          "params": [
+            "name",
+            "Ctor"
+          ]
+        },
+        "listRegistered": {
+          "line": 133
+        },
+        "_resetForTests": {
+          "line": 135
+        }
+      }
+    },
+    "main/capabilities/specReader": {
+      "file": "src/main/capabilities/specReader.js",
+      "description": "SpecReader capability — keyword-scores paragraphs from the project",
+      "exports": [
+        "SpecReader"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "types",
+        "memory"
+      ],
+      "functions": {}
+    },
+    "main/capabilities/types": {
+      "file": "src/main/capabilities/types.js",
+      "description": "Capability base class.",
+      "exports": [
+        "Capability"
+      ],
+      "depends": [],
+      "functions": {}
+    },
+    "main/capabilities/webResearch": {
+      "file": "src/main/capabilities/webResearch.js",
+      "description": "WebResearch capability — v1 stub.",
+      "exports": [
+        "WebResearch"
+      ],
+      "depends": [
+        "types"
+      ],
+      "functions": {}
+    },
+    "main/crossProjectGuard": {
+      "file": "src/main/crossProjectGuard.js",
+      "description": "Cross-project footprint conflict detector.",
+      "exports": [
+        "findConflicts",
+        "parseFootprintBlock",
+        "readFootprint"
+      ],
+      "depends": [
+        "fs",
+        "path"
+      ],
+      "functions": {
+        "readFootprint": {
+          "line": 14,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
+        "parseFootprintBlock": {
+          "line": 22,
+          "params": [
+            "planMd"
+          ]
+        },
+        "findConflicts": {
+          "line": 41,
+          "params": [
+            "specs"
+          ],
+          "purpose": "`footprint` may be omitted to force a disk read."
+        },
+        "_overlap": {
+          "line": 64,
+          "params": [
+            "a",
+            "b"
+          ]
+        },
+        "_normalise": {
+          "line": 73,
+          "params": [
+            "p"
+          ]
+        }
+      }
+    },
+    "main/memory": {
+      "file": "src/main/memory.js",
+      "description": "Basic Memory backend — Node port of the supervisor's `BasicMemoryBackend`",
+      "exports": [
+        "BasicMemoryBackend",
+        "CATEGORIES",
+        "RULES_SCORE_MULTIPLIER",
+        "LEGACY_HASH_PREFIX",
+        "defaultRootDir",
+        "resolveProjectId",
+        "legacyHashNameFor",
+        "bridgeLegacyHashDir",
+        "parseFrontmatter",
+        "serialiseFrontmatter",
+        "safeFilename"
+      ],
+      "depends": [
+        "crypto",
+        "fs",
+        "os",
+        "path"
+      ],
+      "functions": {
+        "defaultRootDir": {
+          "line": 45
+        },
+        "_legacyHashOf": {
+          "line": 66,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "Same format as the legacy `frame-mirror-project-XXXX` dirs."
+        },
+        "legacyHashNameFor": {
+          "line": 75,
+          "params": [
+            "projectPath"
+          ]
+        },
+        "resolveProjectId": {
+          "line": 79,
+          "params": [
+            "projectPath",
+            "{ rootDir } = {}"
+          ]
+        },
+        "bridgeLegacyHashDir": {
+          "line": 139,
+          "params": [
+            "{ rootDir",
+            "hashName",
+            "namedId }"
+          ],
+          "purpose": "Returns `{ action: 'noop' | 'bridged' | 'collision' | 'missing', reason? }`."
+        },
+        "tokenize": {
+          "line": 181,
+          "params": [
+            "text"
+          ]
+        },
+        "parseFrontmatter": {
+          "line": 189,
+          "params": [
+            "raw"
+          ]
+        },
+        "serialiseFrontmatter": {
+          "line": 217,
+          "params": [
+            "metadata"
+          ]
+        },
+        "safeFilename": {
+          "line": 228,
+          "params": [
+            "title"
+          ]
+        }
+      }
+    },
+    "main/memoryMirror": {
+      "file": "src/main/memoryMirror.js",
+      "description": "Memory mirror — writes durable decisions from the supervisor loop into",
+      "exports": [
+        "recordDurableDecision",
+        "isDurableCategory",
+        "DEFAULT_DURABLE_CATEGORIES"
+      ],
+      "depends": [
+        "path",
+        "memory",
+        "profile"
+      ],
+      "functions": {
+        "isDurableCategory": {
+          "line": 33,
+          "params": [
+            "category",
+            "profile"
+          ]
+        },
+        "deriveProjectId": {
+          "line": 42,
+          "params": [
+            "profile",
+            "projectPath"
+          ]
+        },
+        "recordDurableDecision": {
+          "line": 65,
+          "params": [
+            "projectPath",
+            "payload"
+          ],
+          "purpose": "}} payload"
+        },
+        "_buildTitle": {
+          "line": 99,
+          "params": [
+            "payload"
+          ]
+        },
+        "_buildBody": {
+          "line": 104,
+          "params": [
+            "payload"
+          ]
+        }
+      }
+    },
+    "main/profile": {
+      "file": "src/main/profile.js",
+      "description": "Project profile loader + watcher.",
+      "exports": [
+        "loadProfile",
+        "saveProfile",
+        "defaultProfile",
+        "validateProfile",
+        "watchProfile",
+        "profilePath",
+        "findSupervisorProfileForWorkdir",
+        "PROFILE_FILE"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "shared/frameConstants",
+        "supervisorProfileBridge"
+      ],
+      "functions": {
+        "profilePath": {
+          "line": 41,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "─── Path helpers ──────────────────────────────────────────"
+        },
+        "defaultProfile": {
+          "line": 47,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "─── Default profile ───────────────────────────────────────"
+        },
+        "validateProfile": {
+          "line": 71,
+          "params": [
+            "profile"
+          ],
+          "purpose": "─── Validation (loose) ────────────────────────────────────"
+        },
+        "loadProfile": {
+          "line": 105,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "─── Load / save ───────────────────────────────────────────"
+        },
+        "saveProfile": {
+          "line": 164,
+          "params": [
+            "projectPath",
+            "profile"
+          ]
+        },
+        "watchProfile": {
+          "line": 185,
+          "params": [
+            "projectPath",
+            "onChange"
+          ]
+        },
+        "_loadFromSupervisorFallback": {
+          "line": 218,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "migration instead of the bare \"Generate default\" path."
+        },
+        "findSupervisorProfileForWorkdir": {
+          "line": 233,
+          "params": [
+            "projectPath"
+          ],
+          "purpose": "else null. Used by the renderer's \"supervisor profile found\" banner."
+        }
+      }
+    },
+    "main/specAttachments": {
+      "file": "src/main/specAttachments.js",
+      "description": "Spec Attachments",
+      "exports": [
+        "stageAttachment",
+        "promoteStagedAttachments",
+        "purgeStagedAttachments",
+        "listSpecAttachments",
+        "setupIPC",
+        "buildAttachmentFilename",
+        "getSpecAttachmentsDir",
+        "getStagingDir",
+        "MAX_BYTES"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "shared/frameConstants",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "getSpecAttachmentsDir": {
+          "line": 34,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "─── Path helpers ─────────────────────────────────────────"
+        },
+        "getStagingDir": {
+          "line": 38,
+          "params": [
+            "projectPath",
+            "stagingId"
+          ]
+        },
+        "specExists": {
+          "line": 42,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
+        "sanitizeBasename": {
+          "line": 51,
+          "params": [
+            "originalName"
+          ],
+          "purpose": "neutralised. The extension is preserved when possible."
+        },
+        "timestampPrefix": {
+          "line": 62,
+          "params": [
+            "now"
+          ],
+          "purpose": "ISO timestamp safe for filenames on every OS (colons replaced)."
+        },
+        "buildAttachmentFilename": {
+          "line": 67,
+          "params": [
+            "originalName",
+            "now"
+          ]
+        },
+        "writePayloadTo": {
+          "line": 73,
+          "params": [
+            "targetDir",
+            "payload"
+          ],
+          "purpose": "─── Shared write (size cap + dispatch on kind) ───────────"
+        },
+        "attachToSpec": {
+          "line": 126,
+          "params": [
+            "projectPath",
+            "slug",
+            "payload"
+          ],
+          "purpose": "should insert into the markdown (e.g. \"attachments/2026-06-22T..._foo.png\")."
+        },
+        "stageAttachment": {
+          "line": 145,
+          "params": [
+            "projectPath",
+            "stagingId",
+            "payload"
+          ],
+          "purpose": "promote and to purge later."
+        },
+        "promoteStagedAttachments": {
+          "line": 162,
+          "params": [
+            "projectPath",
+            "stagingId",
+            "slug"
+          ],
+          "purpose": "References block."
+        },
+        "purgeStagedAttachments": {
+          "line": 190,
+          "params": [
+            "projectPath",
+            "stagingId"
+          ],
+          "purpose": "Abandon a staging session (modal cancel). Best-effort — never throws."
+        },
+        "listSpecAttachments": {
+          "line": 205,
+          "params": [
+            "projectPath",
+            "slug"
+          ],
+          "purpose": "the strings can be inserted into markdown unchanged)."
+        },
+        "setupIPC": {
+          "line": 229,
+          "params": [
+            "ipcMain"
+          ],
+          "purpose": "so the renderer can pick the field it needs."
+        }
+      },
+      "ipc": {
+        "listens": [
+          "ATTACH_SPEC_FILE",
+          "LIST_SPEC_ATTACHMENTS",
+          "PURGE_STAGED_ATTACHMENTS"
+        ],
+        "emits": []
+      }
+    },
+    "main/supervisorClassifier": {
+      "file": "src/main/supervisorClassifier.js",
+      "description": "LLM-judged classifier — combines hard-policy + LLM verdict + evidence",
+      "exports": [
+        "classifyNextStep",
+        "classifyWithResearch",
+        "DEFAULT_CONFIDENCE_THRESHOLD"
+      ],
+      "depends": [
+        "supervisorPolicy",
+        "supervisorClaudeRunner",
+        "supervisorPromptBuilder"
+      ],
+      "functions": {
+        "classifyNextStep": {
+          "line": 22,
+          "params": [
+            "args"
+          ]
+        },
+        "classifyWithResearch": {
+          "line": 79,
+          "params": [
+            "args",
+            "runCapabilities"
+          ],
+          "purpose": "run them once, then re-classify with the evidence. Caps at MAX_RECLASSIFY."
+        },
+        "_normaliseVerdict": {
+          "line": 93,
+          "params": [
+            "raw"
+          ]
+        },
+        "_withDefaults": {
+          "line": 107,
+          "params": [
+            "verdict",
+            "args"
+          ]
+        }
+      }
+    },
+    "main/supervisorClaudeRunner": {
+      "file": "src/main/supervisorClaudeRunner.js",
+      "description": "Wrapper around `claude -p --output-format json --max-turns 1`.",
+      "exports": [
+        "runClaudeJson",
+        "setRunner",
+        "resetRunner",
+        "DEFAULT_MODEL"
+      ],
+      "depends": [
+        "child_process"
+      ],
+      "functions": {
+        "_realRunner": {
+          "line": 18,
+          "params": [
+            "prompt",
+            "{ model = DEFAULT_MODEL",
+            "timeoutMs = DEFAULT_TIMEOUT_MS } = {}"
+          ]
+        },
+        "runClaudeJson": {
+          "line": 68,
+          "params": [
+            "prompt",
+            "opts"
+          ]
+        },
+        "setRunner": {
+          "line": 73,
+          "params": [
+            "fn"
+          ],
+          "purpose": "Test seam — replace the runner with a stub."
+        },
+        "resetRunner": {
+          "line": 74
+        }
+      }
+    },
+    "main/supervisorCritic": {
+      "file": "src/main/supervisorCritic.js",
+      "description": "Outcome critic — judges whether a task actually shipped what it asked for.",
+      "exports": [
+        "critique",
+        "isTerminalMessage",
+        "COMPLETION_MARKERS",
+        "DEFAULT_ITERATION_CAP"
+      ],
+      "depends": [
+        "supervisorClaudeRunner",
+        "supervisorPromptBuilder"
+      ],
+      "functions": {
+        "isTerminalMessage": {
+          "line": 32,
+          "params": [
+            "text",
+            "{ finalEventSeen = true",
+            "toolUsesInLastN = 0 } = {}"
+          ]
+        },
+        "critique": {
+          "line": 47,
+          "params": [
+            "args"
+          ],
+          "purpose": "toolUsesInLastN, iterationCount, iterationCap?}} args"
+        },
+        "_matchesAnyFootprint": {
+          "line": 124,
+          "params": [
+            "filePath",
+            "footprint"
+          ]
+        },
+        "_normaliseCritique": {
+          "line": 144,
+          "params": [
+            "raw"
+          ]
+        }
+      }
+    },
+    "main/supervisorIPC": {
+      "file": "src/main/supervisorIPC.js",
+      "description": "IPC bridge between the renderer and the supervisor engine.",
+      "exports": [
+        "setupSupervisorIPC"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "shared/ipcChannels",
+        "profile",
+        "memory",
+        "supervisorRegistry",
+        "memoryMirror",
+        "specManager",
+        "adapters/registry",
+        "adapters/uiAdapter",
+        "tasksManager"
+      ],
+      "functions": {
+        "_broadcast": {
+          "line": 30,
+          "params": [
+            "win",
+            "channel",
+            "payload"
+          ]
+        },
+        "setupSupervisorIPC": {
+          "line": 38,
+          "params": [
+            "ipcMain",
+            "getMainWindow"
+          ]
+        },
+        "_buildExecutors": {
+          "line": 178,
+          "params": [
+            "{ projectPath",
+            "slug",
+            "terminalId",
+            "broadcastAll }"
+          ],
+          "purpose": "─── Executor factory ─────────────────────────────────────"
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUPERVISOR_ESCALATION_ANSWERED",
+          "LOAD_PROFILE",
+          "SAVE_PROFILE",
+          "WATCH_PROFILE",
+          "UNWATCH_PROFILE",
+          "SEARCH_MEMORY",
+          "LIST_MEMORY",
+          "SUPERVISOR_START",
+          "SUPERVISOR_STOP",
+          "SUPERVISOR_AUDIT",
+          "LIST_CROSS_PROJECT_SUPERVISORS",
+          "WATCH_CROSS_PROJECT_SUPERVISORS",
+          "PAUSE_SPEC_SUPERVISOR",
+          "RESUME_SPEC_SUPERVISOR",
+          "PAUSE_ALL_SUPERVISORS"
+        ],
+        "emits": [
+          "channel",
+          "CROSS_PROJECT_SUPERVISORS_DATA"
+        ]
+      }
+    },
+    "main/supervisorLoop": {
+      "file": "src/main/supervisorLoop.js",
+      "description": "Per-spec supervisor loop — one instance per Auto'd spec.",
+      "exports": [
+        "SupervisorLoop",
+        "DEFAULT_TICK_INTERVAL_MS",
+        "DEFAULT_MAX_TOTAL_TICKS"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "supervisorClassifier",
+        "supervisorCritic",
+        "memoryMirror",
+        "profile"
+      ],
+      "functions": {
+        "_sleep": {
+          "line": 290,
+          "params": [
+            "ms"
+          ]
+        }
+      }
+    },
+    "main/supervisorPolicy": {
+      "file": "src/main/supervisorPolicy.js",
+      "description": "Supervisor loop's hard-policy fast path.",
+      "exports": [
+        "decideFastPath",
+        "_hasUnansweredQuestion"
+      ],
+      "depends": [],
+      "functions": {
+        "decideFastPath": {
+          "line": 26,
+          "params": [
+            "args"
+          ]
+        },
+        "_hasUnansweredQuestion": {
+          "line": 91,
+          "params": [
+            "text"
+          ]
+        }
+      }
+    },
+    "main/supervisorPromptBuilder": {
+      "file": "src/main/supervisorPromptBuilder.js",
+      "description": "Prompt builders for the supervisor's classifier + critic.",
+      "exports": [
+        "buildClassifierPrompt",
+        "buildCriticPrompt"
+      ],
+      "depends": [],
+      "functions": {
+        "_truncate": {
+          "line": 10,
+          "params": [
+            "text",
+            "n"
+          ],
+          "purpose": "original was single-decision focused."
+        },
+        "buildClassifierPrompt": {
+          "line": 17,
+          "params": [
+            "{\n  specBody = ''",
+            "status = {}",
+            "tasks = []",
+            "lane = null",
+            "recentAudit = []",
+            "profile = null",
+            "evidence = []",
+            "} = {}"
+          ]
+        },
+        "buildCriticPrompt": {
+          "line": 74,
+          "params": [
+            "{\n  taskTitle = ''",
+            "taskAcceptance = ''",
+            "outcomeEntry = ''",
+            "footprintDeclared = []",
+            "filesActuallyChanged = []",
+            "} = {}"
+          ]
+        }
+      }
+    },
+    "main/supervisorRegistry": {
+      "file": "src/main/supervisorRegistry.js",
+      "description": "Supervisor registry — process-global map of `(projectPath, slug) → SupervisorLoop`.",
+      "exports": [
+        "startSupervisor",
+        "stopSupervisor",
+        "pauseAll",
+        "getSupervisor",
+        "listAll",
+        "getAcrossProjects",
+        "subscribe",
+        "_resetForTests"
+      ],
+      "depends": [
+        "supervisorLoop"
+      ],
+      "functions": {
+        "_key": {
+          "line": 17,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
+        "startSupervisor": {
+          "line": 19,
+          "params": [
+            "{ projectPath",
+            "slug",
+            "executors",
+            "capabilities",
+            "tickIntervalMs }"
+          ]
+        },
+        "stopSupervisor": {
+          "line": 40,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
+        "pauseAll": {
+          "line": 47
+        },
+        "getSupervisor": {
+          "line": 59,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
+        "listAll": {
+          "line": 61
+        },
+        "getAcrossProjects": {
+          "line": 63
+        },
+        "subscribe": {
+          "line": 85,
+          "params": [
+            "listener"
+          ]
+        },
+        "_broadcast": {
+          "line": 91
+        },
+        "_resetForTests": {
+          "line": 98
+        }
+      }
+    },
+    "main/workers/_eventQueue": {
+      "file": "src/main/workers/_eventQueue.js",
+      "description": "Async pull-queue bridging callback-style event sources to AsyncIterator.",
+      "exports": [
+        "EventQueue"
+      ],
+      "depends": [],
+      "functions": {}
+    },
+    "main/workers/claudeCodeWorker": {
+      "file": "src/main/workers/claudeCodeWorker.js",
+      "description": "ClaudeCodeWorker — WorkerInterface adapter for the `claude` CLI.",
+      "exports": [
+        "ClaudeCodeWorker"
+      ],
+      "depends": [
+        "types",
+        "_eventQueue",
+        "../shared/workerTypes"
+      ],
+      "functions": {}
+    },
+    "main/workers/codexWorker": {
+      "file": "src/main/workers/codexWorker.js",
+      "description": "CodexWorker — WorkerInterface adapter for the OpenAI Codex CLI.",
+      "exports": [
+        "CodexWorker"
+      ],
+      "depends": [
+        "types",
+        "_eventQueue",
+        "../shared/workerTypes"
+      ],
+      "functions": {}
+    },
+    "main/workers/fakeWorker": {
+      "file": "src/main/workers/fakeWorker.js",
+      "description": "FakeWorker — deterministic event sequence for tests.",
+      "exports": [
+        "FakeWorker"
+      ],
+      "depends": [
+        "types",
+        "_eventQueue"
+      ],
+      "functions": {}
+    },
+    "main/workers/geminiWorker": {
+      "file": "src/main/workers/geminiWorker.js",
+      "description": "GeminiWorker — WorkerInterface adapter for the Google Gemini CLI.",
+      "exports": [
+        "GeminiWorker"
+      ],
+      "depends": [
+        "types",
+        "_eventQueue",
+        "../shared/workerTypes"
+      ],
+      "functions": {}
+    },
+    "main/workers/index": {
+      "file": "src/main/workers/index.js",
+      "description": "Worker registry bootstrap.",
+      "exports": [],
+      "depends": [
+        "workers",
+        "registry",
+        "fakeWorker",
+        "claudeCodeWorker",
+        "codexWorker",
+        "geminiWorker"
+      ],
+      "functions": {}
+    },
+    "main/workers/registry": {
+      "file": "src/main/workers/registry.js",
+      "description": "Worker registry — single process-wide map.",
+      "exports": [
+        "register",
+        "getWorker",
+        "listWorkers",
+        "hasWorker",
+        "_resetForTests"
+      ],
+      "depends": [],
+      "functions": {
+        "register": {
+          "line": 12,
+          "params": [
+            "name",
+            "Ctor"
+          ]
+        },
+        "getWorker": {
+          "line": 18,
+          "params": [
+            "name"
+          ]
+        },
+        "listWorkers": {
+          "line": 24
+        },
+        "hasWorker": {
+          "line": 26,
+          "params": [
+            "name"
+          ]
+        },
+        "_resetForTests": {
+          "line": 29,
+          "purpose": "Test-only — never used in production."
+        }
+      }
+    },
+    "main/workers/types": {
+      "file": "src/main/workers/types.js",
+      "description": "Abstract Worker base class.",
+      "exports": [
+        "WorkerInterface"
+      ],
+      "depends": [],
+      "functions": {}
+    },
+    "renderer/crossProjectBoard": {
+      "file": "src/renderer/crossProjectBoard.js",
+      "description": "Cross-project supervisor board — aggregated dashboard.",
+      "exports": [
+        "attach"
+      ],
+      "depends": [
+        "supervisorClient"
+      ],
+      "functions": {
+        "attach": {
+          "line": 33,
+          "params": [
+            "rootEl",
+            "{ onOpenSpec } = {}"
+          ]
+        },
+        "_renderBoard": {
+          "line": 68,
+          "params": [
+            "snapshot"
+          ]
+        },
+        "_renderProject": {
+          "line": 92,
+          "params": [
+            "p"
+          ]
+        },
+        "_renderSpec": {
+          "line": 107,
+          "params": [
+            "projectPath",
+            "spec"
+          ]
+        },
+        "_basename": {
+          "line": 129,
+          "params": [
+            "p"
+          ]
+        },
+        "_relativeTime": {
+          "line": 135,
+          "params": [
+            "iso"
+          ]
+        },
+        "_escape": {
+          "line": 145,
+          "params": [
+            "s"
+          ]
+        }
+      }
+    },
+    "renderer/escalationModal": {
+      "file": "src/renderer/escalationModal.js",
+      "description": "Escalation modal — surfaces drafted-question + suggested answer from the",
+      "exports": [
+        "init",
+        "show"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 18
+        },
+        "show": {
+          "line": 24,
+          "params": [
+            "escalation"
+          ]
+        },
+        "_close": {
+          "line": 30
+        },
+        "_submit": {
+          "line": 38,
+          "params": [
+            "answer"
+          ]
+        },
+        "_render": {
+          "line": 48
+        },
+        "_escape": {
+          "line": 111,
+          "params": [
+            "s"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUPERVISOR_ESCALATION_OPEN"
+        ],
+        "emits": [
+          "SUPERVISOR_ESCALATION_ANSWERED"
+        ]
+      }
+    },
+    "renderer/supervisorClient": {
+      "file": "src/renderer/supervisorClient.js",
+      "description": "Renderer-side supervisor client.",
+      "exports": [
+        "init",
+        "onChange",
+        "getSnapshot",
+        "start",
+        "stop",
+        "listAcrossProjects",
+        "readAudit",
+        "pauseAll",
+        "getSpecState"
+      ],
+      "depends": [
+        "electron",
+        "shared/ipcChannels"
+      ],
+      "functions": {
+        "init": {
+          "line": 20
+        },
+        "onChange": {
+          "line": 30,
+          "params": [
+            "fn"
+          ]
+        },
+        "_emit": {
+          "line": 36
+        },
+        "getSnapshot": {
+          "line": 42
+        },
+        "start": {
+          "line": 44,
+          "params": [
+            "{ projectPath",
+            "slug",
+            "terminalId }"
+          ]
+        },
+        "stop": {
+          "line": 48,
+          "params": [
+            "{ projectPath",
+            "slug }"
+          ]
+        },
+        "listAcrossProjects": {
+          "line": 52
+        },
+        "readAudit": {
+          "line": 56,
+          "params": [
+            "{ projectPath",
+            "slug",
+            "tail = 100 }"
+          ]
+        },
+        "pauseAll": {
+          "line": 60
+        },
+        "getSpecState": {
+          "line": 62,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "CROSS_PROJECT_SUPERVISORS_DATA"
+        ],
+        "emits": [
+          "WATCH_CROSS_PROJECT_SUPERVISORS"
+        ]
+      }
+    },
+    "shared/workerTypes": {
+      "file": "src/shared/workerTypes.js",
+      "description": "Worker abstraction types — shared between main and renderer.",
+      "exports": [
+        "Posture",
+        "WorkerEventKind"
+      ],
+      "depends": [],
+      "functions": {}
+    },
+    "__tests__/adapterRegistry.test": {
+      "file": "src/__tests__/adapterRegistry.test.js",
+      "description": "Adapter registry tests — opt-in registration semantics.",
+      "exports": [],
+      "depends": [
+        "main/adapters/registry",
+        "main/adapters/uiAdapter",
+        "main/adapters/slackAdapter",
+        "main/adapters/emailAdapter"
+      ],
+      "functions": {}
+    },
+    "__tests__/autopilotPill.test": {
+      "file": "src/__tests__/autopilotPill.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "renderer/autopilotPill"
+      ],
+      "functions": {}
+    },
+    "__tests__/emailAdapter.test": {
+      "file": "src/__tests__/emailAdapter.test.js",
+      "description": "EmailAdapter tests — `.eml` file creation, well-formed headers,",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "main/adapters/emailAdapter"
+      ],
+      "functions": {
+        "tmpProject": {
+          "line": 11
+        }
+      }
+    },
+    "__tests__/memoryTab.test": {
+      "file": "src/__tests__/memoryTab.test.js",
+      "description": "memoryTab — pure-helper tests.",
+      "exports": [],
+      "depends": [
+        "renderer/memoryTab"
+      ],
+      "functions": {}
+    },
+    "__tests__/profilePanel.test": {
+      "file": "src/__tests__/profilePanel.test.js",
+      "description": "profilePanel — pure-helper tests.",
+      "exports": [],
+      "depends": [
+        "renderer/profilePanel"
+      ],
+      "functions": {}
+    },
+    "__tests__/slackAdapter.test": {
+      "file": "src/__tests__/slackAdapter.test.js",
+      "description": "SlackAdapter tests — Block Kit construction, webhook fallback, callback.",
+      "exports": [],
+      "depends": [
+        "events",
+        "main/adapters/slackAdapter"
+      ],
+      "functions": {
+        "makeFakeServer": {
+          "line": 11
+        },
+        "makeFakeHttp": {
+          "line": 22
+        }
+      }
+    },
+    "main/adapters/emailAdapter": {
+      "file": "src/main/adapters/emailAdapter.js",
+      "description": "Email escalation adapter — v2 stub.",
+      "exports": [
+        "EmailAdapter"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "crypto",
+        "types"
+      ],
+      "functions": {
+        "_encodeHeader": {
+          "line": 163,
+          "params": [
+            "value"
+          ]
+        }
+      }
+    },
+    "main/adapters/slackAdapter": {
+      "file": "src/main/adapters/slackAdapter.js",
+      "description": "Slack escalation adapter — v2 stub.",
+      "exports": [
+        "SlackAdapter",
+        "DEFAULT_CALLBACK_PORT"
+      ],
+      "depends": [
+        "http",
+        "types"
+      ],
+      "functions": {
+        "_mdEscape": {
+          "line": 234,
+          "params": [
+            "s"
+          ]
+        },
+        "_safeId": {
+          "line": 241,
+          "params": [
+            "s"
+          ]
+        }
+      }
+    },
+    "renderer/memoryTab": {
+      "file": "src/renderer/memoryTab.js",
+      "description": "Memory tab — renderer for the spec section's *Memory* tab.",
+      "exports": [
+        "mount",
+        "renderHtml"
+      ],
+      "depends": [
+        "shared/ipcChannels",
+        "electron"
+      ],
+      "functions": {
+        "filterNotes": {
+          "line": 34,
+          "params": [
+            "notes",
+            "{ slug",
+            "showAll",
+            "scope } = {}"
+          ],
+          "purpose": "returns the entire notes array unchanged (no spec scoping)."
+        },
+        "renderHtml": {
+          "line": 48,
+          "params": [
+            "notes",
+            "opts = {}"
+          ],
+          "purpose": "not searching) — controls the empty-state copy."
+        },
+        "_replaceSummarySlug": {
+          "line": 82,
+          "params": [
+            "summary",
+            "slug"
+          ],
+          "purpose": "the spec system) but still escape defensively."
+        },
+        "_renderRow": {
+          "line": 87,
+          "params": [
+            "note"
+          ]
+        },
+        "_formatTs": {
+          "line": 108,
+          "params": [
+            "iso"
+          ]
+        },
+        "_escape": {
+          "line": 113,
+          "params": [
+            "s"
+          ]
+        },
+        "mount": {
+          "line": 133,
+          "params": [
+            "container",
+            "{ projectPath",
+            "slug",
+            "scope = 'spec' } = {}"
+          ]
+        }
+      }
+    },
+    "renderer/profilePanel": {
+      "file": "src/renderer/profilePanel.js",
+      "description": "Project Profile panel — inline editor for `.frame/profile.json`.",
+      "exports": [
+        "mount",
+        "formDataToProfile",
+        "parseJsonSafely",
+        "shouldShowNudge",
+        "shouldShowSupervisorBanner",
+        "buildNudgeSavePayload",
+        "renderNudgeBannerHtml",
+        "renderSupervisorBannerHtml"
+      ],
+      "depends": [
+        "shared/ipcChannels",
+        "electron"
+      ],
+      "functions": {
+        "profileToFormData": {
+          "line": 33,
+          "params": [
+            "profile"
+          ],
+          "purpose": "keys; convertable back via formDataToProfile."
+        },
+        "formDataToProfile": {
+          "line": 54,
+          "params": [
+            "formData",
+            "basis"
+          ],
+          "purpose": "preserved untouched — the form only owns the subset it surfaces."
+        },
+        "parseJsonSafely": {
+          "line": 69,
+          "params": [
+            "raw"
+          ]
+        },
+        "shouldShowNudge": {
+          "line": 82,
+          "params": [
+            "loaded"
+          ],
+          "purpose": "YAML *is* discoverable, show the supervisor banner instead."
+        },
+        "shouldShowSupervisorBanner": {
+          "line": 95,
+          "params": [
+            "loaded"
+          ],
+          "purpose": "translated on the fly and the user has a one-click migration path."
+        },
+        "buildNudgeSavePayload": {
+          "line": 105,
+          "params": [
+            "state"
+          ],
+          "purpose": "persists it via SAVE_PROFILE."
+        },
+        "renderNudgeBannerHtml": {
+          "line": 116,
+          "purpose": "label without standing up a DOM."
+        },
+        "renderSupervisorBannerHtml": {
+          "line": 134,
+          "purpose": "profile (already returned by LOAD_PROFILE)."
+        },
+        "_parseCsv": {
+          "line": 147,
+          "params": [
+            "s"
+          ]
+        },
+        "_parseLines": {
+          "line": 151,
+          "params": [
+            "s"
+          ]
+        },
+        "_parseIntOrNull": {
+          "line": 155,
+          "params": [
+            "s"
+          ]
+        },
+        "_parseFloatOrNull": {
+          "line": 160,
+          "params": [
+            "s"
+          ]
+        },
+        "mount": {
+          "line": 178,
+          "params": [
+            "container",
+            "{ projectPath } = {}"
+          ]
+        },
+        "_renderNudgeBanner": {
+          "line": 360,
+          "purpose": "that the test helper exposes."
+        },
+        "_renderWarnings": {
+          "line": 364,
+          "params": [
+            "warnings"
+          ]
+        },
+        "_renderForm": {
+          "line": 373,
+          "params": [
+            "fd"
+          ]
+        },
+        "_readFormData": {
+          "line": 420,
+          "params": [
+            "container"
+          ]
+        },
+        "_escape": {
+          "line": 428,
+          "params": [
+            "s"
+          ]
+        }
+      }
+    },
+    "__tests__/migrateSupervisorProfile.test": {
+      "file": "src/__tests__/migrateSupervisorProfile.test.js",
+      "description": "migrate-supervisor-profile — unit tests for the YAML→JSON translator and",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "../scripts/migrate-supervisor-profile"
+      ],
+      "functions": {
+        "tmpDir": {
+          "line": 14,
+          "params": [
+            "prefix"
+          ]
+        }
+      }
+    },
+    "__tests__/profileDiscoveryFallback.test": {
+      "file": "src/__tests__/profileDiscoveryFallback.test.js",
+      "description": "Profile discovery fallback — when a project has no .frame/profile.json",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "main/profile"
+      ],
+      "functions": {
+        "setupSupervisorDir": {
+          "line": 31
+        },
+        "withWorkdir": {
+          "line": 37
+        }
+      }
+    },
+    "__tests__/specAttachments.test": {
+      "file": "src/__tests__/specAttachments.test.js",
+      "description": "",
+      "exports": [],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "main/specAttachments",
+        "shared/frameConstants",
+        "renderer/specSection",
+        "crypto",
+        "renderer/specPanel",
+        "shared/ipcChannels",
+        "main/specManager"
+      ],
+      "functions": {
+        "tmpProject": {
+          "line": 8
+        },
+        "createFakeSpec": {
+          "line": 12,
+          "params": [
+            "projectPath",
+            "slug"
+          ]
+        },
+        "fixtureSource": {
+          "line": 19,
+          "params": [
+            "projectPath",
+            "name",
+            "bytes"
+          ]
+        }
+      }
+    },
+    "main/supervisorProfileBridge": {
+      "file": "src/main/supervisorProfileBridge.js",
+      "description": "Shared bridge between the supervisor's YAML profiles and Frame's JSON",
+      "exports": [
+        "PROJECT_MAP",
+        "DEFAULT_SUPERVISOR_PROFILES_DIR",
+        "supervisorProfilesDir",
+        "findMappingForWorkdir",
+        "parseYaml",
+        "translateSupervisorProfile",
+        "translateSupervisorProfileForWorkdir",
+        "readSupervisorProfile",
+        "mergeProfiles"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path"
+      ],
+      "functions": {
+        "supervisorProfilesDir": {
+          "line": 31
+        },
+        "_normPath": {
+          "line": 99,
+          "params": [
+            "p"
+          ]
+        },
+        "findMappingForWorkdir": {
+          "line": 110,
+          "params": [
+            "workdir"
+          ],
+          "purpose": "where a user opened the project from a sibling worktree."
+        },
+        "parseYaml": {
+          "line": 131,
+          "params": [
+            "source"
+          ],
+          "purpose": "anchors, aliases, or multi-line scalars."
+        },
+        "_preprocess": {
+          "line": 137,
+          "params": [
+            "source"
+          ]
+        },
+        "_stripLineComment": {
+          "line": 148,
+          "params": [
+            "line"
+          ]
+        },
+        "_parseBlock": {
+          "line": 162,
+          "params": [
+            "lines",
+            "idx",
+            "indent"
+          ]
+        },
+        "_parseMap": {
+          "line": 172,
+          "params": [
+            "lines",
+            "idx",
+            "indent"
+          ]
+        },
+        "_parseList": {
+          "line": 202,
+          "params": [
+            "lines",
+            "idx",
+            "indent"
+          ]
+        },
+        "_findKeyColon": {
+          "line": 254,
+          "params": [
+            "content"
+          ]
+        },
+        "_parseScalar": {
+          "line": 274,
+          "params": [
+            "raw"
+          ]
+        },
+        "_parseFlowMapping": {
+          "line": 288,
+          "params": [
+            "raw"
+          ]
+        },
+        "_parseFlowSequence": {
+          "line": 300,
+          "params": [
+            "raw"
+          ]
+        },
+        "_splitFlowParts": {
+          "line": 306,
+          "params": [
+            "s"
+          ]
+        },
+        "translateSupervisorProfile": {
+          "line": 333,
+          "params": [
+            "parsed",
+            "{ projectId",
+            "name }"
+          ],
+          "purpose": "─── Translation ──────────────────────────────────────────"
+        },
+        "readSupervisorProfile": {
+          "line": 392,
+          "params": [
+            "profileName",
+            "profilesDir"
+          ],
+          "purpose": "file is missing or fails to parse."
+        },
+        "translateSupervisorProfileForWorkdir": {
+          "line": 406,
+          "params": [
+            "projectPath",
+            "profilesDir"
+          ],
+          "purpose": "Does NOT write anything to disk — that is the migration script's job."
+        },
+        "mergeProfiles": {
+          "line": 415,
+          "params": [
+            "supervisorProfile",
+            "frameProfile"
+          ],
+          "purpose": "Shallow merge: supervisor base + Frame override (per top-level key)."
+        }
       }
     }
   },
@@ -7799,6 +10524,186 @@
       },
       "ORCH_REMOVE_WORKER": {
         "name": "orch-remove-worker",
+        "direction": "",
+        "description": ""
+      },
+      "GET_TOOL_FLAGS": {
+        "name": "get-tool-flags",
+        "direction": "",
+        "description": ""
+      },
+      "SET_TOOL_FLAGS": {
+        "name": "set-tool-flags",
+        "direction": "",
+        "description": ""
+      },
+      "AUTOPILOT_START": {
+        "name": "autopilot-start",
+        "direction": "",
+        "description": ""
+      },
+      "AUTOPILOT_STOP": {
+        "name": "autopilot-stop",
+        "direction": "",
+        "description": ""
+      },
+      "AUTOPILOT_GET": {
+        "name": "autopilot-get",
+        "direction": "",
+        "description": ""
+      },
+      "AUTOPILOT_STATE": {
+        "name": "autopilot-state",
+        "direction": "",
+        "description": ""
+      },
+      "AUTOPILOT_AUDIT": {
+        "name": "autopilot-audit",
+        "direction": "",
+        "description": ""
+      },
+      "WRITE_SPEC_DOC": {
+        "name": "write-spec-doc",
+        "direction": "",
+        "description": ""
+      },
+      "ADD_SPEC_TASK": {
+        "name": "add-spec-task",
+        "direction": "",
+        "description": ""
+      },
+      "REMOVE_SPEC_TASK": {
+        "name": "remove-spec-task",
+        "direction": "",
+        "description": ""
+      },
+      "SET_AUTO_ON_TASKS": {
+        "name": "set-auto-on-tasks",
+        "direction": "",
+        "description": ""
+      },
+      "GET_AUTO_ON_TASKS": {
+        "name": "get-auto-on-tasks",
+        "direction": "",
+        "description": ""
+      },
+      "AUTOPILOT_ARM_REQUEST": {
+        "name": "autopilot-arm-request",
+        "direction": "",
+        "description": ""
+      },
+      "LOAD_PROFILE": {
+        "name": "load-profile",
+        "direction": "",
+        "description": ""
+      },
+      "SAVE_PROFILE": {
+        "name": "save-profile",
+        "direction": "",
+        "description": ""
+      },
+      "WATCH_PROFILE": {
+        "name": "watch-profile",
+        "direction": "",
+        "description": ""
+      },
+      "UNWATCH_PROFILE": {
+        "name": "unwatch-profile",
+        "direction": "",
+        "description": ""
+      },
+      "PROFILE_DATA": {
+        "name": "profile-data",
+        "direction": "",
+        "description": ""
+      },
+      "SEARCH_MEMORY": {
+        "name": "search-memory",
+        "direction": "",
+        "description": ""
+      },
+      "LIST_MEMORY": {
+        "name": "list-memory",
+        "direction": "",
+        "description": ""
+      },
+      "SUPERVISOR_START": {
+        "name": "supervisor-start",
+        "direction": "",
+        "description": ""
+      },
+      "SUPERVISOR_STOP": {
+        "name": "supervisor-stop",
+        "direction": "",
+        "description": ""
+      },
+      "SUPERVISOR_STATE": {
+        "name": "supervisor-state",
+        "direction": "",
+        "description": ""
+      },
+      "SUPERVISOR_AUDIT": {
+        "name": "supervisor-audit",
+        "direction": "",
+        "description": ""
+      },
+      "SUPERVISOR_ESCALATION_OPEN": {
+        "name": "supervisor-escalation-open",
+        "direction": "",
+        "description": ""
+      },
+      "SUPERVISOR_ESCALATION_ANSWERED": {
+        "name": "supervisor-escalation-answered",
+        "direction": "",
+        "description": ""
+      },
+      "LIST_CROSS_PROJECT_SUPERVISORS": {
+        "name": "list-cross-project-supervisors",
+        "direction": "",
+        "description": ""
+      },
+      "WATCH_CROSS_PROJECT_SUPERVISORS": {
+        "name": "watch-cross-project-supervisors",
+        "direction": "",
+        "description": ""
+      },
+      "CROSS_PROJECT_SUPERVISORS_DATA": {
+        "name": "cross-project-supervisors-data",
+        "direction": "",
+        "description": ""
+      },
+      "PAUSE_SPEC_SUPERVISOR": {
+        "name": "pause-spec-supervisor",
+        "direction": "",
+        "description": ""
+      },
+      "RESUME_SPEC_SUPERVISOR": {
+        "name": "resume-spec-supervisor",
+        "direction": "",
+        "description": ""
+      },
+      "PAUSE_ALL_SUPERVISORS": {
+        "name": "pause-all-supervisors",
+        "direction": "",
+        "description": ""
+      },
+      "RESUME_ALL_SUPERVISORS": {
+        "name": "resume-all-supervisors",
+        "direction": "",
+        "description": ""
+      },
+      "ATTACH_SPEC_FILE": {
+        "name": "attach-spec-file",
+        "direction": "",
+        "description": ""
+      },
+      "LIST_SPEC_ATTACHMENTS": {
+        "name": "list-spec-attachments",
+        "direction": "",
+        "description": ""
+      },
+      "PURGE_STAGED_ATTACHMENTS": {
+        "name": "purge-staged-attachments",
         "direction": "",
         "description": ""
       }
@@ -8178,6 +11083,20 @@
   "files": {},
   "conventions": {},
   "intentIndex": {
+    "_event-queue": [
+      {
+        "module": "main/workers/_eventQueue",
+        "file": "src/main/workers/_eventQueue.js",
+        "description": "Async pull-queue bridging callback-style event sources to AsyncIterator."
+      }
+    ],
+    "adapter-registry.test": [
+      {
+        "module": "__tests__/adapterRegistry.test",
+        "file": "src/__tests__/adapterRegistry.test.js",
+        "description": "Adapter registry tests — opt-in registration semantics."
+      }
+    ],
     "agent": [
       {
         "module": "renderer/agentPanel",
@@ -8211,11 +11130,88 @@
         "description": "App Loader"
       }
     ],
+    "autopilot": [
+      {
+        "module": "main/autopilot",
+        "file": "src/main/autopilot.js",
+        "description": "Autopilot runner"
+      }
+    ],
+    "autopilot-client": [
+      {
+        "module": "renderer/autopilotClient",
+        "file": "src/renderer/autopilotClient.js",
+        "description": "Autopilot client (renderer-side state cache + IPC adapter)"
+      }
+    ],
+    "autopilot-pill": [
+      {
+        "module": "renderer/autopilotPill",
+        "file": "src/renderer/autopilotPill.js",
+        "description": "Autopilot pill"
+      }
+    ],
+    "autopilot-pill.test": [
+      {
+        "module": "__tests__/autopilotPill.test",
+        "file": "src/__tests__/autopilotPill.test.js",
+        "description": ""
+      }
+    ],
+    "autopilot-toggle": [
+      {
+        "module": "renderer/autopilotToggle",
+        "file": "src/renderer/autopilotToggle.js",
+        "description": "Autopilot toggle button"
+      }
+    ],
+    "autopilot.config": [
+      {
+        "module": "main/autopilot.config",
+        "file": "src/main/autopilot.config.js",
+        "description": "Autopilot config"
+      }
+    ],
+    "autopilot.intent.test": [
+      {
+        "module": "__tests__/autopilot.intent.test",
+        "file": "src/__tests__/autopilot.intent.test.js",
+        "description": ""
+      }
+    ],
+    "autopilot.signals": [
+      {
+        "module": "main/autopilot.signals",
+        "file": "src/main/autopilot.signals.js",
+        "description": "Autopilot signals"
+      }
+    ],
+    "autopilot.test": [
+      {
+        "module": "__tests__/autopilot.test",
+        "file": "src/__tests__/autopilot.test.js",
+        "description": ""
+      }
+    ],
+    "capabilities-registry.test": [
+      {
+        "module": "__tests__/capabilitiesRegistry.test",
+        "file": "src/__tests__/capabilitiesRegistry.test.js",
+        "description": ""
+      }
+    ],
     "cheat-sheet": [
       {
         "module": "renderer/cheatSheet",
         "file": "src/renderer/cheatSheet.js",
         "description": "Keyboard Shortcut Cheat Sheet"
+      }
+    ],
+    "claude-code-worker": [
+      {
+        "module": "main/workers/claudeCodeWorker",
+        "file": "src/main/workers/claudeCodeWorker.js",
+        "description": "ClaudeCodeWorker — WorkerInterface adapter for the `claude` CLI."
       }
     ],
     "claude-sessions": [
@@ -8239,6 +11235,13 @@
         "description": "Database client — Postgres connection pool"
       }
     ],
+    "codex-worker": [
+      {
+        "module": "main/workers/codexWorker",
+        "file": "src/main/workers/codexWorker.js",
+        "description": "CodexWorker — WorkerInterface adapter for the OpenAI Codex CLI."
+      }
+    ],
     "command-palette": [
       {
         "module": "renderer/commandPalette",
@@ -8251,6 +11254,27 @@
         "module": "renderer/commandRegistry",
         "file": "src/renderer/commandRegistry.js",
         "description": "Command Registry"
+      }
+    ],
+    "cross-project-board": [
+      {
+        "module": "renderer/crossProjectBoard",
+        "file": "src/renderer/crossProjectBoard.js",
+        "description": "Cross-project supervisor board — aggregated dashboard."
+      }
+    ],
+    "cross-project-guard": [
+      {
+        "module": "main/crossProjectGuard",
+        "file": "src/main/crossProjectGuard.js",
+        "description": "Cross-project footprint conflict detector."
+      }
+    ],
+    "cross-project-guard.test": [
+      {
+        "module": "__tests__/crossProjectGuard.test",
+        "file": "src/__tests__/crossProjectGuard.test.js",
+        "description": ""
       }
     ],
     "dialogs": [
@@ -8279,6 +11303,34 @@
         "module": "renderer/editor",
         "file": "src/renderer/editor.js",
         "description": "File Editor Module"
+      }
+    ],
+    "email-adapter": [
+      {
+        "module": "main/adapters/emailAdapter",
+        "file": "src/main/adapters/emailAdapter.js",
+        "description": "Email escalation adapter — v2 stub."
+      }
+    ],
+    "email-adapter.test": [
+      {
+        "module": "__tests__/emailAdapter.test",
+        "file": "src/__tests__/emailAdapter.test.js",
+        "description": "EmailAdapter tests — `.eml` file creation, well-formed headers,"
+      }
+    ],
+    "escalation-modal": [
+      {
+        "module": "renderer/escalationModal",
+        "file": "src/renderer/escalationModal.js",
+        "description": "Escalation modal — surfaces drafted-question + suggested answer from the"
+      }
+    ],
+    "fake-worker": [
+      {
+        "module": "main/workers/fakeWorker",
+        "file": "src/main/workers/fakeWorker.js",
+        "description": "FakeWorker — deterministic event sequence for tests."
       }
     ],
     "file-editor": [
@@ -8315,6 +11367,13 @@
         "module": "shared/frameTemplates",
         "file": "src/shared/frameTemplates.js",
         "description": "Frame Templates"
+      }
+    ],
+    "gemini-worker": [
+      {
+        "module": "main/workers/geminiWorker",
+        "file": "src/main/workers/geminiWorker.js",
+        "description": "GeminiWorker — WorkerInterface adapter for the Google Gemini CLI."
       }
     ],
     "git-branches": [
@@ -8371,9 +11430,19 @@
     ],
     "index": [
       {
+        "module": "main/capabilities/index",
+        "file": "src/main/capabilities/index.js",
+        "description": "Capabilities bootstrap — registers built-in capabilities by name."
+      },
+      {
         "module": "main/index",
         "file": "src/main/index.js",
         "description": "Main Process Entry Point"
+      },
+      {
+        "module": "main/workers/index",
+        "file": "src/main/workers/index.js",
+        "description": "Worker registry bootstrap."
       },
       {
         "module": "renderer/index",
@@ -8391,6 +11460,20 @@
         "module": "shared/ipcChannels",
         "file": "src/shared/ipcChannels.js",
         "description": "IPC Channel Constants"
+      }
+    ],
+    "knowledge-search": [
+      {
+        "module": "main/capabilities/knowledgeSearch",
+        "file": "src/main/capabilities/knowledgeSearch.js",
+        "description": "KnowledgeSearch capability — backed by BasicMemoryBackend."
+      }
+    ],
+    "knowledge-search.test": [
+      {
+        "module": "__tests__/knowledgeSearch.test",
+        "file": "src/__tests__/knowledgeSearch.test.js",
+        "description": ""
       }
     ],
     "lane-board": [
@@ -8421,11 +11504,60 @@
         "description": "Lane Status Module"
       }
     ],
+    "memory": [
+      {
+        "module": "main/memory",
+        "file": "src/main/memory.js",
+        "description": "Basic Memory backend — Node port of the supervisor's `BasicMemoryBackend`"
+      }
+    ],
+    "memory-mirror": [
+      {
+        "module": "main/memoryMirror",
+        "file": "src/main/memoryMirror.js",
+        "description": "Memory mirror — writes durable decisions from the supervisor loop into"
+      }
+    ],
+    "memory-mirror.test": [
+      {
+        "module": "__tests__/memoryMirror.test",
+        "file": "src/__tests__/memoryMirror.test.js",
+        "description": ""
+      }
+    ],
+    "memory-tab": [
+      {
+        "module": "renderer/memoryTab",
+        "file": "src/renderer/memoryTab.js",
+        "description": "Memory tab — renderer for the spec section's *Memory* tab."
+      }
+    ],
+    "memory-tab.test": [
+      {
+        "module": "__tests__/memoryTab.test",
+        "file": "src/__tests__/memoryTab.test.js",
+        "description": "memoryTab — pure-helper tests."
+      }
+    ],
+    "memory.test": [
+      {
+        "module": "__tests__/memory.test",
+        "file": "src/__tests__/memory.test.js",
+        "description": ""
+      }
+    ],
     "menu": [
       {
         "module": "main/menu",
         "file": "src/main/menu.js",
         "description": "Application Menu Module"
+      }
+    ],
+    "migrate-supervisor-profile.test": [
+      {
+        "module": "__tests__/migrateSupervisorProfile.test",
+        "file": "src/__tests__/migrateSupervisorProfile.test.js",
+        "description": "migrate-supervisor-profile — unit tests for the YAML→JSON translator and"
       }
     ],
     "oauth": [
@@ -8487,6 +11619,39 @@
         "description": "Plugins Panel Module"
       }
     ],
+    "profile": [
+      {
+        "module": "main/profile",
+        "file": "src/main/profile.js",
+        "description": "Project profile loader + watcher."
+      },
+      {
+        "module": "renderer/profilePanel",
+        "file": "src/renderer/profilePanel.js",
+        "description": "Project Profile panel — inline editor for `.frame/profile.json`."
+      }
+    ],
+    "profile-discovery-fallback.test": [
+      {
+        "module": "__tests__/profileDiscoveryFallback.test",
+        "file": "src/__tests__/profileDiscoveryFallback.test.js",
+        "description": "Profile discovery fallback — when a project has no .frame/profile.json"
+      }
+    ],
+    "profile-panel.test": [
+      {
+        "module": "__tests__/profilePanel.test",
+        "file": "src/__tests__/profilePanel.test.js",
+        "description": "profilePanel — pure-helper tests."
+      }
+    ],
+    "profile.test": [
+      {
+        "module": "__tests__/profile.test",
+        "file": "src/__tests__/profile.test.js",
+        "description": ""
+      }
+    ],
     "project-section": [
       {
         "module": "renderer/projectSection",
@@ -8506,6 +11671,23 @@
         "module": "renderer/promptsPanel",
         "file": "src/renderer/promptsPanel.js",
         "description": "Prompts Panel Module"
+      }
+    ],
+    "registry": [
+      {
+        "module": "main/adapters/registry",
+        "file": "src/main/adapters/registry.js",
+        "description": "Adapter registry — picks the right escalation channel per role."
+      },
+      {
+        "module": "main/capabilities/registry",
+        "file": "src/main/capabilities/registry.js",
+        "description": "Capability registry — built per project profile."
+      },
+      {
+        "module": "main/workers/registry",
+        "file": "src/main/workers/registry.js",
+        "description": "Worker registry — single process-wide map."
       }
     ],
     "sample-banner": [
@@ -8555,6 +11737,20 @@
         "description": "Sidebar Resize Module"
       }
     ],
+    "slack-adapter": [
+      {
+        "module": "main/adapters/slackAdapter",
+        "file": "src/main/adapters/slackAdapter.js",
+        "description": "Slack escalation adapter — v2 stub."
+      }
+    ],
+    "slack-adapter.test": [
+      {
+        "module": "__tests__/slackAdapter.test",
+        "file": "src/__tests__/slackAdapter.test.js",
+        "description": "SlackAdapter tests — Block Kit construction, webhook fallback, callback."
+      }
+    ],
     "spec": [
       {
         "module": "main/specManager",
@@ -8565,6 +11761,20 @@
         "module": "renderer/specPanel",
         "file": "src/renderer/specPanel.js",
         "description": "Specs Panel Module"
+      }
+    ],
+    "spec-attachments": [
+      {
+        "module": "main/specAttachments",
+        "file": "src/main/specAttachments.js",
+        "description": "Spec Attachments"
+      }
+    ],
+    "spec-attachments.test": [
+      {
+        "module": "__tests__/specAttachments.test",
+        "file": "src/__tests__/specAttachments.test.js",
+        "description": ""
       }
     ],
     "spec-detail-modal": [
@@ -8579,6 +11789,20 @@
         "module": "renderer/specPanelResize",
         "file": "src/renderer/specPanelResize.js",
         "description": "Specs Panel Resize Module"
+      }
+    ],
+    "spec-reader": [
+      {
+        "module": "main/capabilities/specReader",
+        "file": "src/main/capabilities/specReader.js",
+        "description": "SpecReader capability — keyword-scores paragraphs from the project"
+      }
+    ],
+    "spec-reader.test": [
+      {
+        "module": "__tests__/specReader.test",
+        "file": "src/__tests__/specReader.test.js",
+        "description": ""
       }
     ],
     "spec-section": [
@@ -8614,6 +11838,104 @@
         "module": "main/structureBootstrap",
         "file": "src/main/structureBootstrap.js",
         "description": "Structure Bootstrap"
+      }
+    ],
+    "supervisor-classifier": [
+      {
+        "module": "main/supervisorClassifier",
+        "file": "src/main/supervisorClassifier.js",
+        "description": "LLM-judged classifier — combines hard-policy + LLM verdict + evidence"
+      }
+    ],
+    "supervisor-classifier.test": [
+      {
+        "module": "__tests__/supervisorClassifier.test",
+        "file": "src/__tests__/supervisorClassifier.test.js",
+        "description": ""
+      }
+    ],
+    "supervisor-claude-runner": [
+      {
+        "module": "main/supervisorClaudeRunner",
+        "file": "src/main/supervisorClaudeRunner.js",
+        "description": "Wrapper around `claude -p --output-format json --max-turns 1`."
+      }
+    ],
+    "supervisor-client": [
+      {
+        "module": "renderer/supervisorClient",
+        "file": "src/renderer/supervisorClient.js",
+        "description": "Renderer-side supervisor client."
+      }
+    ],
+    "supervisor-critic": [
+      {
+        "module": "main/supervisorCritic",
+        "file": "src/main/supervisorCritic.js",
+        "description": "Outcome critic — judges whether a task actually shipped what it asked for."
+      }
+    ],
+    "supervisor-critic.test": [
+      {
+        "module": "__tests__/supervisorCritic.test",
+        "file": "src/__tests__/supervisorCritic.test.js",
+        "description": ""
+      }
+    ],
+    "supervisor-ipc": [
+      {
+        "module": "main/supervisorIPC",
+        "file": "src/main/supervisorIPC.js",
+        "description": "IPC bridge between the renderer and the supervisor engine."
+      }
+    ],
+    "supervisor-loop": [
+      {
+        "module": "main/supervisorLoop",
+        "file": "src/main/supervisorLoop.js",
+        "description": "Per-spec supervisor loop — one instance per Auto'd spec."
+      }
+    ],
+    "supervisor-loop.test": [
+      {
+        "module": "__tests__/supervisorLoop.test",
+        "file": "src/__tests__/supervisorLoop.test.js",
+        "description": ""
+      }
+    ],
+    "supervisor-policy": [
+      {
+        "module": "main/supervisorPolicy",
+        "file": "src/main/supervisorPolicy.js",
+        "description": "Supervisor loop's hard-policy fast path."
+      }
+    ],
+    "supervisor-policy.test": [
+      {
+        "module": "__tests__/supervisorPolicy.test",
+        "file": "src/__tests__/supervisorPolicy.test.js",
+        "description": ""
+      }
+    ],
+    "supervisor-profile-bridge": [
+      {
+        "module": "main/supervisorProfileBridge",
+        "file": "src/main/supervisorProfileBridge.js",
+        "description": "Shared bridge between the supervisor's YAML profiles and Frame's JSON"
+      }
+    ],
+    "supervisor-prompt-builder": [
+      {
+        "module": "main/supervisorPromptBuilder",
+        "file": "src/main/supervisorPromptBuilder.js",
+        "description": "Prompt builders for the supervisor's classifier + critic."
+      }
+    ],
+    "supervisor-registry": [
+      {
+        "module": "main/supervisorRegistry",
+        "file": "src/main/supervisorRegistry.js",
+        "description": "Supervisor registry — process-global map of `(projectPath, slug) → SupervisorLoop`."
       }
     ],
     "task-confirm-modal": [
@@ -8719,6 +12041,37 @@
         "description": "Terminal Top Bar Module (historically the tab bar)"
       }
     ],
+    "types": [
+      {
+        "module": "main/adapters/types",
+        "file": "src/main/adapters/types.js",
+        "description": "Escalation adapter base class."
+      },
+      {
+        "module": "main/capabilities/types",
+        "file": "src/main/capabilities/types.js",
+        "description": "Capability base class."
+      },
+      {
+        "module": "main/workers/types",
+        "file": "src/main/workers/types.js",
+        "description": "Abstract Worker base class."
+      }
+    ],
+    "ui-adapter": [
+      {
+        "module": "main/adapters/uiAdapter",
+        "file": "src/main/adapters/uiAdapter.js",
+        "description": "UI escalation adapter — writes the escalation to disk, emits an IPC"
+      }
+    ],
+    "ui-adapter.test": [
+      {
+        "module": "__tests__/uiAdapter.test",
+        "file": "src/__tests__/uiAdapter.test.js",
+        "description": ""
+      }
+    ],
     "update-checker": [
       {
         "module": "main/updateChecker",
@@ -8740,11 +12093,32 @@
         "description": "User + team membership endpoints"
       }
     ],
+    "web-research": [
+      {
+        "module": "main/capabilities/webResearch",
+        "file": "src/main/capabilities/webResearch.js",
+        "description": "WebResearch capability — v1 stub."
+      }
+    ],
     "welcome-overlay": [
       {
         "module": "renderer/welcomeOverlay",
         "file": "src/renderer/welcomeOverlay.js",
         "description": "Welcome Overlay (Launch Greeting)"
+      }
+    ],
+    "worker-types": [
+      {
+        "module": "shared/workerTypes",
+        "file": "src/shared/workerTypes.js",
+        "description": "Worker abstraction types — shared between main and renderer."
+      }
+    ],
+    "workers.test": [
+      {
+        "module": "__tests__/workers.test",
+        "file": "src/__tests__/workers.test.js",
+        "description": ""
       }
     ],
     "workspace": [

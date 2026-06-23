@@ -1,0 +1,2 @@
+{"ts":"2026-06-21T23:53:29.310Z","runId":"run-1","event":"project-run-started","caps":{"max_turns_per_task":3,"max_total_turns":50,"budget_usd":null,"pause_on_phase_transition":[],"stop_on_explicit_error":true,"max_parallel_specs":2},"assignments":["we-should-be-able-to-modify-specs-add-to-tasks-e"]}
+{"ts":"2026-06-21T23:53:29.313Z","runId":"run-1","event":"project-run-completed","remainingSpecs":0}

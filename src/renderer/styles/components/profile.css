@@ -1,0 +1,376 @@
+/* ==================== PROJECT-SECTION TAB STRIP ==================== */
+/*
+ * Two-tab strip inside the Projects rail: Workspace (default) + Profile.
+ * Matches the existing skinny-rail typography (10–11px, uppercase) so it
+ * reads as a section-internal control rather than a primary navigation.
+ */
+
+.project-section-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 4px 0 6px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.project-section-tab {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.project-section-tab:hover {
+  color: var(--text-secondary);
+}
+
+.project-section-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+.project-section-profile-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* When the Profile tab is active inside the skinny sidebar, the section
+ * should fill available height (so the JSON view has room to scroll). */
+.sidebar-view-projects #project-section:has(#project-section-profile-tab:not([style*="display: none"])) {
+  flex: 1 1 auto;
+}
+
+/* ==================== PROFILE TAB CONTENT ==================== */
+
+.profile-tab-loading,
+.profile-tab-empty {
+  padding: 14px 10px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.profile-tab-meta {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.profile-tab-source[data-source="default"] {
+  color: var(--warning, #e5a50a);
+}
+
+.profile-tab-nudge {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(229, 165, 10, 0.12);
+  border: 1px solid rgba(229, 165, 10, 0.45);
+  border-radius: var(--radius-sm, 4px);
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.profile-tab-nudge-icon { font-size: 13px; line-height: 1.2; }
+.profile-tab-nudge-text { flex: 1 1 100%; line-height: 1.4; }
+.profile-tab-nudge code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.profile-tab-nudge-generate {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.profile-tab-warnings {
+  padding: 8px 12px;
+  background: rgba(212, 85, 85, 0.10);
+  border: 1px solid rgba(212, 85, 85, 0.4);
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+.profile-tab-warnings ul { margin: 4px 0 0; padding-left: 18px; }
+
+/* The skinny sidebar leaves no room for a true side-by-side layout — the
+ * form stacks above the JSON view. Drag the sidebar wider to bring the
+ * two panels alongside one another (≥640px crosses the breakpoint). */
+.profile-tab-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 640px) {
+  .profile-tab-body {
+    grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr);
+  }
+}
+
+.profile-tab-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-tab-json {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 180px;
+}
+
+.profile-tab-json-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-tertiary);
+}
+
+.profile-tab-json-text {
+  flex: 1 1 auto;
+  resize: vertical;
+  min-height: 160px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+  line-height: 1.45;
+  padding: 8px 10px;
+  background: var(--bg-primary, #181311);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.profile-tab-json-text:focus { border-color: var(--accent-primary, #cd7f32); }
+
+.profile-tab-json-error {
+  color: var(--error, #d45555);
+  font-size: 11px;
+  min-height: 14px;
+}
+
+.profile-tab-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+
+.profile-tab-fieldset {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px 2px;
+  margin: 6px 0;
+}
+
+.profile-tab-fieldset legend {
+  padding: 0 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-secondary, #c5b5a0);
+}
+
+.profile-tab-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.profile-tab-input {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.profile-tab-input:focus { border-color: var(--accent-primary); }
+
+.profile-tab-textarea {
+  resize: vertical;
+  min-height: 60px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px;
+}
+
+.profile-tab-hint {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  line-height: 1.35;
+}
+
+.profile-tab-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.profile-tab-status {
+  flex: 1 1 auto;
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+}
+
+/* ==================== MEMORY TAB ==================== */
+
+.memory-tab-mount {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.memory-tab-loading {
+  padding: 12px;
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.memory-tab-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.memory-tab-search {
+  flex: 1 1 auto;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 9px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  outline: none;
+}
+
+.memory-tab-search:focus { border-color: var(--accent-primary); }
+
+.memory-tab-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary, #221a13);
+}
+
+.memory-tab-summary {
+  flex: 1 1 auto;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.memory-tab-toggle {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.memory-tab-empty {
+  padding: 14px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-sm);
+  line-height: 1.45;
+}
+
+.memory-tab-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.memory-tab-row {
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.memory-tab-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.memory-tab-cat {
+  display: inline-block;
+  padding: 1px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-radius: 99px;
+  color: var(--bg-deep, #1a1410);
+  background: var(--text-secondary);
+}
+
+.memory-tab-cat-rules       { background: #cd7f32; }
+.memory-tab-cat-decisions   { background: #6fb6ff; }
+.memory-tab-cat-context     { background: #b48ead; }
+.memory-tab-cat-transcripts { background: #a3be8c; }
+
+.memory-tab-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.memory-tab-slug {
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.memory-tab-ts {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+}
+
+.memory-tab-score {
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--bg-deep, #1a1410);
+  background: var(--accent-primary, #cd7f32);
+  border-radius: 99px;
+}
+
+.memory-tab-body {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  line-height: 1.4;
+}

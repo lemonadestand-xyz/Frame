@@ -209,6 +209,155 @@ body.sidebar-resizing * {
   transform: scale(0.97);
 }
 
+/* Gear button to open the Start-options popover */
+.sidebar-agent-options {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 0 6px;
+  height: 26px;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.sidebar-agent-options:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.sidebar-agent-options[aria-expanded="true"] {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Start-options popover (lives below the agent row in sidebar flow) */
+.ai-tool-options-popover {
+  margin-top: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-size: 12px;
+  color: var(--text-primary);
+  padding: 0 0 10px 0;
+}
+.ai-tool-options-popover[hidden] { display: none; }
+.ai-tool-options-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+}
+.ai-tool-options-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+.ai-tool-options-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+.ai-tool-options-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 10px 0 10px;
+}
+.ai-tool-options-section-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.ai-tool-options-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ai-tool-options-preset {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.ai-tool-options-preset:hover { background: var(--bg-hover); }
+.ai-tool-options-preset input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--accent-primary);
+}
+.ai-tool-options-preset-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ai-tool-options-preset-label {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+.ai-tool-options-preset-flag {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  color: var(--accent-primary);
+  background: var(--accent-subtle, rgba(255,196,0,0.12));
+  padding: 1px 5px;
+  border-radius: 3px;
+  align-self: flex-start;
+}
+.ai-tool-options-preset-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.ai-tool-options-no-presets {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 4px 0;
+}
+.ai-tool-options-custom {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  outline: none;
+}
+.ai-tool-options-custom:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px var(--accent-subtle, rgba(255,196,0,0.18));
+}
+.ai-tool-options-preview {
+  display: block;
+  background: var(--bg-deep);
+  color: var(--accent-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  word-break: break-all;
+}
+
 /* Update banner — sidebar footer card, primary signal when an update is available */
 .sidebar-update-banner {
   flex-shrink: 0;

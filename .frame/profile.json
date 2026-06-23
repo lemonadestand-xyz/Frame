@@ -1,0 +1,88 @@
+{
+  "id": "frame",
+  "project": {
+    "id": "frame",
+    "name": "Frame",
+    "memoryId": "frame"
+  },
+  "worker": {
+    "provider": "claude_code",
+    "auth": "subscription",
+    "permission": {
+      "mode": "acceptEdits",
+      "allowedTools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep",
+        "WebFetch",
+        "WebSearch"
+      ]
+    }
+  },
+  "context_sources": [
+    "/Users/christophercampbell/Desktop/lemonade-stand/Frame/CLAUDE.md",
+    "/Users/christophercampbell/Desktop/lemonade-stand/Frame/AGENTS.md",
+    "/Users/christophercampbell/Desktop/lemonade-stand/Frame/README.md",
+    "/Users/christophercampbell/Desktop/lemonade-stand/Frame/STRUCTURE.json",
+    "/Users/christophercampbell/Desktop/lemonade-stand/Frame/PROJECT_NOTES.md",
+    "/Users/christophercampbell/Desktop/lemonade-stand/autonomous_agent/autonomous-supervisor/supervisor/docs"
+  ],
+  "policy": {
+    "cost_ceiling_usd": 0,
+    "escalate_categories": [
+      "dependency",
+      "schema",
+      "spec_contradiction",
+      "secrets",
+      "remote_write",
+      "publish",
+      "source_modification"
+    ],
+    "rules": [
+      {
+        "category": "naming",
+        "route": "auto_answer"
+      },
+      {
+        "category": "style",
+        "route": "auto_answer"
+      },
+      {
+        "category": "consistency",
+        "route": "research"
+      },
+      {
+        "category": "spec_ambiguity",
+        "route": "research"
+      }
+    ]
+  },
+  "roles": [
+    {
+      "name": "engineer",
+      "style": "technical",
+      "channel": "mobile_api",
+      "authority": [
+        "*"
+      ],
+      "proactivity": 3
+    }
+  ],
+  "people": {
+    "chris": "engineer"
+  },
+  "capabilities": [
+    "spec_reader",
+    "codebase_search",
+    "web_research"
+  ],
+  "budgets": {
+    "iteration_cap": 3,
+    "spend_ceiling_task_usd": 15,
+    "spend_ceiling_day_usd": 100
+  },
+  "store": "local"
+}

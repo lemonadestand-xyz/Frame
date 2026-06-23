@@ -112,15 +112,28 @@ function footprintsOverlap(fa, fb) {
   return false;
 }
 
+// Pure: given a candidate { slug, footprint } list, return the first slug
+// (other than `slug`) whose footprint overlaps `footprint`, or null.
+// Stateless — safe to call from autopilot / tests / anywhere with no
+// orchestration session.
+function findFootprintConflictAmong(slug, footprint, candidates) {
+  if (!Array.isArray(candidates)) return null;
+  for (const c of candidates) {
+    if (!c || c.slug === slug) continue;
+    if (footprintsOverlap(footprint, c.footprint || [])) return c.slug;
+  }
+  return null;
+}
+
 // An in-flight spec whose footprint overlaps `footprint`, or null. done/failed
 // workers don't block (their work is already integrated or abandoned).
 function findFootprintConflict(slug, footprint) {
+  const candidates = [];
   for (const w of session.workers.values()) {
-    if (w.slug === slug) continue;
     if (!['running', 'idle'].includes(w.status)) continue; // only in-flight workers block
-    if (footprintsOverlap(footprint, w.declaredFootprint || [])) return w.slug;
+    candidates.push({ slug: w.slug, footprint: w.declaredFootprint || [] });
   }
-  return null;
+  return findFootprintConflictAmong(slug, footprint, candidates);
 }
 
 // Write the interpolated worker prompt to the MAIN repo (worktrees lack .frame/
@@ -642,6 +655,12 @@ module.exports = {
   removeWorker,
   getState,
   rehydrate,
+  // Pure helpers reused by autopilot's cross-spec scheduler. Both are
+  // stateless — the `*Among` form takes its candidates explicitly; the
+  // session-bound form reads the orchestration workers map.
+  findFootprintConflict,
+  findFootprintConflictAmong,
+  footprintsOverlap,
   // exposed for later tasks / tests
   _internal: {
     worktreeDirFor,

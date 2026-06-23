@@ -4966,6 +4966,190 @@
   cursor: default;
 }
 
+/* Autopilot toggle + pill */
+.spec-next-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.autopilot-toggle {
+  white-space: nowrap;
+  font-size: 12px;
+  padding: 6px 10px;
+}
+.autopilot-toggle-on {
+  background: rgba(255, 196, 0, 0.18);
+  border-color: rgba(255, 196, 0, 0.6);
+  color: #ffd34a;
+}
+.autopilot-toggle-error {
+  background: rgba(220, 80, 80, 0.18);
+  border-color: rgba(220, 80, 80, 0.6);
+  color: #ff8a8a;
+}
+.autopilot-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.autopilot-pill-running {
+  background: rgba(255, 196, 0, 0.15);
+  color: #ffd34a;
+  border: 1px solid rgba(255, 196, 0, 0.45);
+}
+.autopilot-pill-paused {
+  background: rgba(255, 140, 0, 0.18);
+  color: #ffb04a;
+  border: 1px solid rgba(255, 140, 0, 0.5);
+}
+.autopilot-pill-failed {
+  background: rgba(220, 80, 80, 0.18);
+  color: #ff8a8a;
+  border: 1px solid rgba(220, 80, 80, 0.55);
+}
+
+/* Inline editors for spec.md / plan.md / tasks.md */
+.spec-doc-edit-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.spec-doc-edit-btn {
+  font-size: 12px;
+  padding: 6px 12px;
+}
+.spec-doc-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0;
+}
+.spec-doc-textarea {
+  width: 100%;
+  min-height: 360px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #e6e6e6;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+}
+.spec-doc-editor-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+.spec-doc-editor-hint code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.spec-doc-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Task add row + remove button */
+.spec-task-add-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.spec-task-add-input {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #e6e6e6;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+.spec-task-add-btn {
+  font-size: 12px;
+  padding: 6px 12px;
+}
+.spec-task-action-danger:hover {
+  color: #ff8a8a;
+}
+
+/* Audit log */
+.spec-audit-log {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+.spec-audit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+}
+.spec-audit-ts {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  min-width: 165px;
+}
+.spec-audit-turn {
+  color: rgba(255, 255, 255, 0.6);
+  min-width: 60px;
+}
+.spec-audit-detail {
+  color: rgba(255, 255, 255, 0.55);
+  margin-left: auto;
+}
+.spec-audit-turn-progress {
+  border-left: 3px solid rgba(80, 220, 120, 0.5);
+}
+.spec-audit-turn-noprogress {
+  border-left: 3px solid rgba(255, 196, 0, 0.5);
+}
+.spec-audit-success {
+  border-left: 3px solid #50dc78;
+  background: rgba(80, 220, 120, 0.07);
+}
+.spec-audit-failed {
+  border-left: 3px solid #ff8a8a;
+  background: rgba(220, 80, 80, 0.07);
+}
+.spec-audit-paused {
+  border-left: 3px solid #ffb04a;
+  background: rgba(255, 140, 0, 0.07);
+}
+.spec-audit-meta {
+  border-left: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Lane board project-actions row */
+.lane-board-actions {
+  margin: 0 0 12px 0;
+}
+.lane-board-actions-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+
 .spec-action-spinner {
   display: inline-block;
   width: 11px;
@@ -5511,6 +5695,49 @@
   gap: var(--space-sm);
 }
 
+/* Pre-arm checkbox (modal + Next-step card) — minimal, blends with surrounding text */
+.spec-modal-checkbox,
+.spec-pre-arm-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: var(--space-sm) 0 0;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.spec-modal-checkbox input,
+.spec-pre-arm-checkbox input {
+  margin: 0;
+  cursor: pointer;
+}
+.spec-modal-checkbox:hover,
+.spec-pre-arm-checkbox:hover {
+  color: var(--text-primary);
+}
+
+/* Header-level Auto toggle — compact chip variant for the spec-detail-meta row */
+.spec-header-autopilot .autopilot-toggle {
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  border-radius: 999px;
+}
+
+/* "Auto on tasks · no lane attached" passive chip */
+.spec-arm-pending-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 999px;
+  background: var(--bg-elevated, rgba(255, 170, 60, 0.12));
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 170, 60, 0.35);
+  white-space: nowrap;
+}
+
 /* Suggestion (opt-in) modal — softer presentation than the New Spec modal */
 .spec-modal-suggestion {
   width: 540px;
@@ -6012,3 +6239,158 @@
   }
 }
 
+
+/* ─── Spec attachments (paste/drop screenshots + docs) ──────────── */
+
+/* Add-file row + hint sitting below the description textarea. */
+.spec-attach-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  flex-wrap: wrap;
+}
+.spec-attach-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+.spec-attach-hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Chip list — one chip per staged file, with a remove × on the right. */
+.spec-attach-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--space-sm);
+}
+.spec-attach-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 240px;
+  padding: 3px 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--text-primary);
+}
+.spec-attach-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.spec-attach-chip-remove {
+  background: transparent;
+  border: 0;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.spec-attach-chip-remove:hover {
+  color: var(--text-primary);
+}
+
+/* Drop-zone visual cue. Applied to textareas while a file is being
+   dragged over them — both the New Spec modal description and the
+   inline editor on the spec / plan tabs. Uses existing theme tokens
+   so the highlight tracks the active theme. */
+.spec-attach-dropzone.drag-over,
+.spec-doc-textarea.drag-over {
+  outline: 2px dashed var(--accent, var(--text-primary));
+  outline-offset: -2px;
+  background: color-mix(in srgb, var(--accent, var(--bg-secondary)) 8%, var(--bg-secondary));
+}
+
+/* Attachments (N) header chip + popover. */
+.spec-attachments-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+}
+.spec-attachments-chip:hover {
+  color: var(--text-primary);
+  border-color: var(--accent, var(--border));
+}
+.spec-attachments-chip svg {
+  opacity: 0.8;
+}
+.spec-attachments-chip-count {
+  display: inline-block;
+  min-width: 14px;
+  padding: 0 4px;
+  background: var(--bg-secondary);
+  border-radius: 7px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.spec-attachments-popover {
+  z-index: 9999;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  min-width: 260px;
+  max-width: 360px;
+  max-height: 320px;
+  overflow: auto;
+  padding: var(--space-sm);
+}
+.spec-attachments-popover-header {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.spec-attachments-popover-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.spec-attachments-popover-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 4px 0;
+  font-size: 12px;
+}
+.spec-attachments-popover-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+.spec-attachments-popover-reveal {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.spec-attachments-popover-reveal:hover {
+  color: var(--text-primary);
+  border-color: var(--accent, var(--border));
+}

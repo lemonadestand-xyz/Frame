@@ -1,0 +1,21 @@
+{
+  "slug": "we-should-be-able-to-modify-specs-add-to-tasks-e",
+  "title": "We should be able to modify specs + add to tasks etc",
+  "phase": "done",
+  "ai_tool": null,
+  "generated_task_ids": [
+    "task-spec-we-should-be-able-to-modify-specs-add-to-tasks-e-T01",
+    "task-spec-we-should-be-able-to-modify-specs-add-to-tasks-e-T02",
+    "task-spec-we-should-be-able-to-modify-specs-add-to-tasks-e-T03",
+    "task-spec-we-should-be-able-to-modify-specs-add-to-tasks-e-T04",
+    "task-spec-we-should-be-able-to-modify-specs-add-to-tasks-e-T05",
+    "task-spec-we-should-be-able-to-modify-specs-add-to-tasks-e-T06",
+    "task-spec-we-should-be-able-to-modify-specs-add-to-tasks-e-T07",
+    "task-spec-we-should-be-able-to-modify-specs-add-to-tasks-e-T08",
+    "task-spec-we-should-be-able-to-modify-specs-add-to-tasks-e-T09",
+    "task-spec-we-should-be-able-to-modify-specs-add-to-tasks-e-T10"
+  ],
+  "created_at": "2026-06-21T23:24:54.788Z",
+  "updated_at": "2026-06-22T09:22:02.869Z",
+  "last_phase_at": "2026-06-22T09:22:02.869Z"
+}

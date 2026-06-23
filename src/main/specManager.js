@@ -209,6 +209,30 @@ function collectSpecTasks(slug, tasksData) {
   return tasksData.tasks.filter(t => t && typeof t.source === 'string' && t.source.startsWith(prefix));
 }
 
+// Public helper for autopilot: count pending tasks belonging to one spec.
+// Loads tasks.json via tasksManager (handles legacy-shape migration) and
+// reuses collectSpecTasks so the source-prefix rule stays in one place.
+function readPendingCount(projectPath, slug) {
+  if (!projectPath || !slug) return 0;
+  const tasksData = tasksManager.loadTasks(projectPath);
+  if (!tasksData) return 0;
+  const specTasks = collectSpecTasks(slug, tasksData);
+  return specTasks.filter(t => t && t.status === 'pending').length;
+}
+
+// Autopilot's real "undone" count: pending OR in_progress. An in_progress
+// task that no one is actively driving (e.g. promoted to in_progress by a
+// bulk operation, or stranded after a user-cancelled turn) is still work
+// the loop should pick up. The lane lock in agentDispatch prevents
+// double-assignment if a human IS actively in the task.
+function readUndoneCount(projectPath, slug) {
+  if (!projectPath || !slug) return 0;
+  const tasksData = tasksManager.loadTasks(projectPath);
+  if (!tasksData) return 0;
+  const specTasks = collectSpecTasks(slug, tasksData);
+  return specTasks.filter(t => t && (t.status === 'pending' || t.status === 'in_progress')).length;
+}
+
 function reconcilePhase(projectPath, slug, tasksDataOrNull) {
   const status = readStatus(projectPath, slug);
   if (!status) return;
@@ -221,6 +245,16 @@ function reconcilePhase(projectPath, slug, tasksDataOrNull) {
     updated_at: now,
     last_phase_at: now
   });
+
+  // Pre-arm hook: when a spec advances to `tasks_generated` and its
+  // autopilot.json has `auto_on_tasks: true`, push an ARM request to the
+  // renderer. The renderer owns lane attachment and calls startAutopilot
+  // itself (main → renderer boundary preserved). Lazy-required to dodge
+  // a circular dep with autopilot.js → specManager (deps injection).
+  if (newPhase === 'tasks_generated') {
+    try { require('./autopilot').emitArmRequest(projectPath, slug); }
+    catch (err) { console.error('specManager: failed to fire ARM request', err); }
+  }
 }
 
 // ─── Command template loading + interpolation ──────────────
@@ -478,7 +512,7 @@ function getSpec(projectPath, slug) {
 }
 
 function createSpec(projectPath, opts) {
-  const { title, ai_tool, description } = opts || {};
+  const { title, ai_tool, description, auto_on_tasks, pendingAttachments } = opts || {};
   if (!title || typeof title !== 'string') return { error: 'title required' };
   const baseSlug = generateSlug(title);
   if (!baseSlug) return { error: 'could not derive slug from title' };
@@ -504,10 +538,46 @@ function createSpec(projectPath, opts) {
   };
   writeStatus(projectPath, slug, status);
 
-  if (hasDescription) {
+  // Promote any files the user staged before submitting the New Spec modal.
+  // The renderer passes the stagingId it used for ATTACH_SPEC_FILE calls;
+  // promoteStagedAttachments moves them under .frame/specs/<slug>/attachments/
+  // and returns relative paths so we can append a References block to spec.md.
+  let promotedRelativePaths = [];
+  if (pendingAttachments && typeof pendingAttachments === 'string') {
+    try {
+      const specAttachments = require('./specAttachments');
+      const promo = specAttachments.promoteStagedAttachments(projectPath, pendingAttachments, slug);
+      if (promo && promo.success && Array.isArray(promo.relativePaths)) {
+        promotedRelativePaths = promo.relativePaths;
+      }
+    } catch (err) {
+      console.error('specManager: failed to promote staged attachments', err);
+    }
+  }
+
+  if (hasDescription || promotedRelativePaths.length > 0) {
     const dir = getSpecDir(projectPath, slug);
-    const seed = `# ${title}\n\n${trimmedDescription}\n`;
+    let seed = `# ${title}\n\n${trimmedDescription}\n`;
+    if (promotedRelativePaths.length > 0) {
+      const refs = promotedRelativePaths.map((rel) => {
+        const base = rel.split('/').pop();
+        const isImage = /\.(png|jpe?g|gif|webp|svg|bmp|heic|heif)$/i.test(base);
+        return `- ${isImage ? '!' : ''}[${base}](${rel})`;
+      }).join('\n');
+      seed += `\n## References\n\n${refs}\n`;
+    }
     fs.writeFileSync(path.join(dir, SPEC_FILE), seed, 'utf8');
+  }
+
+  // Persist the pre-arm intent if the user ticked the checkbox in the
+  // New Spec modal. Only writes when true — keeps the spec dir clean
+  // for users who never opt in.
+  if (auto_on_tasks === true) {
+    try {
+      require('./autopilot.config').writeAutoOnTasks(projectPath, slug, true);
+    } catch (err) {
+      console.error('specManager: failed to persist auto_on_tasks on createSpec', err);
+    }
   }
 
   // Push fresh SPEC_DATA so the panel reflects the new spec immediately.
@@ -738,6 +808,101 @@ function init(window) {
   mainWindow = window;
 }
 
+// ─── Edit operations (spec.md / plan.md / tasks.md from the UI) ────
+
+const EDITABLE_DOCS = { spec: SPEC_FILE, plan: PLAN_FILE, tasks: TASKS_FILE };
+
+function writeSpecDoc(projectPath, slug, docType, content) {
+  if (!projectPath || !slug) return { success: false, error: 'projectPath + slug required' };
+  if (!EDITABLE_DOCS[docType]) return { success: false, error: `unknown doc: ${docType}` };
+  const status = readStatus(projectPath, slug);
+  if (!status) return { success: false, error: 'spec not found' };
+  if (typeof content !== 'string') return { success: false, error: 'content must be a string' };
+  try {
+    const dir = getSpecDir(projectPath, slug);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, EDITABLE_DOCS[docType]), content, 'utf8');
+    const now = new Date().toISOString();
+    writeStatus(projectPath, slug, { ...status, updated_at: now });
+    if (docType === 'tasks') {
+      // Re-sync tasks.md → tasks.json so newly-added markdown rows
+      // become tracked tasks. Pre-existing rows preserve status.
+      try { syncTasksFromMarkdown(projectPath, slug); } catch (err) {
+        console.error('writeSpecDoc: tasks sync failed', err);
+      }
+    }
+    reconcilePhase(projectPath, slug);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message || String(err) };
+  }
+}
+
+function _nextTaskId(projectPath, slug) {
+  const tasksMd = readFileSafe(path.join(getSpecDir(projectPath, slug), TASKS_FILE)) || '';
+  let max = 0;
+  for (const line of tasksMd.split(/\r?\n/)) {
+    const m = line.match(TASK_LINE_RE);
+    if (m) {
+      const n = parseInt(m[1].slice(1), 10);
+      if (Number.isFinite(n) && n > max) max = n;
+    }
+  }
+  return `T${String(max + 1).padStart(2, '0')}`;
+}
+
+function addSpecTask(projectPath, slug, title) {
+  if (!projectPath || !slug) return { success: false, error: 'projectPath + slug required' };
+  if (!title || !String(title).trim()) return { success: false, error: 'title required' };
+  const tasksMdPath = path.join(getSpecDir(projectPath, slug), TASKS_FILE);
+  const current = readFileSafe(tasksMdPath) || '';
+  const id = _nextTaskId(projectPath, slug);
+  const cleanTitle = String(title).trim().replace(/\r?\n/g, ' ');
+  const newLine = `- ${id} · ${cleanTitle}`;
+  const next = current.endsWith('\n') || current === '' ? current + newLine + '\n' : current + '\n' + newLine + '\n';
+  try {
+    fs.mkdirSync(getSpecDir(projectPath, slug), { recursive: true });
+    fs.writeFileSync(tasksMdPath, next, 'utf8');
+    syncTasksFromMarkdown(projectPath, slug);
+    reconcilePhase(projectPath, slug);
+    return { success: true, taskId: id };
+  } catch (err) {
+    return { success: false, error: err.message || String(err) };
+  }
+}
+
+function removeSpecTask(projectPath, slug, taskId) {
+  if (!projectPath || !slug || !taskId) return { success: false, error: 'projectPath + slug + taskId required' };
+  // Guard: only allow removing tasks that are still pending. Any task that
+  // has been started or completed must stay in the historical record.
+  const tasksData = tasksManager.loadTasks(projectPath);
+  if (tasksData) {
+    const sourceMarker = `spec:${slug}:${taskId}`;
+    const existing = (tasksData.tasks || []).find((t) => t && t.source === sourceMarker);
+    if (existing && existing.status !== 'pending') {
+      return { success: false, error: `Task is ${existing.status}; only pending tasks can be removed.` };
+    }
+    if (existing) {
+      tasksData.tasks = tasksData.tasks.filter((t) => t !== existing);
+      tasksManager.saveTasks(projectPath, tasksData);
+    }
+  }
+  const tasksMdPath = path.join(getSpecDir(projectPath, slug), TASKS_FILE);
+  const current = readFileSafe(tasksMdPath) || '';
+  const lines = current.split(/\r?\n/);
+  const filtered = lines.filter((line) => {
+    const m = line.match(TASK_LINE_RE);
+    return !(m && m[1] === taskId);
+  });
+  try {
+    fs.writeFileSync(tasksMdPath, filtered.join('\n'), 'utf8');
+    reconcilePhase(projectPath, slug);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message || String(err) };
+  }
+}
+
 function setupIPC(ipcMain) {
   ipcMain.handle(IPC.LIST_SPECS, (event, projectPath) =>
     listSpecs(projectPath)
@@ -766,6 +931,15 @@ function setupIPC(ipcMain) {
   ipcMain.on(IPC.UNWATCH_SPECS, () => {
     stopWatching();
   });
+  ipcMain.handle(IPC.WRITE_SPEC_DOC, (event, { projectPath, slug, docType, content }) =>
+    writeSpecDoc(projectPath, slug, docType, content)
+  );
+  ipcMain.handle(IPC.ADD_SPEC_TASK, (event, { projectPath, slug, title }) =>
+    addSpecTask(projectPath, slug, title)
+  );
+  ipcMain.handle(IPC.REMOVE_SPEC_TASK, (event, { projectPath, slug, taskId }) =>
+    removeSpecTask(projectPath, slug, taskId)
+  );
 }
 
 module.exports = {
@@ -781,6 +955,12 @@ module.exports = {
   renameSpec,
   deleteSpec,
   derivePhase,
+  reconcilePhase,
+  readPendingCount,
+  readUndoneCount,
+  writeSpecDoc,
+  addSpecTask,
+  removeSpecTask,
   getCommandPrompt,
   buildSpecCommandFile,
   parseTasksMarkdown,

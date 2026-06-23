@@ -1,0 +1,22 @@
+{
+  "slug": "frame-cross-project-orchestration-ui",
+  "title": "Frame cross-project orchestration UI — aggregated supervisor dashboard",
+  "phase": "done",
+  "ai_tool": null,
+  "generated_task_ids": [
+    "task-spec-frame-cross-project-orchestration-ui-T01",
+    "task-spec-frame-cross-project-orchestration-ui-T02",
+    "task-spec-frame-cross-project-orchestration-ui-T03",
+    "task-spec-frame-cross-project-orchestration-ui-T04",
+    "task-spec-frame-cross-project-orchestration-ui-T05",
+    "task-spec-frame-cross-project-orchestration-ui-T06",
+    "task-spec-frame-cross-project-orchestration-ui-T07",
+    "task-spec-frame-cross-project-orchestration-ui-T08",
+    "task-spec-frame-cross-project-orchestration-ui-T09",
+    "task-spec-frame-cross-project-orchestration-ui-T10",
+    "task-spec-frame-cross-project-orchestration-ui-T11"
+  ],
+  "created_at": "2026-06-22T01:58:00.000Z",
+  "updated_at": "2026-06-22T09:22:02.862Z",
+  "last_phase_at": "2026-06-22T09:22:02.862Z"
+}

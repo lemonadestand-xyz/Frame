@@ -135,6 +135,10 @@ class LaneBoard {
     if (state.terminals.length === 0) {
       this.boardEl.appendChild(this._renderEmptyState());
     } else {
+      // Project-level Autopilot toggle row, above the grid.
+      const actions = this._renderProjectActions(state.currentProjectPath);
+      if (actions) this.boardEl.appendChild(actions);
+
       const grid = document.createElement('div');
       grid.className = 'lane-board-grid';
       state.terminals.forEach((t) => grid.appendChild(this._renderCard(t)));
@@ -235,6 +239,48 @@ class LaneBoard {
     }
 
     return card;
+  }
+
+  _renderProjectActions(projectPath) {
+    if (!projectPath) return null;
+    const { renderProjectAutopilotToggle } = require('./autopilotToggle');
+    const autopilotClient = require('./autopilotClient');
+    const toggle = renderProjectAutopilotToggle({ projectPath });
+    const wrap = document.createElement('div');
+    wrap.className = 'lane-board-actions';
+
+    const run = autopilotClient.getRunFor({ projectPath, scope: 'project' });
+    let statusHtml = '';
+    if (run && ['starting', 'running'].includes(run.status)) {
+      statusHtml = `<span class="autopilot-pill autopilot-pill-running">🤖 Project Auto · ${run.turnsTotal || 0} sub-turns</span>`;
+    } else if (run && run.status === 'paused') {
+      statusHtml = `<span class="autopilot-pill autopilot-pill-paused">⏸ Project Auto paused</span>`;
+    } else if (run && run.status === 'failed') {
+      statusHtml = `<span class="autopilot-pill autopilot-pill-failed">⚠ Project Auto failed</span>`;
+    }
+
+    wrap.innerHTML = `<div class="lane-board-actions-inner">${toggle.html}${statusHtml}<button type="button" class="btn btn-secondary lane-board-xp-btn" id="lane-board-xp-btn" title="Open the cross-project supervisor board">Across projects ▾</button></div>`;
+    toggle.attachHandlers(wrap);
+    const xpBtn = wrap.querySelector('#lane-board-xp-btn');
+    if (xpBtn) xpBtn.addEventListener('click', () => _openCrossProjectBoard());
+
+    // Re-render this row whenever the project run transitions state.
+    if (!this._autopilotUnsub) {
+      let lastStatus = null;
+      this._autopilotUnsub = autopilotClient.onChange(() => {
+        if (!this.boardEl) return;
+        const r = autopilotClient.getRunFor({ projectPath, scope: 'project' });
+        const next = r ? `${r.status}:${r.turnsTotal}` : null;
+        if (next === lastStatus) return;
+        lastStatus = next;
+        const existing = this.boardEl.querySelector('.lane-board-actions');
+        if (existing) {
+          const fresh = this._renderProjectActions(projectPath);
+          if (fresh) existing.replaceWith(fresh);
+        }
+      });
+    }
+    return wrap;
   }
 
   _renderOrchestratorCard() {
@@ -488,6 +534,39 @@ class LaneBoard {
     div.textContent = text == null ? '' : String(text);
     return div.innerHTML;
   }
+}
+
+// ─── Cross-project supervisor board overlay ─────────────
+// Opens as a full-screen modal-overlay (same pattern as specsDashboard).
+// Reuses the rendering in src/renderer/crossProjectBoard.js.
+function _openCrossProjectBoard() {
+  if (document.querySelector('.xp-board-overlay')) return;
+  const crossProjectBoard = require('./crossProjectBoard');
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay visible xp-board-overlay';
+  overlay.innerHTML = `
+    <div class="modal-container modal-container-wide" role="dialog" aria-modal="true" style="width:min(1100px,94vw);max-width:1100px;max-height:88vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:flex-end;padding:10px 14px 0 0;">
+        <button type="button" class="btn btn-secondary xp-board-close">Close</button>
+      </div>
+      <div class="xp-board-mount"></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const mount = overlay.querySelector('.xp-board-mount');
+  const close = () => overlay.remove();
+  overlay.querySelector('.xp-board-close').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', function escHandler(e) {
+    if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); }
+  });
+  crossProjectBoard.attach(mount, {
+    onOpenSpec: ({ projectPath, slug }) => {
+      // Close overlay; future enhancement: switch project + scroll to spec.
+      close();
+      console.log('[xp-board] open spec', projectPath, slug);
+    },
+  });
 }
 
 module.exports = { LaneBoard, formatRelativeTime, STATUS_LABELS, cleanCommand, assignmentIcon, assignmentText };

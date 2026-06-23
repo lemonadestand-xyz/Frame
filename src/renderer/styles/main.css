@@ -64,3 +64,9 @@
 
 /* 19. Orchestrator (conductor-led parallel spec execution overlay) */
 @import 'components/orchestrator.css';
+
+/* 20. Supervisor loop surfaces (cross-project board + escalation modal) */
+@import 'components/supervisor.css';
+
+/* 21. Profile panel (project profile.json editor) */
+@import 'components/profile.css';
