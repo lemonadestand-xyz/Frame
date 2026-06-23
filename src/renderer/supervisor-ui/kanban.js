@@ -183,12 +183,41 @@ function create(root) {
     fallbackTimer = null;
   }
 
+  // Optimistic-pending insertion. /api/workspace.columns.pending derives from
+  // heartbeat.json, which only refreshes on the queue runner's 5s tick — so
+  // a /api/workspace fetch right after a new YAML lands won't see it for up
+  // to 5s. Bridge that gap by surfacing the new id immediately when the
+  // queue watcher fires for queue/pending/. The next authoritative poll
+  // either confirms or removes it.
+  function applyOptimisticPending(id) {
+    if (!id) return;
+    const el = root.querySelector('#sup-list-pending');
+    if (!el) return;
+    if (el.querySelector(`[data-task-id="${CSS.escape(id)}"]`)) return;
+    // Drop the "Queue empty" placeholder if present.
+    const empty = el.querySelector('.sup-col-empty');
+    if (empty) empty.remove();
+    const ctx = { supervisorRoot, onArtifactClick };
+    const synthetic = { id, title: id, status: 'pending' };
+    const card = taskCard.render(synthetic, 'pending', ctx);
+    card.classList.add('sup-card-optimistic');
+    el.appendChild(card);
+    const countEl = root.querySelector('#sup-ct-pending');
+    if (countEl) countEl.textContent = String(el.querySelectorAll('.sup-card').length);
+  }
+
   // Subscribe to main's reactive state pushes. Audit + queue events both
   // mean "workspace probably changed" → debounced refetch of /api/workspace.
+  // We also optimistically render new pending cards so the user sees the
+  // submission within ~1s instead of waiting for the next heartbeat tick.
   stateListener = (_evt, payload) => {
     if (!payload || !alive) return;
     receivedPushAt = Date.now();
     stopFallback();
+    if (payload.kind === 'queue' && payload.data && payload.data.status === 'pending'
+        && payload.data.name && /\.yaml$/.test(payload.data.name)) {
+      applyOptimisticPending(payload.data.name.replace(/\.yaml$/, ''));
+    }
     if (payload.kind === 'audit' || payload.kind === 'queue') {
       schedulePoll();
     }

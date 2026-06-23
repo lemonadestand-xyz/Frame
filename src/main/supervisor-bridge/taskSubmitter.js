@@ -161,6 +161,17 @@ async function respondEscalation({ id, kind, answer }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ kind, answer: answer || '' }),
     });
+    // The current monitor (server.py) doesn't yet implement the respond
+    // route — it returns 404 "unknown endpoint" or 405. The PWA carries the
+    // same fallback message; we surface it verbatim so the user knows it
+    // isn't a code defect on the Frame side.
+    if (res.status === 404 || res.status === 405) {
+      return {
+        ok: false,
+        not_implemented: true,
+        error: 'Monitor is read-only on escalation responses. The /api/escalations/{id}/respond route lands with the supervisor PR-4 mobile_api adapter.',
+      };
+    }
     if (!res.body) {
       return { ok: false, error: `monitor returned HTTP ${res.status}` };
     }
