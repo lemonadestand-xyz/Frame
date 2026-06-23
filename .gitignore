@@ -44,6 +44,15 @@ release/
 # Frame runtime artifacts (staged spec / agent-dispatch prompts — regenerated)
 .frame/runtime/
 
+# Per-instance Frame state — created as users open projects in Frame.
+# Upstream's own dev specs remain tracked (gitignore doesn't affect
+# already-tracked files); this just stops future usage-generated specs and
+# per-instance tasks from being staged on accident. Long-term: move spec/task
+# state behind a storage adapter (DB or remote file store) so multiple Frame
+# installs / forks don't fight over the same files in git.
+.frame/specs/
+tasks.json
+
 #Walkthroughs
 WALKTHROUGH/*.p8
 RELEASE.local.md
