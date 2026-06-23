@@ -1,16 +1,21 @@
 // Supervisor project tree — Phase B.
 //
-// Left rail listing supervisor-known projects. Source: /api/memory/projects
-// (the actual server has no /api/meta.projects array — that was inferred in
-// the brief; reality lives in supervisor/scripts/monitor/server.py:691).
-//
-// Per project, lazy-fetch docs (via SUPERVISOR_LIST_PROJECT_DOCS IPC). Clicking
-// a doc routes through editor.openFile(absPath).
-//
-// `queue/` child (per-project task filter) is deferred: workspace tasks don't
-// carry a project_id field. `.frame/specs/` child is deferred: no backend
-// endpoint exists for it yet. Both reappear when their data sources land.
+// Left rail listing Frame's workspace projects (from ~/.frame/workspaces.json
+// via SUPERVISOR_LIST_WORKSPACE_PROJECTS). For each project, three lazy
+// children:
+//   queue/ — /api/workspace filtered by substring match on title/id/profile/
+//            brief vs the project name (workspace tasks don't carry a
+//            project_id field, so we mirror the loose-match the PWA's
+//            project filter already does at supervisor/mobile/index.html:990).
+//            Clicking a queue row scrolls + flashes the matching card in
+//            the kanban via the onScrollToTask callback.
+//   docs/  — SUPERVISOR_LIST_PROJECT_DOCS({project_id: name, project_path}).
+//            Lists develop/*.md + ~/memory/<name>/**/*.md.
+//   specs/ — SUPERVISOR_LIST_PROJECT_SPECS({project_path}). Lists
+//            .frame/specs/<slug>/{spec,plan,tasks}.md — scanned from the
+//            filesystem since no supervisor API exposes this.
 
+const path = require('path');
 const { ipcRenderer } = require('electron');
 const SUP = require('../../shared/supervisor-ipc');
 const { SUPERVISOR_API } = require('./header');
@@ -27,7 +32,7 @@ async function fetchJson(p) {
   return res.json();
 }
 
-function openDoc(absPath) {
+function openFile(absPath) {
   try {
     const editor = require('../editor');
     editor.openFile(absPath, 'supervisor');
@@ -36,23 +41,51 @@ function openDoc(absPath) {
   }
 }
 
-function create(root) {
+/**
+ * Heuristic project-match: case-insensitive substring against title/id/
+ * profile/brief. Mirrors the PWA's project filter — loose, but the only
+ * option since the workspace payload has no project_id field.
+ */
+function taskMatchesProject(task, projectName) {
+  if (!projectName) return false;
+  const n = String(projectName).toLowerCase();
+  if (!n) return false;
+  return (
+    (task.id || '').toLowerCase().includes(n) ||
+    (task.title || '').toLowerCase().includes(n) ||
+    (task.profile || '').toLowerCase().includes(n) ||
+    (task.brief || '').toLowerCase().includes(n)
+  );
+}
+
+function flatTasks(workspace) {
+  const cols = (workspace && workspace.columns) || {};
+  return [
+    ...(cols.pending || []),
+    ...(cols.active || []),
+    ...(cols.awaiting || []),
+    ...(cols.done || []),
+  ];
+}
+
+function create(root, opts = {}) {
   let alive = true;
+  const onScrollToTask = opts.onScrollToTask || (() => {});
 
   root.innerHTML = '<div class="sup-tree-empty">Loading projects…</div>';
 
-  function buildDocsChildEl(projectId) {
+  function makeGroupNode(label, loader, renderChildren) {
     const wrap = document.createElement('div');
     wrap.className = 'sup-tree-node';
     wrap.innerHTML = `
-      <div class="sup-tree-row group" data-act="toggle-docs">
+      <div class="sup-tree-row group">
         <span class="sup-chev">▸</span>
-        <span class="sup-label">docs</span>
+        <span class="sup-label">${esc(label)}</span>
       </div>
       <div class="sup-tree-children"></div>
     `;
-    const childrenEl = wrap.querySelector('.sup-tree-children');
     const rowEl = wrap.querySelector('.sup-tree-row');
+    const childrenEl = wrap.querySelector('.sup-tree-children');
     let loaded = false;
     rowEl.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -62,27 +95,10 @@ function create(root) {
         loaded = true;
         childrenEl.innerHTML = '<div class="sup-tree-loading">loading…</div>';
         try {
-          const docs = await ipcRenderer.invoke(
-            SUP.SUPERVISOR_LIST_PROJECT_DOCS,
-            { project_id: projectId, project_path: null }
-          );
+          const data = await loader();
           if (!alive) return;
           childrenEl.innerHTML = '';
-          if (!docs || !docs.length) {
-            childrenEl.innerHTML = '<div class="sup-tree-loading">no docs</div>';
-            return;
-          }
-          docs.forEach((d) => {
-            const row = document.createElement('div');
-            row.className = 'sup-tree-row leaf';
-            row.title = d.path;
-            row.innerHTML = `<span class="sup-label">${esc(d.label)}</span>`;
-            row.addEventListener('click', (ev) => {
-              ev.stopPropagation();
-              openDoc(d.path);
-            });
-            childrenEl.appendChild(row);
-          });
+          renderChildren(childrenEl, data);
         } catch (err) {
           childrenEl.innerHTML = `<div class="sup-tree-loading">error: ${esc(err.message || err)}</div>`;
         }
@@ -91,15 +107,93 @@ function create(root) {
     return wrap;
   }
 
+  function renderQueueChildren(childrenEl, tasks) {
+    if (!tasks.length) {
+      childrenEl.innerHTML = '<div class="sup-tree-loading">no matching tasks</div>';
+      return;
+    }
+    tasks.slice(0, 50).forEach((t) => {
+      const row = document.createElement('div');
+      row.className = 'sup-tree-row leaf';
+      row.title = `${t.id} — ${t.status || ''}`;
+      row.innerHTML = `
+        <span class="sup-label">${esc((t.title || t.id || '').slice(0, 48))}</span>
+        <span class="sup-meta-chip">${esc(t.status || '')}</span>
+      `;
+      row.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        onScrollToTask(t.id);
+      });
+      childrenEl.appendChild(row);
+    });
+  }
+
+  function renderDocsChildren(childrenEl, docs) {
+    if (!docs.length) {
+      childrenEl.innerHTML = '<div class="sup-tree-loading">no docs</div>';
+      return;
+    }
+    docs.forEach((d) => {
+      const row = document.createElement('div');
+      row.className = 'sup-tree-row leaf';
+      row.title = d.path;
+      row.innerHTML = `<span class="sup-label">${esc(d.label)}</span>`;
+      row.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        openFile(d.path);
+      });
+      childrenEl.appendChild(row);
+    });
+  }
+
+  function renderSpecsChildren(childrenEl, specs) {
+    if (!specs.length) {
+      childrenEl.innerHTML = '<div class="sup-tree-loading">no specs</div>';
+      return;
+    }
+    specs.forEach((s) => {
+      const slugWrap = document.createElement('div');
+      slugWrap.className = 'sup-tree-node';
+      const phaseChip = s.phase ? `<span class="sup-meta-chip" title="${esc(s.phase)}">${esc(s.phase.slice(0, 18))}</span>` : '';
+      slugWrap.innerHTML = `
+        <div class="sup-tree-row group">
+          <span class="sup-chev">▸</span>
+          <span class="sup-label">${esc(s.slug)}</span>
+          ${phaseChip}
+        </div>
+        <div class="sup-tree-children"></div>
+      `;
+      const slugRow = slugWrap.querySelector('.sup-tree-row');
+      const slugKids = slugWrap.querySelector('.sup-tree-children');
+      slugRow.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const expanded = slugWrap.classList.toggle('expanded');
+        slugRow.querySelector('.sup-chev').textContent = expanded ? '▾' : '▸';
+        if (expanded && !slugKids.children.length) {
+          s.files.forEach((f) => {
+            const r = document.createElement('div');
+            r.className = 'sup-tree-row leaf';
+            r.title = f.path;
+            r.innerHTML = `<span class="sup-label">${esc(f.label)}</span>`;
+            r.addEventListener('click', (e2) => {
+              e2.stopPropagation();
+              openFile(f.path);
+            });
+            slugKids.appendChild(r);
+          });
+        }
+      });
+      childrenEl.appendChild(slugWrap);
+    });
+  }
+
   function buildProjectNode(p) {
     const node = document.createElement('div');
     node.className = 'sup-tree-node';
-    const notesLabel = typeof p.notes === 'number' ? `${p.notes}` : '';
     node.innerHTML = `
       <div class="sup-tree-row project">
         <span class="sup-chev">▸</span>
         <span class="sup-label">${esc(p.name)}</span>
-        <span class="sup-meta-chip">${esc(notesLabel)}</span>
       </div>
       <div class="sup-tree-children"></div>
     `;
@@ -111,7 +205,33 @@ function create(root) {
       rowEl.querySelector('.sup-chev').textContent = expanded ? '▾' : '▸';
       if (expanded && !built) {
         built = true;
-        childrenEl.appendChild(buildDocsChildEl(p.name));
+
+        const queueNode = makeGroupNode(
+          'queue',
+          async () => {
+            const ws = await fetchJson('/api/workspace');
+            return flatTasks(ws).filter((t) => taskMatchesProject(t, p.name));
+          },
+          renderQueueChildren
+        );
+        const docsNode = makeGroupNode(
+          'docs',
+          () => ipcRenderer.invoke(SUP.SUPERVISOR_LIST_PROJECT_DOCS, {
+            project_id: p.name,
+            project_path: p.path,
+          }),
+          renderDocsChildren
+        );
+        const specsNode = makeGroupNode(
+          '.frame/specs',
+          () => ipcRenderer.invoke(SUP.SUPERVISOR_LIST_PROJECT_SPECS, {
+            project_path: p.path,
+          }),
+          renderSpecsChildren
+        );
+        childrenEl.appendChild(queueNode);
+        childrenEl.appendChild(docsNode);
+        childrenEl.appendChild(specsNode);
       }
     });
     return node;
@@ -119,11 +239,11 @@ function create(root) {
 
   async function load() {
     try {
-      const projects = await fetchJson('/api/memory/projects');
+      const projects = await ipcRenderer.invoke(SUP.SUPERVISOR_LIST_WORKSPACE_PROJECTS);
       if (!alive) return;
       root.innerHTML = '';
       if (!projects || !projects.length) {
-        root.innerHTML = '<div class="sup-tree-empty">No projects registered</div>';
+        root.innerHTML = '<div class="sup-tree-empty">No Frame projects in workspace.<br/><small>Add one from the Home board.</small></div>';
         return;
       }
       projects.forEach((p) => {
@@ -131,7 +251,7 @@ function create(root) {
       });
     } catch (err) {
       if (!alive) return;
-      root.innerHTML = `<div class="sup-tree-empty">supervisor unreachable<br/><small>${esc(err.message || err)}</small></div>`;
+      root.innerHTML = `<div class="sup-tree-empty">project list unavailable<br/><small>${esc(err.message || err)}</small></div>`;
     }
   }
 

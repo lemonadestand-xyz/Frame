@@ -11,6 +11,8 @@ const path = require('path');
 const SUP = require('../../shared/supervisor-ipc');
 
 const DOC_CAP = 100;
+const SPEC_CAP = 50;
+const FRAME_WORKSPACES_PATH = path.join(os.homedir(), '.frame', 'workspaces.json');
 
 function listProjectDocs({ project_id, project_path }) {
   const out = [];
@@ -68,6 +70,79 @@ function listProjectDocs({ project_id, project_path }) {
   return out;
 }
 
+/**
+ * Read Frame's own workspace projects from ~/.frame/workspaces.json. The
+ * supervisor view uses this as its project source: the supervisor's
+ * /api/memory/projects endpoint only knows about memory namespaces (no path),
+ * and the brief's /api/meta.projects field doesn't exist server-side.
+ * Returns [{ name, path, isFrameProject }] for the active workspace, or [].
+ */
+function listWorkspaceProjects() {
+  try {
+    if (!fs.existsSync(FRAME_WORKSPACES_PATH)) return [];
+    const data = JSON.parse(fs.readFileSync(FRAME_WORKSPACES_PATH, 'utf8'));
+    const aw = data.activeWorkspace || 'default';
+    const ws = (data.workspaces || {})[aw];
+    if (!ws || !Array.isArray(ws.projects)) return [];
+    return ws.projects
+      .map((p) => ({
+        name: p.name || (p.path ? path.basename(p.path) : ''),
+        path: p.path || '',
+        isFrameProject: !!p.isFrameProject,
+      }))
+      .filter((p) => p.path);
+  } catch (e) {
+    console.warn('[supervisor-bridge] failed to read workspaces.json:', e.message);
+    return [];
+  }
+}
+
+/**
+ * Scan <project_path>/.frame/specs/ for one level of spec slugs and surface a
+ * flat list of clickable markdown files. The brief originally pointed at a
+ * (nonexistent) /api/frame-specs/<id> endpoint; reading the filesystem from
+ * main is the local equivalent and keeps the channel architecture parallel
+ * to SUPERVISOR_LIST_PROJECT_DOCS.
+ *
+ * For each slug dir we list spec.md → plan.md → tasks.md if present, and try
+ * to read a one-line "phase" hint from the spec.md frontmatter or first
+ * heading for display in the tree. Returns:
+ *   [{ slug, phase, files: [{ path, label }] }]
+ */
+function listProjectSpecs({ project_path }) {
+  if (!project_path) return [];
+  const specsRoot = path.join(project_path, '.frame', 'specs');
+  if (!fs.existsSync(specsRoot)) return [];
+  let slugs;
+  try { slugs = fs.readdirSync(specsRoot); } catch { return []; }
+  const out = [];
+  for (const slug of slugs) {
+    if (out.length >= SPEC_CAP) break;
+    const slugDir = path.join(specsRoot, slug);
+    let stat;
+    try { stat = fs.statSync(slugDir); } catch { continue; }
+    if (!stat.isDirectory()) continue;
+    const files = [];
+    for (const fname of ['spec.md', 'plan.md', 'tasks.md']) {
+      const fpath = path.join(slugDir, fname);
+      if (fs.existsSync(fpath)) files.push({ path: fpath, label: fname });
+    }
+    if (!files.length) continue;
+    // Best-effort phase hint: first heading of spec.md if present.
+    let phase = '';
+    const specPath = path.join(slugDir, 'spec.md');
+    if (fs.existsSync(specPath)) {
+      try {
+        const head = fs.readFileSync(specPath, 'utf8').slice(0, 1024);
+        const m = head.match(/^#+\s+(.+)$/m);
+        if (m) phase = m[1].trim().slice(0, 80);
+      } catch { /* ignore */ }
+    }
+    out.push({ slug, phase, files });
+  }
+  return out;
+}
+
 function register(ipcMain) {
   // Round-trip sanity check used by the renderer's Supervisor section on first
   // open. Future phases register stateWatcher / tailReader / taskSubmitter
@@ -81,6 +156,21 @@ function register(ipcMain) {
   ipcMain.handle(SUP.SUPERVISOR_LIST_PROJECT_DOCS, async (_evt, payload) => {
     return listProjectDocs(payload || {});
   });
+
+  // Phase B: list .frame/specs/<slug>/{spec,plan,tasks}.md for a project.
+  // No supervisor API endpoint exists for this — we scan the project's
+  // own .frame/specs/ directory directly from main.
+  ipcMain.handle(SUP.SUPERVISOR_LIST_PROJECT_SPECS, async (_evt, payload) => {
+    return listProjectSpecs(payload || {});
+  });
+
+  // Phase B: surface Frame's own workspace projects to the supervisor view.
+  // The supervisor API only knows about memory namespaces; pairing those
+  // with Frame's known projects gives us project_path (which the docs and
+  // specs handlers need to do anything useful beyond the memory tree).
+  ipcMain.handle(SUP.SUPERVISOR_LIST_WORKSPACE_PROJECTS, async () => {
+    return listWorkspaceProjects();
+  });
 }
 
-module.exports = { register, listProjectDocs };
+module.exports = { register, listProjectDocs, listProjectSpecs, listWorkspaceProjects };

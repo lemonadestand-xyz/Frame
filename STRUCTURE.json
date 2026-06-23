@@ -7597,7 +7597,9 @@
       "description": "Supervisor bridge (main) — Phase A skeleton + Phase B handlers.",
       "exports": [
         "register",
-        "listProjectDocs"
+        "listProjectDocs",
+        "listProjectSpecs",
+        "listWorkspaceProjects"
       ],
       "depends": [
         "fs",
@@ -7607,14 +7609,25 @@
       ],
       "functions": {
         "listProjectDocs": {
-          "line": 15,
+          "line": 17,
           "params": [
             "{ project_id",
             "project_path }"
           ]
         },
+        "listWorkspaceProjects": {
+          "line": 80,
+          "purpose": "Returns [{ name, path, isFrameProject }] for the active workspace, or []."
+        },
+        "listProjectSpecs": {
+          "line": 112,
+          "params": [
+            "{ project_path }"
+          ],
+          "purpose": "[{ slug, phase, files: [{ path, label }] }]"
+        },
         "register": {
-          "line": 71,
+          "line": 146,
           "params": [
             "ipcMain"
           ]
@@ -7622,6 +7635,8 @@
       },
       "ipc": {
         "listens": [
+          "SUP",
+          "SUP",
           "SUP",
           "SUP"
         ],
@@ -7635,10 +7650,10 @@
       "depends": [
         "path",
         "../shared/supervisor-ipc",
-        "header",
-        "projectTree",
-        "kanban",
         "terminal",
+        "header",
+        "kanban",
+        "projectTree",
         "commandRegistry"
       ],
       "functions": {
@@ -7649,10 +7664,10 @@
           "line": 35
         },
         "open": {
-          "line": 91
+          "line": 100
         },
         "init": {
-          "line": 98
+          "line": 107
         }
       }
     },
@@ -7660,6 +7675,7 @@
       "file": "src/shared/supervisor-ipc.js",
       "description": "SUPERVISOR-OWNED IPC channel names. All channels prefixed with SUPERVISOR_",
       "exports": [
+        "SUPERVISOR_LIST_PROJECT_SPECS",
         "SUPERVISOR_DAEMON_START",
         "SUPERVISOR_DAEMON_STOP",
         "SUPERVISOR_RESPOND_ESCALATION"
@@ -7730,6 +7746,7 @@
         "create"
       ],
       "depends": [
+        "path",
         "electron",
         "../shared/supervisor-ipc",
         "header",
@@ -7737,27 +7754,42 @@
       ],
       "functions": {
         "esc": {
-          "line": 18,
+          "line": 23,
           "params": [
             "s"
           ]
         },
         "fetchJson": {
-          "line": 24,
+          "line": 29,
           "params": [
             "p"
           ]
         },
-        "openDoc": {
-          "line": 30,
+        "openFile": {
+          "line": 35,
           "params": [
             "absPath"
           ]
         },
-        "create": {
-          "line": 39,
+        "taskMatchesProject": {
+          "line": 49,
           "params": [
-            "root"
+            "task",
+            "projectName"
+          ],
+          "purpose": "option since the workspace payload has no project_id field."
+        },
+        "flatTasks": {
+          "line": 61,
+          "params": [
+            "workspace"
+          ]
+        },
+        "create": {
+          "line": 71,
+          "params": [
+            "root",
+            "opts = {}"
           ]
         }
       }

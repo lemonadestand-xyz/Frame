@@ -38,8 +38,14 @@ function createViewport() {
   let rendered = false;
 
   function navigate(/* itemRef */) {
-    // Phase B section has no sub-navigation. Phase D will route to a specific
-    // project / task here.
+    // multiTerminalUI.openSection() calls navigate() once after creating the
+    // viewport — every other section module (diffSection, specSection,
+    // taskSection, orchestrator) signals notifySectionChanged() here to
+    // trigger the host's section render. Without this, the viewport stays
+    // off-screen and render() is never invoked.
+    const terminal = require('../terminal');
+    const host = terminal.getMultiTerminalUI();
+    if (host) host.notifySectionChanged();
   }
 
   function getChip() {
@@ -58,8 +64,11 @@ function createViewport() {
       </div>
     `;
     const header = require('./header').create(el.querySelector('#supervisor-header'));
-    const tree = require('./projectTree').create(el.querySelector('#supervisor-tree'));
     const kanban = require('./kanban').create(el.querySelector('#supervisor-kanban'));
+    const tree = require('./projectTree').create(
+      el.querySelector('#supervisor-tree'),
+      { onScrollToTask: (id) => kanban.scrollToTask(id) }
+    );
     controllers = { header, tree, kanban };
     rendered = true;
   }
