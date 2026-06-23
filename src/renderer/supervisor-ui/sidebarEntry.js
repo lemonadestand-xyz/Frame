@@ -35,12 +35,15 @@ function injectStylesOnce() {
       align-items: center;
       gap: var(--space-sm);
       width: 100%;
-      padding: 9px var(--space-sm);
+      padding: 8px var(--space-sm);
+      /* Bottom separator differentiates the action row from the project list
+         below; bg-deep gives it the same "rail header" feeling as Frame's
+         own section dividers. */
       margin: 0 0 var(--space-sm);
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-subtle);
+      background: var(--bg-elevated);
+      border: 1px solid var(--accent-primary);
       border-radius: var(--radius-md);
-      color: var(--text-secondary);
+      color: var(--text-primary);
       cursor: pointer;
       font: inherit;
       text-align: left;
@@ -49,22 +52,45 @@ function injectStylesOnce() {
                   color var(--transition-fast);
     }
     .sup-sidebar-entry:hover {
-      background: var(--bg-hover);
-      border-color: var(--accent-primary);
-      color: var(--text-primary);
+      background: var(--accent-primary);
+      color: var(--bg-deep);
+    }
+    .sup-sidebar-entry:hover .sup-sidebar-entry-arrow {
+      transform: translateX(2px);
     }
     .sup-sidebar-entry-icon {
       flex: 0 0 auto;
       font-size: 14px;
       line-height: 1;
+      color: var(--accent-primary);
+    }
+    .sup-sidebar-entry:hover .sup-sidebar-entry-icon {
+      color: var(--bg-deep);
     }
     .sup-sidebar-entry-label {
       flex: 1;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    .sup-sidebar-entry-arrow {
+      flex: 0 0 auto;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      transition: transform var(--transition-fast), color var(--transition-fast);
+    }
+    .sup-sidebar-entry:hover .sup-sidebar-entry-arrow {
+      color: var(--bg-deep);
+    }
+    /* Subtle divider line below — keeps the action row visually separate from
+       the "Projects" header that follows so users don't read it as project #1. */
+    .sup-sidebar-entry-sep {
+      height: 1px;
+      background: var(--border-subtle);
+      margin: 0 0 var(--space-sm);
     }
     .sup-sidebar-entry-dot {
       flex: 0 0 auto;
@@ -127,18 +153,21 @@ function mount(host) {
   entryEl.tabIndex = -1;
   entryEl.innerHTML = `
     <span class="sup-sidebar-entry-icon" aria-hidden="true">⚡</span>
-    <span class="sup-sidebar-entry-label">Supervisor</span>
+    <span class="sup-sidebar-entry-label">OPEN SUPERVISOR</span>
     <span class="sup-sidebar-entry-dot"></span>
+    <span class="sup-sidebar-entry-arrow" aria-hidden="true">→</span>
   `;
   dotEl = entryEl.querySelector('.sup-sidebar-entry-dot');
   entryEl.addEventListener('click', () => {
-    try { require('./index').open(); } catch (err) {
-      console.warn('[supervisor] sidebar entry open failed:', err);
-    }
+    require('../commandRegistry').runById('supervisor.open');
   });
   // First child of the projects rail — sits above the "Projects" header so it
   // reads as a top-level destination, not a project in the workspace list.
-  host.insertBefore(entryEl, host.firstChild);
+  // Divider after it visually severs the action row from the project list.
+  const sep = document.createElement('div');
+  sep.className = 'sup-sidebar-entry-sep';
+  host.insertBefore(sep, host.firstChild);
+  host.insertBefore(entryEl, sep);
   setState('unknown');
 
   ipcRenderer.on(SUP.SUPERVISOR_STATE, (_evt, payload) => {

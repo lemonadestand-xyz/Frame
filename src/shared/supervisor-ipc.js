@@ -33,4 +33,10 @@ module.exports = {
   // Phase E
   SUPERVISOR_NOTIFY: 'supervisor:notify',                // renderer → main: show OS notification {title, body, kind, taskId}
   SUPERVISOR_NOTIFY_CLICK: 'supervisor:notify-click',    // main → renderer: notification clicked, focus + scroll-to-task {taskId}
+  // Phase K — read/write briefs so the submit panel's Reuse mode can edit a
+  // picked brief inline (mirrors Free-form mode's editable textarea). Read
+  // returns {ok, content}; write is constrained to <ROOT>/prompts/inline/ so
+  // it can't escape the supervisor sandbox.
+  SUPERVISOR_READ_BRIEF: 'supervisor:read-brief',        // {path | relPath, supervisorRoot} → {ok, content, error?}
+  SUPERVISOR_WRITE_BRIEF: 'supervisor:write-brief',      // {relPath, content, supervisorRoot} → {ok, path, error?}
 };

@@ -26,6 +26,9 @@ let briefCache = null;
 let pickedFilePath = '';
 let pickedBriefRel = '';
 let pickedBriefLabel = '';
+// Phase K: pristine content of the currently picked reuse-brief, so we can
+// detect "edited" vs "unchanged" without re-fetching on submit.
+let pickedBriefOriginal = '';
 
 const ID_RE = /^[A-Za-z0-9_.-]{1,80}$/;
 
@@ -178,6 +181,15 @@ function buildPanelHTML() {
           <input type="text" class="sup-sub-reuse-title" placeholder="Defaults to brief filename" />
         </label>
       </div>
+      <label class="sup-sub-reuse-edit-label">Brief (editable)
+        <textarea class="sup-sub-brief sup-sub-reuse-brief" rows="14"
+          placeholder="Pick a brief above; its content will load here so you can tweak before submitting."
+          disabled></textarea>
+      </label>
+      <label class="sup-sub-reuse-save-row">
+        <input type="checkbox" class="sup-sub-reuse-save" checked />
+        <span>Save edits to a new file under <code>prompts/inline/&lt;new-task-id&gt;.md</code> (unchecked → submit original path as-is)</span>
+      </label>
     </div>
 
     <div class="sup-sub-actions">
@@ -216,15 +228,51 @@ function bind() {
 
 function rebindReuseRows() {
   panelEl.querySelectorAll('.sup-sub-reuse-row').forEach((row) => {
-    row.addEventListener('click', () => {
+    row.addEventListener('click', async () => {
       pickedBriefRel = row.dataset.rel;
       pickedBriefLabel = row.dataset.label;
       panelEl.querySelector('.sup-sub-reuse-picked').textContent = pickedBriefLabel;
       panelEl.querySelectorAll('.sup-sub-reuse-row').forEach((r) => r.classList.remove('picked'));
       row.classList.add('picked');
       setError('');
+      await loadPickedBriefIntoEditor();
     });
   });
+}
+
+async function loadPickedBriefIntoEditor() {
+  if (!panelEl) return;
+  const ta = panelEl.querySelector('.sup-sub-reuse-brief');
+  if (!ta) return;
+  if (!pickedBriefRel) {
+    ta.value = '';
+    ta.disabled = true;
+    pickedBriefOriginal = '';
+    return;
+  }
+  ta.disabled = true;
+  ta.value = 'loading…';
+  try {
+    const res = await ipcRenderer.invoke(SUP.SUPERVISOR_READ_BRIEF, {
+      relPath: pickedBriefRel,
+      supervisorRoot,
+    });
+    if (res && res.ok) {
+      pickedBriefOriginal = res.content || '';
+      ta.value = pickedBriefOriginal;
+      ta.disabled = false;
+    } else {
+      pickedBriefOriginal = '';
+      ta.value = '';
+      ta.disabled = true;
+      setError((res && res.error) || 'failed to load brief');
+    }
+  } catch (err) {
+    pickedBriefOriginal = '';
+    ta.value = '';
+    ta.disabled = true;
+    setError(`IPC error: ${err.message}`);
+  }
 }
 
 async function submit() {
@@ -255,7 +303,27 @@ async function submit() {
     if (!ID_RE.test(id)) { setError('New task ID must match [A-Za-z0-9_.-]{1,80}.'); return; }
     if (!pickedBriefRel) { setError('Pick a brief from the list first.'); return; }
     const title = panelEl.querySelector('.sup-sub-reuse-title').value.trim();
-    payload = { ...payload, id, title: title || pickedBriefLabel || id, brief: pickedBriefRel };
+    let briefPath = pickedBriefRel;
+    // Phase K: if the textarea was edited and the user opted to save, write
+    // the new content to prompts/inline/<id>.md and submit that path. Else
+    // submit the original picked path verbatim.
+    const ta = panelEl.querySelector('.sup-sub-reuse-brief');
+    const saveChk = panelEl.querySelector('.sup-sub-reuse-save');
+    const edited = ta && saveChk && saveChk.checked
+      && (ta.value || '') !== pickedBriefOriginal;
+    if (edited) {
+      if (!supervisorRoot) { setError('supervisorRoot unresolved; cannot save edited brief'); return; }
+      const relPath = `prompts/inline/${id}.md`;
+      const writeRes = await ipcRenderer.invoke(SUP.SUPERVISOR_WRITE_BRIEF, {
+        relPath, content: ta.value, supervisorRoot,
+      });
+      if (!writeRes || !writeRes.ok) {
+        setError((writeRes && writeRes.error) || 'failed to save edited brief');
+        return;
+      }
+      briefPath = relPath;
+    }
+    payload = { ...payload, id, title: title || pickedBriefLabel || id, brief: briefPath };
   }
 
   const submitBtn = panelEl.querySelector('.sup-sub-submit');
@@ -311,6 +379,7 @@ function close() {
   pickedFilePath = '';
   pickedBriefRel = '';
   pickedBriefLabel = '';
+  pickedBriefOriginal = '';
 }
 
 function toggle() {

@@ -197,9 +197,7 @@ function mount(host) {
     </div>
   `;
   card.querySelector('.sup-home-card-cta').addEventListener('click', () => {
-    try { require('./index').open(); } catch (err) {
-      console.warn('[supervisor] home card open failed:', err);
-    }
+    require('../commandRegistry').runById('supervisor.open');
   });
   // Card is the first child of the lane board so it sits above the grid /
   // empty state — discoverable without competing with frames for space.

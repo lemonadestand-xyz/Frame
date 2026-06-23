@@ -271,6 +271,59 @@ function register(ipcMain) {
   // sends SUPERVISOR_NOTIFY payloads; notifier surfaces them via Electron's
   // Notification API and forwards click events back as SUPERVISOR_NOTIFY_CLICK.
   notifier.register(ipcMain);
+
+  // Phase K: read a brief file so the submit panel's Reuse mode can show
+  // editable content. Accepts either an absolute path (From-file picker)
+  // or a relPath under <supervisorRoot> (Reuse picker). 1 MiB cap rules
+  // out accidentally loading a giant artifact into the panel.
+  ipcMain.handle(SUP.SUPERVISOR_READ_BRIEF, async (_evt, payload) => {
+    const p = payload || {};
+    let abs = '';
+    try {
+      if (p.path && path.isAbsolute(p.path)) {
+        abs = p.path;
+      } else if (p.relPath && p.supervisorRoot) {
+        abs = path.resolve(p.supervisorRoot, p.relPath);
+        if (!abs.startsWith(path.resolve(p.supervisorRoot) + path.sep)) {
+          return { ok: false, error: 'brief path escapes supervisor root' };
+        }
+      } else {
+        return { ok: false, error: 'either path (absolute) or relPath+supervisorRoot required' };
+      }
+      const stat = fs.statSync(abs);
+      if (stat.size > 1024 * 1024) {
+        return { ok: false, error: `brief too large (${stat.size} bytes; cap 1 MiB)` };
+      }
+      const content = fs.readFileSync(abs, 'utf8');
+      return { ok: true, path: abs, content };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
+  // Phase K: write a brief edited in the Reuse picker. Constrained to
+  // <supervisorRoot>/prompts/inline/ so an attacker (or a buggy renderer)
+  // can't overwrite arbitrary files. Mirrors taskSubmitter.writeInlineBrief
+  // semantics but exposes the path directly to the renderer so the panel
+  // can submit it.
+  ipcMain.handle(SUP.SUPERVISOR_WRITE_BRIEF, async (_evt, payload) => {
+    const p = payload || {};
+    if (!p.supervisorRoot) return { ok: false, error: 'supervisorRoot required' };
+    if (!p.relPath) return { ok: false, error: 'relPath required' };
+    if (typeof p.content !== 'string') return { ok: false, error: 'content must be a string' };
+    try {
+      const inlineRoot = path.resolve(p.supervisorRoot, 'prompts', 'inline');
+      const abs = path.resolve(p.supervisorRoot, p.relPath);
+      if (!abs.startsWith(inlineRoot + path.sep)) {
+        return { ok: false, error: 'writes are restricted to prompts/inline/' };
+      }
+      fs.mkdirSync(path.dirname(abs), { recursive: true });
+      fs.writeFileSync(abs, p.content, 'utf8');
+      return { ok: true, path: abs, relPath: p.relPath };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
 }
 
 module.exports = {

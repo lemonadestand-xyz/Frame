@@ -7663,6 +7663,8 @@
           "SUP",
           "SUP",
           "SUP",
+          "SUP",
+          "SUP",
           "SUP"
         ],
         "emits": []
@@ -8273,53 +8275,53 @@
       ],
       "functions": {
         "esc": {
-          "line": 32,
+          "line": 35,
           "params": [
             "s"
           ]
         },
         "fetchJson": {
-          "line": 38,
+          "line": 41,
           "params": [
             "p"
           ]
         },
         "resolveSupervisorRoot": {
-          "line": 44
+          "line": 47
         },
         "loadProfiles": {
-          "line": 59,
+          "line": 62,
           "params": [
             "force = false"
           ]
         },
         "loadBriefs": {
-          "line": 70,
+          "line": 73,
           "params": [
             "force = false"
           ]
         },
         "setMode": {
-          "line": 81,
+          "line": 84,
           "params": [
             "next"
           ]
         },
         "setError": {
-          "line": 92,
+          "line": 95,
           "params": [
             "msg"
           ]
         },
         "renderProfileOptions": {
-          "line": 100,
+          "line": 103,
           "params": [
             "selectEl",
             "items"
           ]
         },
         "renderBriefList": {
-          "line": 106,
+          "line": 109,
           "params": [
             "listEl",
             "items",
@@ -8327,28 +8329,31 @@
           ]
         },
         "buildPanelHTML": {
-          "line": 122
+          "line": 125
         },
         "bind": {
-          "line": 190
+          "line": 202
         },
         "rebindReuseRows": {
-          "line": 217
+          "line": 229
+        },
+        "loadPickedBriefIntoEditor": {
+          "line": 243
         },
         "submit": {
-          "line": 230
+          "line": 278
         },
         "open": {
-          "line": 281
+          "line": 349
         },
         "close": {
-          "line": 306
+          "line": 374
         },
         "toggle": {
-          "line": 316
+          "line": 385
         },
         "isOpen": {
-          "line": 321
+          "line": 390
         }
       }
     },
@@ -8515,7 +8520,7 @@
       "depends": [
         "electron",
         "../shared/supervisor-ipc",
-        "index"
+        "commandRegistry"
       ],
       "functions": {
         "injectStylesOnce": {
@@ -8556,29 +8561,29 @@
       "depends": [
         "electron",
         "../shared/supervisor-ipc",
-        "index"
+        "commandRegistry"
       ],
       "functions": {
         "injectStylesOnce": {
           "line": 28
         },
         "setState": {
-          "line": 90,
+          "line": 116,
           "params": [
             "kind"
           ]
         },
         "applyHeartbeat": {
-          "line": 103,
+          "line": 129,
           "params": [
             "hb"
           ]
         },
         "armStaleTimer": {
-          "line": 111
+          "line": 137
         },
         "mount": {
-          "line": 118,
+          "line": 144,
           "params": [
             "host"
           ]
