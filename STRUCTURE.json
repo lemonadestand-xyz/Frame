@@ -8314,7 +8314,7 @@
     },
     "renderer/supervisor-ui/submitTaskPanel": {
       "file": "src/renderer/supervisor-ui/submitTaskPanel.js",
-      "description": "Supervisor submit-task panel — Phase D.",
+      "description": "Supervisor submit-task panel — Phase D + Phase O.",
       "exports": [
         "toggle",
         "open",
@@ -8329,53 +8329,53 @@
       ],
       "functions": {
         "esc": {
-          "line": 35,
+          "line": 43,
           "params": [
             "s"
           ]
         },
         "fetchJson": {
-          "line": 41,
+          "line": 49,
           "params": [
             "p"
           ]
         },
         "resolveSupervisorRoot": {
-          "line": 47
+          "line": 55
         },
         "loadProfiles": {
-          "line": 62,
+          "line": 70,
           "params": [
             "force = false"
           ]
         },
         "loadBriefs": {
-          "line": 73,
+          "line": 81,
           "params": [
             "force = false"
           ]
         },
         "setMode": {
-          "line": 84,
+          "line": 92,
           "params": [
             "next"
           ]
         },
         "setError": {
-          "line": 95,
+          "line": 113,
           "params": [
             "msg"
           ]
         },
         "renderProfileOptions": {
-          "line": 103,
+          "line": 121,
           "params": [
             "selectEl",
             "items"
           ]
         },
         "renderBriefList": {
-          "line": 109,
+          "line": 127,
           "params": [
             "listEl",
             "items",
@@ -8383,31 +8383,54 @@
           ]
         },
         "buildPanelHTML": {
-          "line": 125
+          "line": 143
         },
         "bind": {
-          "line": 202
+          "line": 264
+        },
+        "setAutoStatus": {
+          "line": 296,
+          "params": [
+            "msg",
+            "kind"
+          ]
+        },
+        "hydrateAutoProjects": {
+          "line": 305
+        },
+        "runAutoSpec": {
+          "line": 330
+        },
+        "renderAutoPreview": {
+          "line": 362,
+          "params": [
+            "proposed",
+            "costUsd"
+          ]
+        },
+        "submitAuto": {
+          "line": 393
         },
         "rebindReuseRows": {
-          "line": 229
+          "line": 430
         },
         "loadPickedBriefIntoEditor": {
-          "line": 243
+          "line": 444
         },
         "submit": {
-          "line": 278
+          "line": 479
         },
         "open": {
-          "line": 349
+          "line": 550
         },
         "close": {
-          "line": 374
+          "line": 575
         },
         "toggle": {
-          "line": 385
+          "line": 588
         },
         "isOpen": {
-          "line": 390
+          "line": 593
         }
       }
     },
@@ -10121,7 +10144,7 @@
       {
         "module": "renderer/supervisor-ui/submitTaskPanel",
         "file": "src/renderer/supervisor-ui/submitTaskPanel.js",
-        "description": "Supervisor submit-task panel — Phase D."
+        "description": "Supervisor submit-task panel — Phase D + Phase O."
       }
     ],
     "supervisor-ipc": [

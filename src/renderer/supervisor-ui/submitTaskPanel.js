@@ -1,12 +1,15 @@
-// Supervisor submit-task panel — Phase D.
+// Supervisor submit-task panel — Phase D + Phase O.
 //
-// Inline composer toggled by the header's [▶ Submit task] button. Three input
+// Inline composer toggled by the header's [▶ Submit task] button. Four input
 // modes (segmented control):
 //   - Free-form         — title + profile + brief textarea (we materialise
 //                         the text into <ROOT>/prompts/inline/<id>-<ts>.md
 //                         in main; server requires brief to be a file path)
 //   - From file         — Electron dialog.showOpenDialog → absolute brief path
 //   - Reuse existing    — searchable list over <ROOT>/prompts/follow-ups/*.md
+//   - Auto-spec (O)     — paste a free-form description; Haiku 4.5 classifies
+//                         project+profile+brief; preview is editable before
+//                         submit. Mirrors the PWA's Auto-spec UX.
 //
 // The panel mounts as a sibling between .supervisor-header and
 // .supervisor-body so it slides under the chrome without overlaying the
@@ -19,7 +22,7 @@ const SUP = require('../../shared/supervisor-ipc');
 const { SUPERVISOR_API } = require('./header');
 
 let panelEl = null;
-let mode = 'freeform';   // 'freeform' | 'file' | 'reuse'
+let mode = 'freeform';   // 'freeform' | 'file' | 'reuse' | 'auto'
 let supervisorRoot = null;
 let profileCache = null;
 let briefCache = null;
@@ -29,6 +32,11 @@ let pickedBriefLabel = '';
 // Phase K: pristine content of the currently picked reuse-brief, so we can
 // detect "edited" vs "unchanged" without re-fetching on submit.
 let pickedBriefOriginal = '';
+// Phase O: cached projects list (from /api/meta) for the Auto-spec dropdowns,
+// plus the most-recent auto-spec proposal so Submit knows what to send.
+let autoProjectCache = null;
+let autoProposal = null;
+let autoLastDescription = '';
 
 const ID_RE = /^[A-Za-z0-9_.-]{1,80}$/;
 
@@ -90,6 +98,16 @@ function setMode(next) {
   panelEl.querySelectorAll('.sup-sub-pane').forEach((p) => {
     p.classList.toggle('active', p.dataset.mode === next);
   });
+  // Auto-spec mode owns its own Submit/Cancel pair (Generate / Submit task)
+  // because the flow is two-step. The shared Profile dropdown above the panes
+  // is also not relevant — the proposal carries the profile choice.
+  const actions = panelEl.querySelector('.sup-sub-actions');
+  if (actions) actions.style.display = next === 'auto' ? 'none' : '';
+  const profileLabel = panelEl.querySelector('.sup-sub-grid > label > .sup-sub-profile');
+  if (profileLabel && profileLabel.parentElement && profileLabel.parentElement.parentElement) {
+    profileLabel.parentElement.parentElement.style.display = next === 'auto' ? 'none' : '';
+  }
+  if (next === 'auto') hydrateAutoProjects();
 }
 
 function setError(msg) {
@@ -130,6 +148,7 @@ function buildPanelHTML() {
         <button class="sup-sub-mode active" data-mode="freeform" type="button">Free-form</button>
         <button class="sup-sub-mode" data-mode="file" type="button">From file</button>
         <button class="sup-sub-mode" data-mode="reuse" type="button">Reuse existing brief</button>
+        <button class="sup-sub-mode" data-mode="auto" type="button">✨ Auto-spec</button>
       </div>
       <button class="sup-sub-close" type="button" title="Close">×</button>
     </div>
@@ -192,6 +211,49 @@ function buildPanelHTML() {
       </label>
     </div>
 
+    <div class="sup-sub-pane" data-mode="auto">
+      <label class="sup-sub-auto-desc-label">Describe what you want done
+        <textarea class="sup-sub-auto-desc" rows="6"
+          placeholder="e.g. Fix the Kitli search so product matching surfaces the right items. Haiku 4.5 picks the project + profile and drafts a brief you can edit before queueing."></textarea>
+      </label>
+      <div class="sup-sub-auto-row">
+        <button type="button" class="sup-btn primary sup-sub-auto-generate">✨ Generate spec</button>
+        <span class="sup-sub-auto-status"></span>
+      </div>
+
+      <div class="sup-sub-auto-preview" hidden>
+        <div class="sup-sub-auto-preview-hdr">
+          <span class="sup-sub-auto-badge">Auto-spec preview</span>
+          <span class="sup-sub-auto-conf">confidence: —</span>
+        </div>
+        <div class="sup-sub-auto-rationale"></div>
+        <div class="sup-sub-grid">
+          <label>Project
+            <select class="sup-sub-auto-project"></select>
+          </label>
+          <label>Profile
+            <select class="sup-sub-auto-profile"></select>
+          </label>
+        </div>
+        <div class="sup-sub-grid">
+          <label>Task ID
+            <input type="text" class="sup-sub-auto-id" placeholder="kebab-case slug" />
+          </label>
+          <label>Title
+            <input type="text" class="sup-sub-auto-title" placeholder="Short title" />
+          </label>
+        </div>
+        <label>Brief (markdown — edit freely)
+          <textarea class="sup-sub-auto-brief" rows="12"></textarea>
+        </label>
+        <div class="sup-sub-auto-cost"></div>
+        <div class="sup-sub-auto-acts">
+          <button type="button" class="sup-btn sup-sub-auto-regenerate">Regenerate</button>
+          <button type="button" class="sup-btn primary sup-sub-auto-submit">Submit task ►</button>
+        </div>
+      </div>
+    </div>
+
     <div class="sup-sub-actions">
       <button class="sup-btn primary sup-sub-submit" type="button">Submit</button>
       <button class="sup-btn sup-sub-cancel" type="button">Cancel</button>
@@ -224,6 +286,145 @@ function bind() {
   });
 
   panelEl.querySelector('.sup-sub-submit').addEventListener('click', submit);
+
+  // Phase O — Auto-spec wiring
+  panelEl.querySelector('.sup-sub-auto-generate').addEventListener('click', runAutoSpec);
+  panelEl.querySelector('.sup-sub-auto-regenerate').addEventListener('click', runAutoSpec);
+  panelEl.querySelector('.sup-sub-auto-submit').addEventListener('click', submitAuto);
+}
+
+function setAutoStatus(msg, kind) {
+  if (!panelEl) return;
+  const el = panelEl.querySelector('.sup-sub-auto-status');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.classList.remove('loading', 'err');
+  if (kind) el.classList.add(kind);
+}
+
+async function hydrateAutoProjects() {
+  if (autoProjectCache) return autoProjectCache;
+  try {
+    const meta = await fetchJson('/api/meta');
+    autoProjectCache = Array.isArray(meta && meta.projects) ? meta.projects : [];
+  } catch {
+    autoProjectCache = [];
+  }
+  if (!panelEl) return autoProjectCache;
+  const projectSel = panelEl.querySelector('.sup-sub-auto-project');
+  const profileSel = panelEl.querySelector('.sup-sub-auto-profile');
+  if (projectSel && !projectSel.options.length && autoProjectCache.length) {
+    const projOpts = autoProjectCache.map((p) => (
+      `<option value="${esc(p.id)}">${esc(p.id)}</option>`
+    )).join('') + `<option value="unknown">unknown</option>`;
+    projectSel.innerHTML = projOpts;
+  }
+  if (profileSel && !profileSel.options.length && autoProjectCache.length) {
+    profileSel.innerHTML = autoProjectCache.map((p) => (
+      `<option value="${esc(p.profile)}">${esc(p.profile)}</option>`
+    )).join('');
+  }
+  return autoProjectCache;
+}
+
+async function runAutoSpec() {
+  if (!panelEl) return;
+  const ta = panelEl.querySelector('.sup-sub-auto-desc');
+  const desc = (ta.value || '').trim();
+  if (!desc) { setAutoStatus('Description required.', 'err'); return; }
+  autoLastDescription = desc;
+  setAutoStatus('Generating spec (Haiku 4.5)…', 'loading');
+  const genBtn = panelEl.querySelector('.sup-sub-auto-generate');
+  const regenBtn = panelEl.querySelector('.sup-sub-auto-regenerate');
+  if (genBtn) genBtn.disabled = true;
+  if (regenBtn) regenBtn.disabled = true;
+  try {
+    const res = await fetch(`${SUPERVISOR_API}/api/tasks/auto-spec`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: desc }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.ok) {
+      setAutoStatus(body.error || `auto-spec failed (HTTP ${res.status})`, 'err');
+      return;
+    }
+    setAutoStatus('');
+    renderAutoPreview(body.proposed, body.cost_usd);
+  } catch (err) {
+    setAutoStatus(`auto-spec failed: ${err.message}`, 'err');
+  } finally {
+    if (genBtn) genBtn.disabled = false;
+    if (regenBtn) regenBtn.disabled = false;
+  }
+}
+
+function renderAutoPreview(proposed, costUsd) {
+  if (!panelEl) return;
+  autoProposal = proposed;
+  const preview = panelEl.querySelector('.sup-sub-auto-preview');
+  preview.hidden = false;
+  panelEl.querySelector('.sup-sub-auto-conf').textContent =
+    `confidence: ${proposed.confidence || '—'}`;
+  panelEl.querySelector('.sup-sub-auto-rationale').textContent = proposed.rationale || '';
+  const projectSel = panelEl.querySelector('.sup-sub-auto-project');
+  if (![...projectSel.options].some((o) => o.value === proposed.project)) {
+    const opt = document.createElement('option');
+    opt.value = proposed.project;
+    opt.textContent = `${proposed.project} (new)`;
+    projectSel.appendChild(opt);
+  }
+  projectSel.value = proposed.project;
+  const profileSel = panelEl.querySelector('.sup-sub-auto-profile');
+  if (![...profileSel.options].some((o) => o.value === proposed.profile)) {
+    const opt = document.createElement('option');
+    opt.value = proposed.profile;
+    opt.textContent = proposed.profile;
+    profileSel.appendChild(opt);
+  }
+  profileSel.value = proposed.profile;
+  panelEl.querySelector('.sup-sub-auto-id').value = proposed.task_id || '';
+  panelEl.querySelector('.sup-sub-auto-title').value = proposed.title || '';
+  panelEl.querySelector('.sup-sub-auto-brief').value = proposed.brief || '';
+  const costEl = panelEl.querySelector('.sup-sub-auto-cost');
+  costEl.textContent = costUsd != null ? `Haiku call: $${costUsd.toFixed(4)}` : '';
+}
+
+async function submitAuto() {
+  if (!panelEl) return;
+  const id = panelEl.querySelector('.sup-sub-auto-id').value.trim();
+  if (!ID_RE.test(id)) { setAutoStatus('Task ID must match [A-Za-z0-9_.-]{1,80}.', 'err'); return; }
+  const profile = panelEl.querySelector('.sup-sub-auto-profile').value;
+  if (!profile) { setAutoStatus('Pick a profile.', 'err'); return; }
+  const title = panelEl.querySelector('.sup-sub-auto-title').value.trim();
+  const brief = panelEl.querySelector('.sup-sub-auto-brief').value;
+  if (!brief.trim()) { setAutoStatus('Brief cannot be empty.', 'err'); return; }
+
+  const payload = {
+    profile,
+    supervisorRoot,
+    id,
+    title: title || id,
+    briefInline: brief,
+  };
+  const submitBtn = panelEl.querySelector('.sup-sub-auto-submit');
+  submitBtn.disabled = true;
+  const original = submitBtn.textContent;
+  submitBtn.textContent = 'Submitting…';
+  setAutoStatus('Submitting…', 'loading');
+  try {
+    const res = await ipcRenderer.invoke(SUP.SUPERVISOR_SUBMIT_TASK, payload);
+    if (res && res.ok) {
+      close();
+    } else {
+      setAutoStatus((res && res.error) || 'Submit failed.', 'err');
+    }
+  } catch (err) {
+    setAutoStatus(`IPC error: ${err.message}`, 'err');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = original;
+  }
 }
 
 function rebindReuseRows() {
@@ -380,6 +581,8 @@ function close() {
   pickedBriefRel = '';
   pickedBriefLabel = '';
   pickedBriefOriginal = '';
+  autoProposal = null;
+  autoLastDescription = '';
 }
 
 function toggle() {

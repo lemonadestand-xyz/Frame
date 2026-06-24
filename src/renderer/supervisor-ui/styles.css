@@ -1000,6 +1000,70 @@
   margin-top: var(--space-sm, 8px);
 }
 
+/* ---- Phase O — Auto-spec mode ---- */
+.sup-sub-auto-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md, 12px);
+  margin-top: var(--space-sm, 8px);
+}
+.sup-sub-auto-status {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+.sup-sub-auto-status.loading { color: var(--signal, var(--accent-primary)); }
+.sup-sub-auto-status.err { color: var(--error); }
+.sup-sub-auto-preview {
+  margin-top: var(--space-md, 12px);
+  padding: var(--space-md, 12px);
+  background: var(--bg-primary);
+  border: 1px solid var(--signal, var(--accent-primary));
+  border-radius: var(--radius-md, 8px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm, 8px);
+}
+.sup-sub-auto-preview-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sup-sub-auto-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--signal, var(--accent-primary));
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 700;
+}
+.sup-sub-auto-conf {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.sup-sub-auto-rationale {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-style: italic;
+  line-height: 1.4;
+}
+.sup-sub-auto-cost {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+  text-align: right;
+  letter-spacing: 0.04em;
+}
+.sup-sub-auto-acts {
+  display: flex;
+  gap: var(--space-sm, 8px);
+  justify-content: flex-end;
+}
+
 /* ---- Escalation card (Phase D) ---- */
 .sup-esc-card {
   display: flex;
