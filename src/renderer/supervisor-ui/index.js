@@ -111,6 +111,7 @@ function createViewport() {
       el.querySelector('#supervisor-memory'),
       { onOpenFile: openInFrameEditor }
     );
+    const projectFilter = require('./projectFilter');
     const tree = require('./projectTree').create(
       el.querySelector('#supervisor-tree'),
       {
@@ -122,28 +123,25 @@ function createViewport() {
         // whenever they do switch.
         onSelectProject: (project) => {
           profile.setProject(project);
-          // Memory tab follows the same auto-bind pattern — selecting a
-          // project in the tree primes the Memory tab's project dropdown
-          // without yanking the user off whatever tab they're currently on.
           memory.setProject(project);
+          // Phase M: clicking a project also drives the global project
+          // filter so kanban + header dropdown follow. The user can clear
+          // the filter from the header (or by picking "All projects").
+          projectFilter.set(project && project.name);
         },
-        // Once the kanban resolves audit_path → supervisorRoot, push it into
-        // the profile panel so its YAML fallback can resolve. The tree
-        // doesn't know the root directly, but kanban does — we hand the same
-        // setter to its controller below.
       }
     );
-    // Wire kanban → profile so the YAML fallback path can resolve. The kanban
-    // controller already resolves supervisorRoot during its initial poll;
-    // we expose a getter on its controller (`refresh` runs poll which sets
-    // it), and we just propagate whatever it has on a delay. A 1.5s timer is
-    // enough for the first /api/meta round-trip; if the supervisor never
-    // boots, the YAML fallback simply stays unavailable (the Frame JSON
-    // path doesn't depend on it).
+    // Wire kanban → profile + tree + header so the YAML fallback and the
+    // merged-project list can resolve. The kanban controller already
+    // resolves supervisorRoot during its initial poll; we propagate it on a
+    // 1.5s delay (enough for the first /api/meta round-trip).
     setTimeout(() => {
-      if (rendered && kanban && typeof kanban.getSupervisorRoot === 'function') {
-        profile.setSupervisorRoot(kanban.getSupervisorRoot());
-      }
+      if (!rendered || !kanban) return;
+      const sr = typeof kanban.getSupervisorRoot === 'function'
+        ? kanban.getSupervisorRoot() : null;
+      try { if (sr) profile.setSupervisorRoot(sr); } catch {}
+      try { if (sr && typeof tree.setSupervisorRoot === 'function') tree.setSupervisorRoot(sr); } catch {}
+      try { if (sr && typeof header.setSupervisorRoot === 'function') header.setSupervisorRoot(sr); } catch {}
     }, 1500);
 
     function activateTab(name) {

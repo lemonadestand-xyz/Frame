@@ -1,4 +1,4 @@
-// Supervisor header — Phase C (reactive).
+// Supervisor header — Phase C (reactive) + Phase M (project filter).
 //
 // Subscribes to SUPERVISOR_STATE pushes from main (fs.watch on heartbeat.json +
 // audit.jsonl tail). The /api/heartbeat + /api/workspace fetches survive in
@@ -8,11 +8,16 @@
 //      push has arrived (means main never got STATE_INIT, the supervisor
 //      isn't running, or the daemon's tick is genuinely slower than 5s).
 //
-// /api/meta still doesn't expose `profile` or `projects` — daemon state from
-// heartbeat.state is what we render.
+// Phase M added the project-filter dropdown next to the in-flight count.
+// Options are loaded lazily via SUPERVISOR_LIST_WORKSPACE_PROJECTS — the same
+// merged project list the projectTree consumes. Selection persists in
+// localStorage via projectFilter.set/get; the kanban + tree + memory panel
+// all subscribe to projectFilter so changing the dropdown updates every
+// supervisor surface without point-to-point wiring through index.js.
 
 const { ipcRenderer } = require('electron');
 const SUP = require('../../shared/supervisor-ipc');
+const projectFilter = require('./projectFilter');
 
 const SUPERVISOR_API = 'http://127.0.0.1:8766';
 const FALLBACK_AFTER_MS = 5000;
@@ -25,6 +30,12 @@ async function fetchJson(path) {
   return res.json();
 }
 
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
 function create(root) {
   let alive = true;
   let stateListener = null;
@@ -32,6 +43,8 @@ function create(root) {
   let fallbackHbTimer = null;
   let fallbackWsTimer = null;
   let fallbackArmTimer = null;
+  let supervisorRoot = null;
+  let unsubFilter = null;
 
   root.innerHTML = `
     <div class="sup-live">
@@ -41,6 +54,12 @@ function create(root) {
     <div class="sup-meta">
       <span>daemon: <span class="v" id="sup-daemon">…</span></span>
       <span>in-flight: <span class="v" id="sup-inflight">0</span></span>
+      <label class="sup-meta-proj">
+        <span>project:</span>
+        <select class="sup-meta-proj-sel" id="sup-meta-proj">
+          <option value="">All projects</option>
+        </select>
+      </label>
       <span>cost today: <span class="v" id="sup-cost">$0.00</span></span>
     </div>
     <div class="sup-actions">
@@ -55,10 +74,7 @@ function create(root) {
   const inflightEl = root.querySelector('#sup-inflight');
   const costEl = root.querySelector('#sup-cost');
   const daemonBtnEl = root.querySelector('#sup-btn-daemon');
-  // Tracks the current daemon liveness so the toggle button knows whether
-  // clicking should call /api/queue/start vs /api/queue/stop. Defaulting to
-  // null (rather than false) keeps the button disabled until we've heard
-  // back at least once.
+  const projSelEl = root.querySelector('#sup-meta-proj');
   let daemonAlive = null;
 
   function applyDaemonButton() {
@@ -136,8 +152,35 @@ function create(root) {
     fallbackWsTimer = null;
   }
 
-  // Subscribe to main's reactive state pushes. Heartbeat data arrives
-  // sub-second of the daemon writing run-state/heartbeat.json.
+  async function loadProjectOptions() {
+    try {
+      const projects = await ipcRenderer.invoke(
+        SUP.SUPERVISOR_LIST_WORKSPACE_PROJECTS,
+        { supervisorRoot: supervisorRoot || undefined }
+      );
+      if (!alive) return;
+      const current = projectFilter.get() || '';
+      const opts = ['<option value="">All projects</option>']
+        .concat((projects || []).map((p) => (
+          `<option value="${esc(p.name)}">${esc(p.name)}</option>`
+        )));
+      projSelEl.innerHTML = opts.join('');
+      // Reapply persisted selection if it still exists in the list.
+      if (current && (projects || []).some((p) => p.name === current)) {
+        projSelEl.value = current;
+      }
+    } catch (err) {
+      // Leave the default "All projects" option in place.
+    }
+  }
+
+  function setSupervisorRoot(root_) {
+    if (root_ === supervisorRoot) return;
+    supervisorRoot = root_ || null;
+    if (supervisorRoot) loadProjectOptions();
+  }
+
+  // Subscribe to main's reactive state pushes.
   stateListener = (_evt, payload) => {
     if (!payload || !alive) return;
     receivedPushAt = Date.now();
@@ -146,7 +189,7 @@ function create(root) {
   };
   ipcRenderer.on(SUP.SUPERVISOR_STATE, stateListener);
 
-  // Buttons — Phase D wires Submit / daemon toggle to the bridge.
+  // Buttons + dropdown wiring.
   root.querySelector('#sup-btn-submit').addEventListener('click', () => {
     require('./submitTaskPanel').toggle();
   });
@@ -160,8 +203,6 @@ function create(root) {
       } catch (err) {
         console.warn('[supervisor] daemon stop failed:', err);
       }
-      // Force an immediate heartbeat re-fetch so the button label flips
-      // without waiting for the next watcher push.
       setTimeout(fetchHeartbeatOnce, 800);
     } else {
       daemonBtnEl.disabled = true;
@@ -174,14 +215,24 @@ function create(root) {
     }
   });
   root.querySelector('#sup-btn-refresh').addEventListener('click', refresh);
+  projSelEl.addEventListener('change', () => {
+    projectFilter.set(projSelEl.value || null);
+  });
+  // External changes (e.g. clicking a project in the tree) also reflect in
+  // the dropdown so the visible state always matches the active filter.
+  unsubFilter = projectFilter.subscribe((name) => {
+    if (projSelEl.value !== (name || '')) projSelEl.value = name || '';
+  });
+  // Apply the persisted value on mount once options are present.
+  const initial = projectFilter.get();
+  if (initial) projSelEl.value = initial;
 
-  // Initial paint — even if main is wired, the watcher only emits on the
-  // *next* heartbeat write, so without this the header is blank for ~1s.
+  // Initial paint + project list. Project list re-fetches once we learn
+  // supervisorRoot (kanban hands it over) so supervisor-side profile names
+  // get merged in.
   refresh();
+  loadProjectOptions();
 
-  // Arm the fallback: if no SUPERVISOR_STATE push lands within 5s of mount,
-  // assume main never got STATE_INIT (or the supervisor is genuinely silent)
-  // and resume the old polling cadence.
   fallbackArmTimer = setTimeout(() => {
     if (!alive) return;
     if (!receivedPushAt) startFallback();
@@ -194,9 +245,10 @@ function create(root) {
     stopFallback();
     if (fallbackArmTimer) clearTimeout(fallbackArmTimer);
     fallbackArmTimer = null;
+    if (unsubFilter) { unsubFilter(); unsubFilter = null; }
   }
 
-  return { stop, refresh };
+  return { stop, refresh, setSupervisorRoot, refreshProjects: loadProjectOptions };
 }
 
 module.exports = { create, SUPERVISOR_API };

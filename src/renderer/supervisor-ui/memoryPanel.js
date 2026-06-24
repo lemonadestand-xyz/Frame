@@ -20,6 +20,7 @@
 const { shell } = require('electron');
 const { marked } = require('marked');
 const { SUPERVISOR_API } = require('./header');
+const projectFilter = require('./projectFilter');
 
 const HISTORY_CAP = 10;
 
@@ -64,8 +65,8 @@ function create(root, opts = {}) {
       </div>
       <div class="sup-mem-compose">
         <label class="sup-mem-proj-row">
-          <span>Project</span>
-          <select id="sup-mem-proj-sel"></select>
+          <span class="sup-mem-proj-label">Project</span>
+          <select id="sup-mem-proj-sel" class="sup-mem-proj-sel-prominent"></select>
         </label>
         <label class="sup-mem-q-row">
           <span>Question</span>
@@ -119,10 +120,13 @@ function create(root, opts = {}) {
       const desired = (currentProject && currentProject.name) || projSel.value || '';
       projSel.innerHTML = '<option value="">Choose a project…</option>' +
         projects.map((p) => `<option value="${esc(p.name)}">${esc(p.name)} · ${p.notes} notes</option>`).join('');
-      // Restore selection if the desired project still exists in the list.
-      if (desired && projects.some((p) => p.name === desired)) {
-        projSel.value = desired;
-      }
+      // Restore selection: explicit local desire wins, then the global
+      // project filter (so opening the Memory tab "remembers" the project
+      // chosen elsewhere in the supervisor view).
+      const globalChoice = projectFilter.get();
+      const finalChoice = (desired && projects.some((p) => p.name === desired)) ? desired
+        : (globalChoice && projects.some((p) => p.name === globalChoice)) ? globalChoice : '';
+      if (finalChoice) projSel.value = finalChoice;
       syncProjLabel();
     } catch (err) {
       // Quiet — leave the selector empty. The user will see the Ask button
@@ -331,6 +335,25 @@ function create(root, opts = {}) {
     // Reflect the dropdown selection in the header label. We don't reload
     // history — the user keeps their answer log when they switch projects.
     syncProjLabel();
+    // Phase M: also push the selection up to the global project filter so
+    // the kanban + tree + header dropdown stay in sync when the user picks
+    // from the Memory tab's own dropdown.
+    projectFilter.set(projSel.value || null);
+  });
+
+  // Phase M: subscribe to the global project filter — when the header (or
+  // the tree) sets a project, snap our dropdown to it if it exists in
+  // /api/memory/projects. We can only auto-select projects that the
+  // supervisor's memory store knows about; if the global filter is a name
+  // we don't have notes for, the dropdown stays unchanged and the Ask
+  // button surfaces a "Pick a project first" error on submit.
+  const unsubFilter = projectFilter.subscribe((name) => {
+    if (!name) return;
+    if (!projects.some((p) => p.name === name)) return;
+    if (projSel.value !== name) {
+      projSel.value = name;
+      syncProjLabel();
+    }
   });
   askBtn.addEventListener('click', ask);
   qEl.addEventListener('keydown', (e) => {
@@ -358,6 +381,7 @@ function create(root, opts = {}) {
 
   function stop() {
     alive = false;
+    try { unsubFilter(); } catch { /* ignore */ }
   }
 
   // Initial paint — projects + ClickUp health probe run in parallel so the

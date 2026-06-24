@@ -89,13 +89,24 @@ function listProjectDocs({ project_id, project_path }) {
 }
 
 /**
- * Read Frame's own workspace projects from ~/.frame/workspaces.json. The
- * supervisor view uses this as its project source: the supervisor's
- * /api/memory/projects endpoint only knows about memory namespaces (no path),
- * and the brief's /api/meta.projects field doesn't exist server-side.
- * Returns [{ name, path, isFrameProject }] for the active workspace, or [].
+ * Project sources used by the supervisor view's left rail. Phase M expanded
+ * this from "Frame workspaces only" to a union of three discovery sources so
+ * profiles the user hasn't opened in Frame still appear (Chris's PWA-parity
+ * smoke test 2026-06-23 — see Phase M spec). Sources:
+ *
+ *   1. Frame workspaces  (~/.frame/workspaces.json — gives {name, path})
+ *   2. Supervisor profiles  (<supervisorRoot>/profiles/<id>.yaml — name only)
+ *   3. Memory namespaces  (~/memory/<id>/ — name only)
+ *
+ * Each entry is normalised to {name, path?, sources[], isFrameProject?}. The
+ * `sources` array records every origin a name came from so a future UI can
+ * badge "in Frame + has memory + has profile" without re-walking the dirs.
+ * Entries without a path can still drive the queue filter and the profile
+ * panel's YAML fallback (which only needs name + supervisorRoot).
  */
-function listWorkspaceProjects() {
+const MEMORY_ROOT = path.join(os.homedir(), 'memory');
+
+function readFrameWorkspaceProjects() {
   try {
     if (!fs.existsSync(FRAME_WORKSPACES_PATH)) return [];
     const data = JSON.parse(fs.readFileSync(FRAME_WORKSPACES_PATH, 'utf8'));
@@ -108,11 +119,70 @@ function listWorkspaceProjects() {
         path: p.path || '',
         isFrameProject: !!p.isFrameProject,
       }))
-      .filter((p) => p.path);
+      .filter((p) => p.name);
   } catch (e) {
     console.warn('[supervisor-bridge] failed to read workspaces.json:', e.message);
     return [];
   }
+}
+
+function listSupervisorProfileNames(supervisorRoot) {
+  if (!supervisorRoot) return [];
+  try {
+    const items = profilesLister.list({ supervisorRoot });
+    return items.map((p) => p.id).filter(Boolean);
+  } catch (e) {
+    return [];
+  }
+}
+
+function listMemoryNamespaces() {
+  try {
+    if (!fs.existsSync(MEMORY_ROOT)) return [];
+    return fs.readdirSync(MEMORY_ROOT).filter((n) => {
+      if (!n || n.startsWith('.') || n.startsWith('_')) return false;
+      // Skip the noisy auto-generated frame-mirror-project-* namespaces —
+      // they aren't user-meaningful project labels.
+      if (n.startsWith('frame-mirror-project-')) return false;
+      try {
+        return fs.statSync(path.join(MEMORY_ROOT, n)).isDirectory();
+      } catch { return false; }
+    });
+  } catch { return []; }
+}
+
+function listWorkspaceProjects(payload = {}) {
+  const supervisorRoot = payload && typeof payload.supervisorRoot === 'string'
+    && path.isAbsolute(payload.supervisorRoot) ? payload.supervisorRoot : '';
+  const merged = new Map(); // key: name → { name, path, isFrameProject, sources[] }
+  const add = (name, source, extras = {}) => {
+    if (!name) return;
+    const existing = merged.get(name);
+    if (existing) {
+      existing.sources.push(source);
+      if (!existing.path && extras.path) existing.path = extras.path;
+      if (extras.isFrameProject) existing.isFrameProject = true;
+      return;
+    }
+    merged.set(name, {
+      name,
+      path: extras.path || '',
+      isFrameProject: !!extras.isFrameProject,
+      sources: [source],
+    });
+  };
+  for (const p of readFrameWorkspaceProjects()) {
+    add(p.name, 'frame-workspace', { path: p.path, isFrameProject: p.isFrameProject });
+  }
+  for (const id of listSupervisorProfileNames(supervisorRoot)) {
+    add(id, 'supervisor-profile');
+  }
+  for (const id of listMemoryNamespaces()) {
+    add(id, 'memory-namespace');
+  }
+  const out = Array.from(merged.values());
+  out.sort((a, b) => a.name.localeCompare(b.name));
+  return out;
 }
 
 /**
@@ -281,8 +351,8 @@ function register(ipcMain) {
   // The supervisor API only knows about memory namespaces; pairing those
   // with Frame's known projects gives us project_path (which the docs and
   // specs handlers need to do anything useful beyond the memory tree).
-  ipcMain.handle(SUP.SUPERVISOR_LIST_WORKSPACE_PROJECTS, async () => {
-    return listWorkspaceProjects();
+  ipcMain.handle(SUP.SUPERVISOR_LIST_WORKSPACE_PROJECTS, async (_evt, payload) => {
+    return listWorkspaceProjects(payload || {});
   });
 
   // Phase C: reactive file-watch driven state pushes + per-task tail logs.

@@ -23,6 +23,7 @@ const SUP = require('../../shared/supervisor-ipc');
 const { SUPERVISOR_API } = require('./header');
 const taskCard = require('./taskCard');
 const escalationCard = require('./escalationCard');
+const projectFilter = require('./projectFilter');
 
 const FALLBACK_AFTER_MS = 5000;
 const FALLBACK_POLL_MS = 4000;
@@ -43,6 +44,10 @@ function create(root) {
   let fallbackTimer = null;
   let fallbackArmTimer = null;
   let refetchDebounce = null;
+  let unsubFilter = null;
+  // Cache the most recent workspace payload so a filter change can re-render
+  // without an extra /api/workspace round-trip.
+  let lastWorkspace = null;
   // Track the most recent in-flight task ids so we can offer Tail log on them.
   let lastInFlight = new Set();
 
@@ -123,43 +128,51 @@ function create(root) {
     });
   }
 
+  function renderFromCache() {
+    if (!alive || !lastWorkspace) return;
+    const filterName = projectFilter.get();
+    const matchFilter = (t) => projectFilter.matches(t, filterName);
+    const cols = lastWorkspace.columns || {};
+    const pending = (cols.pending || []).filter(matchFilter);
+    const active = (cols.active || []).filter(matchFilter);
+    const awaiting = (cols.awaiting || []).filter(matchFilter);
+    const allDone = (cols.done || []).filter(matchFilter);
+    const done = allDone.filter((t) => t.status !== 'failed');
+    const failed = allDone.filter((t) => t.status === 'failed');
+
+    root.querySelector('#sup-ct-pending').textContent = String(pending.length);
+    root.querySelector('#sup-ct-active').textContent = String(active.length);
+    root.querySelector('#sup-ct-done').textContent = String(done.length);
+    root.querySelector('#sup-ct-failed').textContent = String(failed.length);
+    root.querySelector('#sup-needs-count').textContent = String(awaiting.length);
+
+    lastInFlight = new Set(active.map((t) => t.id).filter(Boolean));
+
+    const emptyHint = filterName
+      ? `No matching tasks (project: ${filterName})`
+      : 'Queue empty';
+    fillList('sup-list-pending', pending, emptyHint, 'pending');
+    fillList('sup-list-active', active, 'No active work', 'active');
+    fillList('sup-list-done', done, 'No completed tasks', 'done');
+    fillList('sup-list-failed', failed, 'No failures ✓', 'failed');
+
+    const needsListEl = root.querySelector('#sup-needs-you-list');
+    needsListEl.innerHTML = '';
+    if (!awaiting.length) {
+      needsListEl.innerHTML = '<div class="sup-needs-you-empty">Nothing needs you ✓</div>';
+    } else {
+      awaiting.forEach((t) => needsListEl.appendChild(escalationCard.render(t)));
+    }
+  }
+
   async function poll() {
     if (!alive) return;
     await resolveSupervisorRoot();
     try {
       const ws = await fetchJson('/api/workspace');
       if (!alive) return;
-      const cols = ws.columns || {};
-      const pending = cols.pending || [];
-      const active = cols.active || [];
-      const awaiting = cols.awaiting || [];
-      const allDone = cols.done || [];
-      const done = allDone.filter((t) => t.status !== 'failed');
-      const failed = allDone.filter((t) => t.status === 'failed');
-
-      root.querySelector('#sup-ct-pending').textContent = String(pending.length);
-      root.querySelector('#sup-ct-active').textContent = String(active.length);
-      root.querySelector('#sup-ct-done').textContent = String(done.length);
-      root.querySelector('#sup-ct-failed').textContent = String(failed.length);
-      root.querySelector('#sup-needs-count').textContent = String(awaiting.length);
-
-      lastInFlight = new Set(active.map((t) => t.id).filter(Boolean));
-
-      fillList('sup-list-pending', pending, 'Queue empty', 'pending');
-      fillList('sup-list-active', active, 'No active work', 'active');
-      fillList('sup-list-done', done, 'No completed tasks', 'done');
-      fillList('sup-list-failed', failed, 'No failures ✓', 'failed');
-
-      const needsListEl = root.querySelector('#sup-needs-you-list');
-      needsListEl.innerHTML = '';
-      if (!awaiting.length) {
-        needsListEl.innerHTML = '<div class="sup-needs-you-empty">Nothing needs you ✓</div>';
-      } else {
-        // Phase D: replaces the Phase B placeholder taskCard with the
-        // Approve/Edit/Redirect card. taskCard is still used for the four
-        // columns; only the Needs-You row uses escalationCard.
-        awaiting.forEach((t) => needsListEl.appendChild(escalationCard.render(t)));
-      }
+      lastWorkspace = ws;
+      renderFromCache();
     } catch (err) {
       // Quiet — keep the last rendered state
     }
@@ -246,6 +259,10 @@ function create(root) {
     return true;
   }
 
+  // Phase M: re-render whenever the global project filter changes. Renders
+  // from the cached workspace payload — no extra network round-trip.
+  unsubFilter = projectFilter.subscribe(() => renderFromCache());
+
   // Initial paint
   poll();
 
@@ -265,9 +282,9 @@ function create(root) {
     if (refetchDebounce) clearTimeout(refetchDebounce);
     fallbackArmTimer = null;
     refetchDebounce = null;
-    // Phase H: clear inline-detail expansion state when the section closes so
-    // a fresh open doesn't auto-expand previously-opened cards (and so the
-    // audit/brief caches don't outlive the section's lifetime).
+    if (unsubFilter) { unsubFilter(); unsubFilter = null; }
+    // Phase M (was Phase H): tear down any open task detail modal so the
+    // listener + refresh timer don't leak past tab-close.
     try { taskCard.resetExpansion(); } catch { /* ignore */ }
   }
 

@@ -1,8 +1,9 @@
-// Supervisor project tree — Phase B.
+// Supervisor project tree — Phase B + Phase M.
 //
-// Left rail listing Frame's workspace projects (from ~/.frame/workspaces.json
-// via SUPERVISOR_LIST_WORKSPACE_PROJECTS). For each project, three lazy
-// children:
+// Left rail listing every project the supervisor knows about: Frame
+// workspaces unioned with supervisor profiles unioned with memory
+// namespaces (see src/main/supervisor-bridge/index.js#listWorkspaceProjects).
+// For each project, three lazy children:
 //   queue/ — /api/workspace filtered by substring match on title/id/profile/
 //            brief vs the project name (workspace tasks don't carry a
 //            project_id field, so we mirror the loose-match the PWA's
@@ -13,12 +14,20 @@
 //            Lists develop/*.md + ~/memory/<name>/**/*.md.
 //   specs/ — SUPERVISOR_LIST_PROJECT_SPECS({project_path}). Lists
 //            .frame/specs/<slug>/{spec,plan,tasks}.md — scanned from the
-//            filesystem since no supervisor API exposes this.
+//            filesystem since no supervisor API exposes this. Skipped for
+//            projects that have no path (memory/profile-only entries).
+//
+// Phase M: openFile() now accepts any text-ish file extension and falls back
+// to shell.openPath() so a click never silently no-ops. Tree projects also
+// surface a small ✓ chip when the project is opened in Frame so the user can
+// tell which entries have full filesystem context vs which only carry a
+// supervisor profile or memory namespace.
 
 const path = require('path');
-const { ipcRenderer } = require('electron');
+const { ipcRenderer, shell } = require('electron');
 const SUP = require('../../shared/supervisor-ipc');
 const { SUPERVISOR_API } = require('./header');
+const projectFilter = require('./projectFilter');
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => (
@@ -32,13 +41,35 @@ async function fetchJson(p) {
   return res.json();
 }
 
+// Frame's editor reads via fs.readFileSync(path, 'utf8') (src/main/fileEditor.js:24)
+// — any text-ish extension renders inline; markdown gets the marked-preview
+// path. Code-ish extensions are forwarded to the OS via shell.openPath so the
+// user lands in their default editor (VS Code, etc) instead of a silent no-op.
+const EDITOR_EXTS = new Set([
+  '.md', '.markdown', '.html', '.htm', '.txt', '.json', '.yaml', '.yml',
+  '.toml', '.ini', '.css', '.scss', '.sass', '.less', '.xml', '.svg',
+  '.gql', '.graphql',
+  '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs',
+  '.py', '.rb', '.go', '.rs', '.java', '.lua', '.r', '.scala', '.kt',
+  '.swift', '.dart', '.vue', '.svelte', '.astro',
+  '.sh', '.bash', '.zsh', '.fish', '.sql', '.env',
+]);
+
 function openFile(absPath) {
-  try {
-    const editor = require('../editor');
-    editor.openFile(absPath, 'supervisor');
-  } catch (err) {
-    console.warn('[supervisor] editor.openFile failed:', err);
+  if (!absPath) return;
+  const ext = path.extname(absPath).toLowerCase();
+  if (EDITOR_EXTS.has(ext) || ext === '') {
+    try {
+      const editor = require('../editor');
+      editor.openFile(absPath, 'supervisor');
+      return;
+    } catch (err) {
+      console.warn('[supervisor] editor.openFile failed; falling back to shell:', err);
+    }
   }
+  // Unknown / binary extension — defer to the OS so we never silently no-op.
+  try { shell.openPath(absPath); }
+  catch (err) { console.warn('[supervisor] shell.openPath failed:', err); }
 }
 
 /**
@@ -72,15 +103,29 @@ function create(root, opts = {}) {
   let alive = true;
   const onScrollToTask = opts.onScrollToTask || (() => {});
   // Phase I: emit a selection event whenever the user clicks a project row so
-  // the Profile tab can refocus on that project. We keep expand/collapse as
-  // the same gesture — selecting a project is the same click that opens its
-  // queue/docs/specs sub-tree, so users don't pay an extra click for the
-  // profile flip.
+  // the Profile tab can refocus on that project.
   const onSelectProject = opts.onSelectProject || (() => {});
   let selectedRowEl = null;
   let selectedProject = null;
+  // Phase M: supervisorRoot is plumbed in so the main-side merge can include
+  // <root>/profiles/*.yaml in the project list. The kanban resolves it on its
+  // first poll and pushes it via setSupervisorRoot(); the initial load runs
+  // without it and re-runs once the root lands.
+  let supervisorRoot = opts.supervisorRoot || null;
+  // Phase M: dim project rows that don't match the global filter. We
+  // intentionally dim instead of hide so the user still sees the full list
+  // and can switch with one click.
+  let unsubFilter = null;
+  let projectRowsByName = new Map();
 
   root.innerHTML = '<div class="sup-tree-empty">Loading projects…</div>';
+
+  function applyFilterDimming(name) {
+    projectRowsByName.forEach((rowEl, projectName) => {
+      const dim = !!name && name !== projectName;
+      rowEl.classList.toggle('dimmed', dim);
+    });
+  }
 
   function makeGroupNode(label, loader, renderChildren) {
     const wrap = document.createElement('div');
@@ -198,10 +243,17 @@ function create(root, opts = {}) {
   function buildProjectNode(p) {
     const node = document.createElement('div');
     node.className = 'sup-tree-node';
+    // Phase M: badge entries that are open in Frame so the user can tell
+    // which projects have full filesystem context (path + specs) vs which
+    // are profile-/memory-only (queue + docs work; specs is hidden).
+    const frameBadge = p.isFrameProject
+      ? '<span class="sup-tree-frame-chip" title="Open in Frame">✓</span>'
+      : '';
     node.innerHTML = `
       <div class="sup-tree-row project">
         <span class="sup-chev">▸</span>
         <span class="sup-label">${esc(p.name)}</span>
+        ${frameBadge}
       </div>
       <div class="sup-tree-children"></div>
     `;
@@ -210,15 +262,13 @@ function create(root, opts = {}) {
     let built = false;
     rowEl.addEventListener('click', () => {
       // Phase I: mark this project as the selected one before toggling
-      // expansion. Selection is independent of expand/collapse — the
-      // user can collapse a project and still have it remain selected —
-      // but the same click drives both.
+      // expansion. Selection is independent of expand/collapse.
       if (selectedRowEl && selectedRowEl !== rowEl) {
         selectedRowEl.classList.remove('selected');
       }
       rowEl.classList.add('selected');
       selectedRowEl = rowEl;
-      if (!selectedProject || selectedProject.path !== p.path) {
+      if (!selectedProject || selectedProject.name !== p.name) {
         selectedProject = p;
         onSelectProject(p);
       }
@@ -239,20 +289,24 @@ function create(root, opts = {}) {
           'docs',
           () => ipcRenderer.invoke(SUP.SUPERVISOR_LIST_PROJECT_DOCS, {
             project_id: p.name,
-            project_path: p.path,
+            project_path: p.path || '',
           }),
           renderDocsChildren
         );
-        const specsNode = makeGroupNode(
-          '.frame/specs',
-          () => ipcRenderer.invoke(SUP.SUPERVISOR_LIST_PROJECT_SPECS, {
-            project_path: p.path,
-          }),
-          renderSpecsChildren
-        );
         childrenEl.appendChild(queueNode);
         childrenEl.appendChild(docsNode);
-        childrenEl.appendChild(specsNode);
+        // Specs scan requires a real project_path — skip for memory- or
+        // profile-only entries since the IPC would just return an empty list.
+        if (p.path) {
+          const specsNode = makeGroupNode(
+            '.frame/specs',
+            () => ipcRenderer.invoke(SUP.SUPERVISOR_LIST_PROJECT_SPECS, {
+              project_path: p.path,
+            }),
+            renderSpecsChildren
+          );
+          childrenEl.appendChild(specsNode);
+        }
       }
     });
     return node;
@@ -260,32 +314,50 @@ function create(root, opts = {}) {
 
   async function load() {
     try {
-      const projects = await ipcRenderer.invoke(SUP.SUPERVISOR_LIST_WORKSPACE_PROJECTS);
+      const projects = await ipcRenderer.invoke(
+        SUP.SUPERVISOR_LIST_WORKSPACE_PROJECTS,
+        { supervisorRoot: supervisorRoot || undefined }
+      );
       if (!alive) return;
       root.innerHTML = '';
       if (!projects || !projects.length) {
-        root.innerHTML = '<div class="sup-tree-empty">No Frame projects in workspace.<br/><small>Add one from the Home board.</small></div>';
+        root.innerHTML = '<div class="sup-tree-empty">No projects found.<br/><small>Add one from the Home board.</small></div>';
         return;
       }
+      projectRowsByName = new Map();
       projects.forEach((p) => {
-        root.appendChild(buildProjectNode(p));
+        const node = buildProjectNode(p);
+        const rowEl = node.querySelector('.sup-tree-row.project');
+        if (rowEl) projectRowsByName.set(p.name, rowEl);
+        root.appendChild(node);
       });
+      applyFilterDimming(projectFilter.get());
     } catch (err) {
       if (!alive) return;
       root.innerHTML = `<div class="sup-tree-empty">project list unavailable<br/><small>${esc(err.message || err)}</small></div>`;
     }
   }
 
+  function setSupervisorRoot(root_) {
+    if (root_ === supervisorRoot) return;
+    supervisorRoot = root_ || null;
+    // Reload the project list now that we can include supervisor profiles
+    // alongside the Frame-workspaces / memory-namespaces sources.
+    if (supervisorRoot) load();
+  }
+
   function start() {
     load();
+    unsubFilter = projectFilter.subscribe((name) => applyFilterDimming(name));
   }
 
   function stop() {
     alive = false;
+    if (unsubFilter) { unsubFilter(); unsubFilter = null; }
   }
 
   start();
-  return { start, stop, refresh: load };
+  return { start, stop, refresh: load, setSupervisorRoot };
 }
 
 module.exports = { create };
