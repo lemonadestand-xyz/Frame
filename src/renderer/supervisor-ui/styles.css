@@ -2060,6 +2060,90 @@
   line-height: 1.5;
 }
 .sup-modal-brief.open { display: block; }
+/* Phase P — rendered-markdown brief preview. The toggle now expands a
+   marked.parse() result inside .sup-brief-md instead of raw <pre> so the
+   user sees the actual brief, not a pre-wrapped dump. */
+.sup-modal-brief-wrap {
+  display: none;
+  margin: 0;
+}
+.sup-modal-brief-wrap.open { display: block; }
+.sup-brief-md {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.sup-brief-md.muted { color: var(--text-tertiary); font-style: italic; }
+.sup-brief-md > :first-child { margin-top: 0; }
+.sup-brief-md > :last-child { margin-bottom: 0; }
+.sup-brief-md h1,
+.sup-brief-md h2,
+.sup-brief-md h3,
+.sup-brief-md h4 {
+  color: var(--text-primary);
+  margin: 12px 0 6px;
+  line-height: 1.3;
+}
+.sup-brief-md h1 { font-size: 17px; }
+.sup-brief-md h2 { font-size: 15px; }
+.sup-brief-md h3 { font-size: 13.5px; }
+.sup-brief-md h4 { font-size: 12.5px; }
+.sup-brief-md p { margin: 6px 0; }
+.sup-brief-md ul,
+.sup-brief-md ol { margin: 6px 0; padding-left: 22px; }
+.sup-brief-md li { margin: 2px 0; }
+.sup-brief-md code {
+  font-family: var(--font-mono);
+  background: var(--bg-primary);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.sup-brief-md pre {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  margin: 6px 0;
+}
+.sup-brief-md pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 11.5px;
+}
+.sup-brief-md blockquote {
+  border-left: 3px solid var(--border-default);
+  margin: 6px 0;
+  padding: 2px 10px;
+  color: var(--text-secondary);
+}
+.sup-brief-md a { color: var(--info); text-decoration: none; }
+.sup-brief-md a:hover { text-decoration: underline; }
+.sup-brief-md table {
+  border-collapse: collapse;
+  margin: 6px 0;
+  font-size: 12px;
+}
+.sup-brief-md th,
+.sup-brief-md td {
+  border: 1px solid var(--border-subtle);
+  padding: 4px 8px;
+  text-align: left;
+}
+.sup-brief-md th { background: var(--bg-primary); }
+.sup-brief-md hr {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: 10px 0;
+}
 .sup-modal-failure-h {
   font-size: 10px;
   text-transform: uppercase;

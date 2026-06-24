@@ -22,12 +22,16 @@
 // surface a small ✓ chip when the project is opened in Frame so the user can
 // tell which entries have full filesystem context vs which only carry a
 // supervisor profile or memory namespace.
+//
+// Phase P: the local openFile helper moved into the shared ./openFile module
+// so every supervisor-ui surface (taskCard / taskDetailModal / kanban /
+// memoryPanel / index) routes through the same code path.
 
-const path = require('path');
-const { ipcRenderer, shell } = require('electron');
+const { ipcRenderer } = require('electron');
 const SUP = require('../../shared/supervisor-ipc');
 const { SUPERVISOR_API } = require('./header');
 const projectFilter = require('./projectFilter');
+const { openFile } = require('./openFile');
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => (
@@ -90,37 +94,6 @@ async function fetchJson(p) {
   const res = await fetch(`${SUPERVISOR_API}${p}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
-}
-
-// Frame's editor reads via fs.readFileSync(path, 'utf8') (src/main/fileEditor.js:24)
-// — any text-ish extension renders inline; markdown gets the marked-preview
-// path. Code-ish extensions are forwarded to the OS via shell.openPath so the
-// user lands in their default editor (VS Code, etc) instead of a silent no-op.
-const EDITOR_EXTS = new Set([
-  '.md', '.markdown', '.html', '.htm', '.txt', '.json', '.yaml', '.yml',
-  '.toml', '.ini', '.css', '.scss', '.sass', '.less', '.xml', '.svg',
-  '.gql', '.graphql',
-  '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs',
-  '.py', '.rb', '.go', '.rs', '.java', '.lua', '.r', '.scala', '.kt',
-  '.swift', '.dart', '.vue', '.svelte', '.astro',
-  '.sh', '.bash', '.zsh', '.fish', '.sql', '.env',
-]);
-
-function openFile(absPath) {
-  if (!absPath) return;
-  const ext = path.extname(absPath).toLowerCase();
-  if (EDITOR_EXTS.has(ext) || ext === '') {
-    try {
-      const editor = require('../editor');
-      editor.openFile(absPath, 'supervisor');
-      return;
-    } catch (err) {
-      console.warn('[supervisor] editor.openFile failed; falling back to shell:', err);
-    }
-  }
-  // Unknown / binary extension — defer to the OS so we never silently no-op.
-  try { shell.openPath(absPath); }
-  catch (err) { console.warn('[supervisor] shell.openPath failed:', err); }
 }
 
 /**

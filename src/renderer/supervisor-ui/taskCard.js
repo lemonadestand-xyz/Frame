@@ -17,6 +17,7 @@
 const path = require('path');
 
 const taskDetailModal = require('./taskDetailModal');
+const { openFile } = require('./openFile');
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => (
@@ -162,9 +163,9 @@ function render(t, columnKey, ctx) {
       btn.title = abs || rel;
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (ctx && typeof ctx.onArtifactClick === 'function') {
-          ctx.onArtifactClick(abs || rel);
-        }
+        // Phase P: route through the shared helper directly so we don't
+        // depend on the kanban context having a working onArtifactClick.
+        openFile(abs || rel);
       });
       artifactsEl.appendChild(btn);
     });

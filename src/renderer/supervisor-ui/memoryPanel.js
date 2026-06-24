@@ -21,6 +21,7 @@ const { shell } = require('electron');
 const { marked } = require('marked');
 const { SUPERVISOR_API } = require('./header');
 const projectFilter = require('./projectFilter');
+const { openFile } = require('./openFile');
 
 const HISTORY_CAP = 10;
 
@@ -54,7 +55,11 @@ function create(root, opts = {}) {
   let history = []; // [{question, project, answer, sources, clickup_items, clickup_warning, elapsedS}]
   let inFlight = false;
   let queuedQuestion = null;
-  const onOpenFile = opts.onOpenFile || (() => {});
+  // Phase P: citation clicks go through the shared ./openFile helper so the
+  // routing decision (Frame editor for .md, OS default for .yaml/.json/code)
+  // matches every other supervisor-ui surface. opts.onOpenFile is still
+  // honoured for callers that want to override (tests, future panels).
+  const onOpenFile = typeof opts.onOpenFile === 'function' ? opts.onOpenFile : openFile;
 
   root.innerHTML = `
     <div class="sup-mem-card">

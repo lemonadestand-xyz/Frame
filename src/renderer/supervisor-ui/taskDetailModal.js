@@ -21,8 +21,10 @@
 const fs = require('fs');
 const path = require('path');
 const { ipcRenderer, shell } = require('electron');
+const { marked } = require('marked');
 const SUP = require('../../shared/supervisor-ipc');
 const { SUPERVISOR_API } = require('./header');
+const { openFile } = require('./openFile');
 
 const AUDIT_TTL_MS = 10_000;
 const briefCache = new Map(); // taskId -> {content, abs}
@@ -199,13 +201,18 @@ function renderOverview() {
 
   // Brief preview — collapsible. Default collapsed so the modal doesn't
   // dominate the viewport on tasks with a multi-page brief.
+  //
+  // Phase P: when expanded, the brief body renders as rendered markdown
+  // (marked.parse) inside .sup-brief-md instead of raw <pre> text — matches
+  // Frame's existing markdown viewer styling and is what the user expected
+  // when they clicked "Show brief".
   const briefHtml = t.brief ? `
     <section class="sup-modal-section">
       <h4>Brief preview</h4>
       <button type="button" class="sup-btn sup-modal-brief-toggle" data-role="brief-toggle">
         ${_state.briefShown ? 'Hide brief' : 'Show brief'}
       </button>
-      <pre class="sup-modal-brief ${_state.briefShown ? 'open' : ''}" data-role="brief-body">${_state.briefShown ? 'loading…' : ''}</pre>
+      <div class="sup-modal-brief-wrap ${_state.briefShown ? 'open' : ''}" data-role="brief-body">${_state.briefShown ? '<div class="sup-brief-md muted">loading…</div>' : ''}</div>
     </section>
   ` : '';
 
@@ -302,6 +309,25 @@ function shortSummary(e) {
   return '';
 }
 
+function renderBriefMd(text) {
+  // marked is already a dep elsewhere (memoryPanel.js); fall back to escaped
+  // text if it somehow throws so the panel never crashes the modal.
+  try {
+    return marked.parse(String(text || ''), { breaks: true, mangle: false, headerIds: false });
+  } catch {
+    return `<pre>${esc(text)}</pre>`;
+  }
+}
+
+function paintBriefBody(body, raw) {
+  if (!body || !body.isConnected) return;
+  if (!raw) {
+    body.innerHTML = '<div class="sup-brief-md muted">(empty brief)</div>';
+    return;
+  }
+  body.innerHTML = `<div class="sup-brief-md">${renderBriefMd(raw)}</div>`;
+}
+
 function loadBriefIntoBody() {
   const t = _state.task;
   if (!_root || !t || !t.brief) return;
@@ -309,19 +335,18 @@ function loadBriefIntoBody() {
   if (!body) return;
   const briefAbs = resolveAbs(t.brief, (_state.ctx || {}).supervisorRoot);
   const cached = briefCache.get(t.id);
-  if (cached) { body.textContent = cached.content; return; }
+  if (cached) { paintBriefBody(body, cached.content); return; }
   fetch(`${SUPERVISOR_API}/api/file?path=${encodeURIComponent(briefAbs)}`)
     .then((r) => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
     .then((j) => {
       const full = (j && j.content) || '';
-      const snippet = full.length > 4000 ? full.slice(0, 4000) + '\n…(truncated)' : full;
+      const snippet = full.length > 4000 ? full.slice(0, 4000) + '\n\n…(truncated)' : full;
       briefCache.set(t.id, { content: snippet, abs: briefAbs });
-      if (!body.isConnected) return;
-      body.textContent = snippet || '(empty brief)';
+      paintBriefBody(body, snippet);
     })
     .catch((err) => {
       if (!body.isConnected) return;
-      body.textContent = `(could not load: ${err.message})`;
+      body.innerHTML = `<div class="sup-brief-md muted">(could not load: ${esc(err.message)})</div>`;
     });
 }
 
@@ -365,12 +390,18 @@ function renderBody() {
 }
 
 function wireOverviewHandlers(body) {
-  const ctx = _state.ctx || {};
   body.querySelectorAll('[data-open]').forEach((el) => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       const target = el.dataset.open;
-      if (target && typeof ctx.onOpenFile === 'function') ctx.onOpenFile(target);
+      if (!target) return;
+      // Phase P: close the modal first so the editor overlay (z-index 1000)
+      // isn't covered by the sup-modal-root (also z-index 1000, but later in
+      // DOM order so it wins the stacking competition). Then route through
+      // the shared helper — .md to Frame's markdown viewer, everything else
+      // to the OS default app.
+      close();
+      openFile(target);
     });
   });
   body.querySelectorAll('[data-reveal]').forEach((el) => {

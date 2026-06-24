@@ -92,17 +92,12 @@ function createViewport() {
     `;
     const header = require('./header').create(el.querySelector('#supervisor-header'));
     const kanban = require('./kanban').create(el.querySelector('#supervisor-kanban'));
-    // Shared editor-opener used by the Profile and Memory panels — citation
-    // and source clicks both resolve to Frame's native markdown viewer so the
-    // user never bounces out to the OS.
-    const openInFrameEditor = (absPath) => {
-      try {
-        const editor = require('../editor');
-        editor.openFile(absPath, 'supervisor');
-      } catch (err) {
-        console.warn('[supervisor] editor.openFile failed:', err);
-      }
-    };
+    // Shared file-opener used by the Profile and Memory panels — Phase P
+    // routes through ./openFile so .md citations land in Frame's markdown
+    // viewer and .yaml/.json/code sources land in the user's default OS
+    // editor (VS Code, etc) instead of silently failing in the overlay.
+    const { openFile } = require('./openFile');
+    const openInFrameEditor = (absPath) => openFile(absPath);
     const profile = require('./profilePanel').create(
       el.querySelector('#supervisor-profile'),
       { onOpenFile: openInFrameEditor }

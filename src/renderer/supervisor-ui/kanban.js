@@ -14,8 +14,11 @@
 // and kanban; without it, both fall back to HTTP.
 //
 // /api/meta returns audit_path; we derive supervisorRoot = parent of run-state/
-// so deliverable paths (project-relative) resolve to absolute paths that
-// editor.openFile can consume.
+// so deliverable paths (project-relative) resolve to absolute paths that the
+// shared openFile helper can consume.
+//
+// Phase P: artifact clicks go through ./openFile so .md lands in Frame's
+// markdown viewer and .yaml/.json/code lands in the user's default OS app.
 
 const path = require('path');
 const { ipcRenderer } = require('electron');
@@ -24,6 +27,7 @@ const { SUPERVISOR_API } = require('./header');
 const taskCard = require('./taskCard');
 const escalationCard = require('./escalationCard');
 const projectFilter = require('./projectFilter');
+const { openFile } = require('./openFile');
 
 const FALLBACK_AFTER_MS = 5000;
 const FALLBACK_POLL_MS = 4000;
@@ -97,12 +101,7 @@ function create(root) {
   }
 
   function onArtifactClick(absPath) {
-    try {
-      const editor = require('../editor');
-      editor.openFile(absPath, 'supervisor');
-    } catch (err) {
-      console.warn('[supervisor] editor.openFile failed:', err);
-    }
+    openFile(absPath);
   }
 
   function fillList(elId, items, emptyMsg, columnKey) {
