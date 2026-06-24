@@ -47,4 +47,9 @@ module.exports = {
   // question + answered-with for each classified event and pass/revise
   // verdict + reasoning for each critique pass.
   SUPERVISOR_TASK_AUDIT: 'supervisor:task-audit',        // {taskId, supervisorRoot} → {ok, events: [...]}
+  // Phase I — per-project profile viewer. Reads <project_path>/.frame/profile.json
+  // first (canonical Frame-side shape) and falls back to
+  // <supervisor_root>/profiles/<project_id>.yaml (supervisor shape, YAML-
+  // parsed in main). Read-only v1; SAVE_PROFILE is a follow-up.
+  SUPERVISOR_READ_PROFILE: 'supervisor:read-profile',    // {project_id, project_path, supervisorRoot} → {ok, source_path, source_type, profile, raw?, error?}
 };

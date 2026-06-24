@@ -71,6 +71,14 @@ function flatTasks(workspace) {
 function create(root, opts = {}) {
   let alive = true;
   const onScrollToTask = opts.onScrollToTask || (() => {});
+  // Phase I: emit a selection event whenever the user clicks a project row so
+  // the Profile tab can refocus on that project. We keep expand/collapse as
+  // the same gesture — selecting a project is the same click that opens its
+  // queue/docs/specs sub-tree, so users don't pay an extra click for the
+  // profile flip.
+  const onSelectProject = opts.onSelectProject || (() => {});
+  let selectedRowEl = null;
+  let selectedProject = null;
 
   root.innerHTML = '<div class="sup-tree-empty">Loading projects…</div>';
 
@@ -201,6 +209,19 @@ function create(root, opts = {}) {
     const childrenEl = node.querySelector('.sup-tree-children');
     let built = false;
     rowEl.addEventListener('click', () => {
+      // Phase I: mark this project as the selected one before toggling
+      // expansion. Selection is independent of expand/collapse — the
+      // user can collapse a project and still have it remain selected —
+      // but the same click drives both.
+      if (selectedRowEl && selectedRowEl !== rowEl) {
+        selectedRowEl.classList.remove('selected');
+      }
+      rowEl.classList.add('selected');
+      selectedRowEl = rowEl;
+      if (!selectedProject || selectedProject.path !== p.path) {
+        selectedProject = p;
+        onSelectProject(p);
+      }
       const expanded = node.classList.toggle('expanded');
       rowEl.querySelector('.sup-chev').textContent = expanded ? '▾' : '▸';
       if (expanded && !built) {

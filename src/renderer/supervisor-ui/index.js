@@ -59,22 +59,94 @@ function createViewport() {
 
   function render(el) {
     injectStylesOnce();
+    // Phase I: the right pane gains a tab bar so the Profile panel can live
+    // alongside the kanban without competing for vertical space. Default tab
+    // stays Kanban — clicking Profile switches visibility via CSS .active
+    // toggles so both controllers can stay mounted (kanban's polling/state
+    // listener already deals with being off-screen).
     el.innerHTML = `
       <div class="supervisor-root">
         <div class="supervisor-header" id="supervisor-header"></div>
         <div class="supervisor-body">
           <aside class="supervisor-tree" id="supervisor-tree"></aside>
-          <main class="supervisor-kanban" id="supervisor-kanban"></main>
+          <main class="supervisor-main">
+            <div class="supervisor-tabbar" role="tablist">
+              <button type="button" class="sup-tab active" role="tab"
+                      data-tab="kanban" aria-selected="true">Kanban</button>
+              <button type="button" class="sup-tab" role="tab"
+                      data-tab="profile" aria-selected="false">Profile</button>
+            </div>
+            <div class="supervisor-tabpanes">
+              <div class="supervisor-kanban sup-tabpane active"
+                   id="supervisor-kanban" role="tabpanel" data-tab="kanban"></div>
+              <div class="supervisor-profile sup-tabpane"
+                   id="supervisor-profile" role="tabpanel" data-tab="profile"></div>
+            </div>
+          </main>
         </div>
       </div>
     `;
     const header = require('./header').create(el.querySelector('#supervisor-header'));
     const kanban = require('./kanban').create(el.querySelector('#supervisor-kanban'));
+    const profile = require('./profilePanel').create(
+      el.querySelector('#supervisor-profile'),
+      {
+        onOpenFile: (absPath) => {
+          try {
+            const editor = require('../editor');
+            editor.openFile(absPath, 'supervisor');
+          } catch (err) {
+            console.warn('[supervisor] editor.openFile failed:', err);
+          }
+        },
+      }
+    );
     const tree = require('./projectTree').create(
       el.querySelector('#supervisor-tree'),
-      { onScrollToTask: (id) => kanban.scrollToTask(id) }
+      {
+        onScrollToTask: (id) => kanban.scrollToTask(id),
+        // Phase I: surface the selected project to the profile panel. We
+        // don't auto-flip the tab — the spec wants the user to manually
+        // switch tabs, and yanking them out of the kanban on every tree
+        // click would be hostile. The Profile pane just stays primed for
+        // whenever they do switch.
+        onSelectProject: (project) => {
+          profile.setProject(project);
+        },
+        // Once the kanban resolves audit_path → supervisorRoot, push it into
+        // the profile panel so its YAML fallback can resolve. The tree
+        // doesn't know the root directly, but kanban does — we hand the same
+        // setter to its controller below.
+      }
     );
-    controllers = { header, tree, kanban };
+    // Wire kanban → profile so the YAML fallback path can resolve. The kanban
+    // controller already resolves supervisorRoot during its initial poll;
+    // we expose a getter on its controller (`refresh` runs poll which sets
+    // it), and we just propagate whatever it has on a delay. A 1.5s timer is
+    // enough for the first /api/meta round-trip; if the supervisor never
+    // boots, the YAML fallback simply stays unavailable (the Frame JSON
+    // path doesn't depend on it).
+    setTimeout(() => {
+      if (rendered && kanban && typeof kanban.getSupervisorRoot === 'function') {
+        profile.setSupervisorRoot(kanban.getSupervisorRoot());
+      }
+    }, 1500);
+
+    function activateTab(name) {
+      const tabs = el.querySelectorAll('.supervisor-tabbar .sup-tab');
+      const panes = el.querySelectorAll('.supervisor-tabpanes .sup-tabpane');
+      tabs.forEach((t) => {
+        const on = t.dataset.tab === name;
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      panes.forEach((p) => p.classList.toggle('active', p.dataset.tab === name));
+    }
+    el.querySelectorAll('.supervisor-tabbar .sup-tab').forEach((t) => {
+      t.addEventListener('click', () => activateTab(t.dataset.tab));
+    });
+
+    controllers = { header, tree, kanban, profile };
     latestControllers = controllers;
     rendered = true;
   }
@@ -87,6 +159,7 @@ function createViewport() {
       try { controllers.header.stop(); } catch {}
       try { controllers.tree.stop(); } catch {}
       try { controllers.kanban.stop(); } catch {}
+      try { if (controllers.profile) controllers.profile.stop(); } catch {}
       if (latestControllers === controllers) latestControllers = null;
       controllers = null;
     }

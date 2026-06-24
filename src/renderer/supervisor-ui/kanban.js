@@ -271,7 +271,12 @@ function create(root) {
     try { taskCard.resetExpansion(); } catch { /* ignore */ }
   }
 
-  return { stop, refresh: poll, scrollToTask, expandTailOnFirstInflight };
+  // Phase I: the profile panel's YAML fallback needs the same supervisorRoot
+  // the kanban resolves during its first poll. Exposing a getter keeps the
+  // root in one place instead of duplicating the /api/meta dance.
+  function getSupervisorRoot() { return supervisorRoot; }
+
+  return { stop, refresh: poll, scrollToTask, expandTailOnFirstInflight, getSupervisorRoot };
 }
 
 // Phase F helper for the "Supervisor — Tail current in-flight task" command.

@@ -12,6 +12,7 @@ const SUP = require('../../shared/supervisor-ipc');
 const stateWatcher = require('./stateWatcher');
 const tailReader = require('./tailReader');
 const profilesLister = require('./profilesLister');
+const profileReader = require('./profileReader');
 const taskSubmitter = require('./taskSubmitter');
 const notifier = require('./notifier');
 
@@ -381,6 +382,13 @@ function register(ipcMain) {
     return readTaskAudit(payload || {});
   });
 
+  // Phase I: per-project profile viewer. Prefers <project_path>/.frame/
+  // profile.json over <supervisorRoot>/profiles/<project_id>.yaml — see
+  // profileReader.js for the fallback chain and shape validation.
+  ipcMain.handle(SUP.SUPERVISOR_READ_PROFILE, async (_evt, payload) => {
+    return profileReader.read(payload || {});
+  });
+
   // Phase K: write a brief edited in the Reuse picker. Constrained to
   // <supervisorRoot>/prompts/inline/ so an attacker (or a buggy renderer)
   // can't overwrite arbitrary files. Mirrors taskSubmitter.writeInlineBrief
@@ -413,4 +421,5 @@ module.exports = {
   listWorkspaceProjects,
   listBriefs,
   readTaskAudit,
+  readProfile: profileReader.read,
 };

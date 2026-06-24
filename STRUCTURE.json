@@ -7605,7 +7605,8 @@
         "listProjectSpecs",
         "listWorkspaceProjects",
         "listBriefs",
-        "readTaskAudit"
+        "readTaskAudit",
+        "readProfile"
       ],
       "depends": [
         "fs",
@@ -7615,38 +7616,39 @@
         "stateWatcher",
         "tailReader",
         "profilesLister",
+        "profileReader",
         "taskSubmitter",
         "notifier",
         "electron"
       ],
       "functions": {
         "listProjectDocs": {
-          "line": 34,
+          "line": 35,
           "params": [
             "{ project_id",
             "project_path }"
           ]
         },
         "listWorkspaceProjects": {
-          "line": 97,
+          "line": 98,
           "purpose": "Returns [{ name, path, isFrameProject }] for the active workspace, or []."
         },
         "listProjectSpecs": {
-          "line": 129,
+          "line": 130,
           "params": [
             "{ project_path }"
           ],
           "purpose": "[{ slug, phase, files: [{ path, label }] }]"
         },
         "listBriefs": {
-          "line": 171,
+          "line": 172,
           "params": [
             "{ supervisor_root }"
           ],
           "purpose": "recent brief."
         },
         "readTaskAudit": {
-          "line": 204,
+          "line": 205,
           "params": [
             "{ taskId",
             "supervisorRoot }"
@@ -7654,7 +7656,7 @@
           "purpose": "otherwise flood the inspector)."
         },
         "register": {
-          "line": 258,
+          "line": 259,
           "params": [
             "ipcMain"
           ]
@@ -7662,6 +7664,7 @@
       },
       "ipc": {
         "listens": [
+          "SUP",
           "SUP",
           "SUP",
           "SUP",
@@ -7690,6 +7693,8 @@
         "terminal",
         "header",
         "kanban",
+        "profilePanel",
+        "editor",
         "projectTree",
         "electron",
         "commandRegistry",
@@ -7705,20 +7710,20 @@
           "line": 40
         },
         "open": {
-          "line": 107
+          "line": 180
         },
         "handleNotifyClick": {
-          "line": 114,
+          "line": 187,
           "params": [
             "{ taskId }"
           ]
         },
         "isSupervisorActive": {
-          "line": 137,
+          "line": 210,
           "purpose": "even one in a background tab. Ask multiTerminalUI for the active section."
         },
         "init": {
-          "line": 148
+          "line": 221
         }
       }
     },
@@ -7797,7 +7802,7 @@
           ]
         },
         "expandTailOnFirstInflight": {
-          "line": 280,
+          "line": 285,
           "purpose": "a module-level shim so the command-registry entry stays a one-liner."
         }
       },
@@ -8707,6 +8712,99 @@
           "SUP"
         ],
         "emits": []
+      }
+    },
+    "main/supervisor-bridge/profileReader": {
+      "file": "src/main/supervisor-bridge/profileReader.js",
+      "description": "Supervisor profile reader (main) — Phase I.",
+      "exports": [
+        "read",
+        "readFrameJson",
+        "readSupervisorYaml"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "js-yaml"
+      ],
+      "functions": {
+        "loadYaml": {
+          "line": 37
+        },
+        "readFrameJson": {
+          "line": 53,
+          "params": [
+            "project_path"
+          ],
+          "purpose": "errors so the caller can decide whether to fall back to YAML."
+        },
+        "readSupervisorYaml": {
+          "line": 96,
+          "params": [
+            "supervisorRoot",
+            "project_id"
+          ],
+          "purpose": "something useful — the error field carries the parse message."
+        },
+        "read": {
+          "line": 165,
+          "params": [
+            "{ project_id",
+            "project_path",
+            "supervisorRoot } = {}"
+          ],
+          "purpose": "state without blowing up."
+        }
+      }
+    },
+    "renderer/supervisor-ui/profilePanel": {
+      "file": "src/renderer/supervisor-ui/profilePanel.js",
+      "description": "Supervisor profile panel — Phase I (read-only v1).",
+      "exports": [
+        "create",
+        "pickViewModel",
+        "formatBudgets",
+        "shortenHome"
+      ],
+      "depends": [
+        "path",
+        "electron",
+        "../shared/supervisor-ipc"
+      ],
+      "functions": {
+        "esc": {
+          "line": 27,
+          "params": [
+            "s"
+          ]
+        },
+        "pickViewModel": {
+          "line": 38,
+          "params": [
+            "profile",
+            "sourceCtx"
+          ],
+          "purpose": "`null` rather than throwing, which the render path treats as \"—\"."
+        },
+        "formatBudgets": {
+          "line": 102,
+          "params": [
+            "vm"
+          ]
+        },
+        "shortenHome": {
+          "line": 110,
+          "params": [
+            "p"
+          ]
+        },
+        "create": {
+          "line": 119,
+          "params": [
+            "root",
+            "opts = {}"
+          ]
+        }
       }
     }
   },
@@ -9723,6 +9821,20 @@
         "module": "renderer/pluginsPanel",
         "file": "src/renderer/pluginsPanel.js",
         "description": "Plugins Panel Module"
+      }
+    ],
+    "profile": [
+      {
+        "module": "renderer/supervisor-ui/profilePanel",
+        "file": "src/renderer/supervisor-ui/profilePanel.js",
+        "description": "Supervisor profile panel — Phase I (read-only v1)."
+      }
+    ],
+    "profile-reader": [
+      {
+        "module": "main/supervisor-bridge/profileReader",
+        "file": "src/main/supervisor-bridge/profileReader.js",
+        "description": "Supervisor profile reader (main) — Phase I."
       }
     ],
     "profiles-lister": [
