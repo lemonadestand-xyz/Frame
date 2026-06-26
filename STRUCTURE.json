@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-06-22",
+  "lastUpdated": "2026-06-24",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -988,7 +988,8 @@
         "gitDiffManager",
         "telemetry",
         "specManager",
-        "orchestrationManager"
+        "orchestrationManager",
+        "supervisor-bridge"
       ],
       "functions": {
         "createWindow": {
@@ -1000,11 +1001,11 @@
           "purpose": "Setup all IPC handlers"
         },
         "init": {
-          "line": 144,
+          "line": 146,
           "purpose": "Initialize application"
         },
         "initModulesWithWindow": {
-          "line": 163,
+          "line": 165,
           "params": [
             "window"
           ],
@@ -3302,6 +3303,7 @@
         "telemetryNotice",
         "sampleBanner",
         "../package.json",
+        "supervisor-ui",
         "agentDispatch"
       ],
       "functions": {
@@ -3310,26 +3312,26 @@
           "purpose": "Initialize all modules"
         },
         "setupButtonHandlers": {
-          "line": 225,
+          "line": 226,
           "purpose": "Setup button click handlers"
         },
         "setupProjectSwitcher": {
-          "line": 308,
+          "line": 309,
           "purpose": "and close on outside click / Escape."
         },
         "setupUpdateDot": {
-          "line": 397,
+          "line": 398,
           "purpose": "→ About → \"Dismiss this version\"). Both click open Settings → About."
         },
         "revealSidebarTab": {
-          "line": 428,
+          "line": 429,
           "params": [
             "tabName"
           ],
           "purpose": "commands so they don't try to focus an element inside a hidden container."
         },
         "registerCommands": {
-          "line": 454,
+          "line": 455,
           "purpose": "Command Palette and the global keyboard handler."
         }
       },
@@ -3360,6 +3362,7 @@
         "laneStatus",
         "laneRail",
         "lucide",
+        "supervisor-ui/homeCard",
         "orchestrator",
         "openProjectModal"
       ],
@@ -6975,7 +6978,8 @@
       ],
       "depends": [
         "openProjectModal",
-        "projectListUI"
+        "projectListUI",
+        "supervisor-ui/sidebarEntry"
       ],
       "functions": {
         "focusList": {
@@ -7588,6 +7592,1383 @@
         "emits": [
           "ORCH_WORKER_LANE"
         ]
+      }
+    },
+    "main/supervisor-bridge/index": {
+      "file": "src/main/supervisor-bridge/index.js",
+      "description": "Supervisor bridge (main) — Phase A skeleton + Phase B handlers.",
+      "exports": [
+        "register",
+        "listProjectDocs",
+        "listProjectSpecs",
+        "listWorkspaceProjects",
+        "listBriefs",
+        "readTaskAudit",
+        "readProfile"
+      ],
+      "depends": [
+        "fs",
+        "os",
+        "path",
+        "../shared/supervisor-ipc",
+        "stateWatcher",
+        "tailReader",
+        "profilesLister",
+        "profileReader",
+        "taskSubmitter",
+        "notifier",
+        "electron"
+      ],
+      "functions": {
+        "listProjectDocs": {
+          "line": 35,
+          "params": [
+            "{ project_id",
+            "project_path }"
+          ]
+        },
+        "readFrameWorkspaceProjects": {
+          "line": 109
+        },
+        "listSupervisorProfileNames": {
+          "line": 129,
+          "params": [
+            "supervisorRoot"
+          ]
+        },
+        "listMemoryNamespaces": {
+          "line": 139
+        },
+        "canonicalSlug": {
+          "line": 160,
+          "params": [
+            "s"
+          ],
+          "purpose": "without re-deriving it from the display name."
+        },
+        "listWorkspaceProjects": {
+          "line": 167,
+          "params": [
+            "payload = {}"
+          ]
+        },
+        "listProjectSpecs": {
+          "line": 231,
+          "params": [
+            "{ project_path }"
+          ],
+          "purpose": "[{ slug, phase, files: [{ path, label }] }]"
+        },
+        "listBriefs": {
+          "line": 273,
+          "params": [
+            "{ supervisor_root }"
+          ],
+          "purpose": "recent brief."
+        },
+        "readTaskAudit": {
+          "line": 306,
+          "params": [
+            "{ taskId",
+            "supervisorRoot }"
+          ],
+          "purpose": "otherwise flood the inspector)."
+        },
+        "register": {
+          "line": 360,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP",
+          "SUP"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/supervisor-ui/index": {
+      "file": "src/renderer/supervisor-ui/index.js",
+      "description": "Supervisor UI (renderer) — Phase B composition.",
+      "exports": [],
+      "depends": [
+        "path",
+        "../shared/supervisor-ipc",
+        "terminal",
+        "header",
+        "kanban",
+        "openFile",
+        "profilePanel",
+        "memoryPanel",
+        "projectFilter",
+        "projectTree",
+        "electron",
+        "commandRegistry",
+        "submitTaskPanel",
+        "notifications",
+        "sidebar-ui/sidebarChip"
+      ],
+      "functions": {
+        "injectStylesOnce": {
+          "line": 28
+        },
+        "createViewport": {
+          "line": 40
+        },
+        "open": {
+          "line": 188
+        },
+        "handleNotifyClick": {
+          "line": 195,
+          "params": [
+            "{ taskId }"
+          ]
+        },
+        "isSupervisorActive": {
+          "line": 218,
+          "purpose": "even one in a background tab. Ask multiTerminalUI for the active section."
+        },
+        "init": {
+          "line": 229
+        }
+      }
+    },
+    "shared/supervisor-ipc": {
+      "file": "src/shared/supervisor-ipc.js",
+      "description": "SUPERVISOR-OWNED IPC channel names. All channels prefixed with SUPERVISOR_",
+      "exports": [
+        "SUPERVISOR_LIST_PROJECT_SPECS",
+        "SUPERVISOR_TAIL_START",
+        "supervisorRoot"
+      ],
+      "depends": [],
+      "functions": {}
+    },
+    "renderer/supervisor-ui/header": {
+      "file": "src/renderer/supervisor-ui/header.js",
+      "description": "Supervisor header — Phase C (reactive) + Phase M (project filter).",
+      "exports": [
+        "create",
+        "SUPERVISOR_API"
+      ],
+      "depends": [
+        "electron",
+        "../shared/supervisor-ipc",
+        "projectFilter",
+        "submitTaskPanel"
+      ],
+      "functions": {
+        "fetchJson": {
+          "line": 27,
+          "params": [
+            "path"
+          ]
+        },
+        "esc": {
+          "line": 33,
+          "params": [
+            "s"
+          ]
+        },
+        "create": {
+          "line": 39,
+          "params": [
+            "root"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/supervisor-ui/kanban": {
+      "file": "src/renderer/supervisor-ui/kanban.js",
+      "description": "Supervisor kanban — Phase C (reactive nudge + fallback poll).",
+      "exports": [
+        "create",
+        "expandTailOnFirstInflight"
+      ],
+      "depends": [
+        "path",
+        "electron",
+        "../shared/supervisor-ipc",
+        "header",
+        "taskCard",
+        "escalationCard",
+        "projectFilter",
+        "openFile",
+        "index"
+      ],
+      "functions": {
+        "fetchJson": {
+          "line": 36,
+          "params": [
+            "p"
+          ]
+        },
+        "create": {
+          "line": 42,
+          "params": [
+            "root"
+          ]
+        },
+        "expandTailOnFirstInflight": {
+          "line": 301,
+          "purpose": "a module-level shim so the command-registry entry stays a one-liner."
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/supervisor-ui/projectTree": {
+      "file": "src/renderer/supervisor-ui/projectTree.js",
+      "description": "Supervisor project tree — Phase B + Phase M.",
+      "exports": [
+        "create",
+        "dedupBySlug",
+        "canonicalSlug"
+      ],
+      "depends": [
+        "electron",
+        "../shared/supervisor-ipc",
+        "header",
+        "projectFilter",
+        "openFile"
+      ],
+      "functions": {
+        "esc": {
+          "line": 36,
+          "params": [
+            "s"
+          ]
+        },
+        "canonicalSlug": {
+          "line": 46,
+          "params": [
+            "s"
+          ],
+          "purpose": "\"kitli-kids\") collapse into one row."
+        },
+        "dedupBySlug": {
+          "line": 62,
+          "params": [
+            "projects"
+          ],
+          "purpose": "carried over from whichever source had it."
+        },
+        "fetchJson": {
+          "line": 93,
+          "params": [
+            "p"
+          ]
+        },
+        "taskMatchesProject": {
+          "line": 104,
+          "params": [
+            "task",
+            "projectName"
+          ],
+          "purpose": "option since the workspace payload has no project_id field."
+        },
+        "flatTasks": {
+          "line": 116,
+          "params": [
+            "workspace"
+          ]
+        },
+        "create": {
+          "line": 126,
+          "params": [
+            "root",
+            "opts = {}"
+          ]
+        }
+      }
+    },
+    "renderer/supervisor-ui/taskCard": {
+      "file": "src/renderer/supervisor-ui/taskCard.js",
+      "description": "Supervisor task card — Phase B (collapsed) + Phase M (slim + modal).",
+      "exports": [
+        "render",
+        "statusTag",
+        "resetExpansion"
+      ],
+      "depends": [
+        "path",
+        "taskDetailModal",
+        "openFile",
+        "liveOutputPane"
+      ],
+      "functions": {
+        "esc": {
+          "line": 22,
+          "params": [
+            "s"
+          ]
+        },
+        "statusTag": {
+          "line": 28,
+          "params": [
+            "t"
+          ]
+        },
+        "resolveDeliverable": {
+          "line": 37,
+          "params": [
+            "p",
+            "supervisorRoot"
+          ]
+        },
+        "render": {
+          "line": 51,
+          "params": [
+            "t",
+            "columnKey",
+            "ctx"
+          ]
+        },
+        "resetExpansion": {
+          "line": 181,
+          "purpose": "resetExpansion is a no-op now but stays exported for API compatibility."
+        }
+      }
+    },
+    "main/supervisor-bridge/stateWatcher": {
+      "file": "src/main/supervisor-bridge/stateWatcher.js",
+      "description": "Supervisor state watcher (main) — Phase C reactive replacement for polling.",
+      "exports": [
+        "start",
+        "stop",
+        "registerHandlers"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "electron",
+        "../shared/supervisor-ipc"
+      ],
+      "functions": {
+        "send": {
+          "line": 34,
+          "params": [
+            "channel",
+            "payload"
+          ]
+        },
+        "emit": {
+          "line": 44,
+          "params": [
+            "kind",
+            "data"
+          ]
+        },
+        "readHeartbeat": {
+          "line": 48,
+          "params": [
+            "filePath"
+          ]
+        },
+        "flushAuditPending": {
+          "line": 57
+        },
+        "scheduleAuditFlush": {
+          "line": 65
+        },
+        "processAuditDelta": {
+          "line": 70,
+          "params": [
+            "filePath"
+          ]
+        },
+        "watchHeartbeat": {
+          "line": 109,
+          "params": [
+            "filePath"
+          ]
+        },
+        "watchAudit": {
+          "line": 125,
+          "params": [
+            "filePath"
+          ]
+        },
+        "watchQueueDir": {
+          "line": 142,
+          "params": [
+            "dir",
+            "status"
+          ]
+        },
+        "stop": {
+          "line": 155
+        },
+        "start": {
+          "line": 177,
+          "params": [
+            "opts"
+          ],
+          "purpose": "/api/meta.audit_path). Must be set; without it we have nothing to watch."
+        },
+        "registerHandlers": {
+          "line": 199,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP"
+        ],
+        "emits": [
+          "SUPERVISOR_STATE",
+          "channel"
+        ]
+      }
+    },
+    "main/supervisor-bridge/tailReader": {
+      "file": "src/main/supervisor-bridge/tailReader.js",
+      "description": "Supervisor tail reader (main) — Phase C live PTY-backed log stream.",
+      "exports": [
+        "create",
+        "resize",
+        "destroy",
+        "destroyAll",
+        "registerHandlers"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "node-pty",
+        "electron",
+        "../shared/supervisor-ipc"
+      ],
+      "functions": {
+        "send": {
+          "line": 33,
+          "params": [
+            "webContents",
+            "channel",
+            "payload"
+          ]
+        },
+        "resolveLogTarget": {
+          "line": 38,
+          "params": [
+            "supervisorRoot",
+            "taskId"
+          ]
+        },
+        "create": {
+          "line": 66,
+          "params": [
+            "opts"
+          ],
+          "purpose": "{{ handleId: null, error: string }} on failure"
+        },
+        "resize": {
+          "line": 117,
+          "params": [
+            "handleId",
+            "cols",
+            "rows"
+          ]
+        },
+        "destroy": {
+          "line": 123,
+          "params": [
+            "handleId"
+          ]
+        },
+        "destroyAll": {
+          "line": 130
+        },
+        "registerHandlers": {
+          "line": 134,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP",
+          "SUP"
+        ],
+        "emits": [
+          "channel"
+        ]
+      }
+    },
+    "renderer/supervisor-ui/liveOutputPane": {
+      "file": "src/renderer/supervisor-ui/liveOutputPane.js",
+      "description": "Supervisor live output pane (renderer) — Phase C.",
+      "exports": [
+        "create"
+      ],
+      "depends": [
+        "electron",
+        "xterm",
+        "xterm-addon-fit",
+        "../shared/supervisor-ipc"
+      ],
+      "functions": {
+        "themeFromVars": {
+          "line": 12
+        },
+        "create": {
+          "line": 26,
+          "params": [
+            "containerEl",
+            "opts"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP",
+          "SUP"
+        ],
+        "emits": []
+      }
+    },
+    "main/supervisor-bridge/profilesLister": {
+      "file": "src/main/supervisor-bridge/profilesLister.js",
+      "description": "Supervisor profiles lister (main) — Phase D.",
+      "exports": [
+        "list"
+      ],
+      "depends": [
+        "fs",
+        "path"
+      ],
+      "functions": {
+        "humanise": {
+          "line": 18,
+          "params": [
+            "stem"
+          ]
+        },
+        "scan": {
+          "line": 24,
+          "params": [
+            "supervisorRoot"
+          ]
+        },
+        "list": {
+          "line": 44,
+          "params": [
+            "{ supervisorRoot",
+            "force } = {}"
+          ]
+        }
+      }
+    },
+    "main/supervisor-bridge/taskSubmitter": {
+      "file": "src/main/supervisor-bridge/taskSubmitter.js",
+      "description": "Supervisor task submitter (main) — Phase D.",
+      "exports": [
+        "submit",
+        "startDaemon",
+        "stopDaemon",
+        "respondEscalation",
+        "SUPERVISOR_API"
+      ],
+      "depends": [
+        "fs",
+        "path"
+      ],
+      "functions": {
+        "fetchJson": {
+          "line": 18,
+          "params": [
+            "url",
+            "opts"
+          ]
+        },
+        "collectIds": {
+          "line": 26,
+          "params": [
+            "ws"
+          ]
+        },
+        "idCollides": {
+          "line": 37,
+          "params": [
+            "taskId"
+          ]
+        },
+        "writeInlineBrief": {
+          "line": 49,
+          "params": [
+            "{ supervisorRoot",
+            "taskId",
+            "text }"
+          ]
+        },
+        "submit": {
+          "line": 77,
+          "params": [
+            "payload"
+          ]
+        },
+        "postNoBody": {
+          "line": 134,
+          "params": [
+            "pathSegment"
+          ]
+        },
+        "startDaemon": {
+          "line": 146
+        },
+        "stopDaemon": {
+          "line": 147
+        },
+        "respondEscalation": {
+          "line": 153,
+          "params": [
+            "{ id",
+            "kind",
+            "answer }"
+          ],
+          "purpose": "`POST /api/escalations/{id}/respond` with `{kind, answer}`."
+        }
+      }
+    },
+    "renderer/supervisor-ui/escalationCard": {
+      "file": "src/renderer/supervisor-ui/escalationCard.js",
+      "description": "Supervisor escalation card — Phase D.",
+      "exports": [
+        "render"
+      ],
+      "depends": [
+        "electron",
+        "../shared/supervisor-ipc"
+      ],
+      "functions": {
+        "esc": {
+          "line": 14,
+          "params": [
+            "s"
+          ]
+        },
+        "pickEscalationId": {
+          "line": 20,
+          "params": [
+            "t"
+          ]
+        },
+        "pickDraft": {
+          "line": 31,
+          "params": [
+            "t"
+          ]
+        },
+        "pickCategory": {
+          "line": 48,
+          "params": [
+            "t"
+          ]
+        },
+        "pickConfidence": {
+          "line": 56,
+          "params": [
+            "t"
+          ]
+        },
+        "render": {
+          "line": 65,
+          "params": [
+            "t"
+          ]
+        }
+      }
+    },
+    "renderer/supervisor-ui/submitTaskPanel": {
+      "file": "src/renderer/supervisor-ui/submitTaskPanel.js",
+      "description": "Supervisor submit-task panel — Phase D + Phase O.",
+      "exports": [
+        "toggle",
+        "open",
+        "close",
+        "isOpen"
+      ],
+      "depends": [
+        "path",
+        "electron",
+        "../shared/supervisor-ipc",
+        "header"
+      ],
+      "functions": {
+        "esc": {
+          "line": 43,
+          "params": [
+            "s"
+          ]
+        },
+        "fetchJson": {
+          "line": 49,
+          "params": [
+            "p"
+          ]
+        },
+        "resolveSupervisorRoot": {
+          "line": 55
+        },
+        "loadProfiles": {
+          "line": 70,
+          "params": [
+            "force = false"
+          ]
+        },
+        "loadBriefs": {
+          "line": 81,
+          "params": [
+            "force = false"
+          ]
+        },
+        "setMode": {
+          "line": 92,
+          "params": [
+            "next"
+          ]
+        },
+        "setError": {
+          "line": 113,
+          "params": [
+            "msg"
+          ]
+        },
+        "renderProfileOptions": {
+          "line": 121,
+          "params": [
+            "selectEl",
+            "items"
+          ]
+        },
+        "renderBriefList": {
+          "line": 127,
+          "params": [
+            "listEl",
+            "items",
+            "filter"
+          ]
+        },
+        "buildPanelHTML": {
+          "line": 143
+        },
+        "bind": {
+          "line": 264
+        },
+        "setAutoStatus": {
+          "line": 296,
+          "params": [
+            "msg",
+            "kind"
+          ]
+        },
+        "hydrateAutoProjects": {
+          "line": 305
+        },
+        "runAutoSpec": {
+          "line": 330
+        },
+        "renderAutoPreview": {
+          "line": 362,
+          "params": [
+            "proposed",
+            "costUsd"
+          ]
+        },
+        "submitAuto": {
+          "line": 393
+        },
+        "rebindReuseRows": {
+          "line": 430
+        },
+        "loadPickedBriefIntoEditor": {
+          "line": 444
+        },
+        "submit": {
+          "line": 479
+        },
+        "open": {
+          "line": 550
+        },
+        "close": {
+          "line": 575
+        },
+        "toggle": {
+          "line": 588
+        },
+        "isOpen": {
+          "line": 593
+        }
+      }
+    },
+    "main/supervisor-bridge/notifier": {
+      "file": "src/main/supervisor-bridge/notifier.js",
+      "description": "Supervisor OS notifier (main) — Phase E.",
+      "exports": [
+        "register",
+        "show"
+      ],
+      "depends": [
+        "electron",
+        "../shared/supervisor-ipc"
+      ],
+      "functions": {
+        "show": {
+          "line": 17,
+          "params": [
+            "{ title",
+            "body",
+            "kind",
+            "taskId } = {}"
+          ]
+        },
+        "register": {
+          "line": 35,
+          "params": [
+            "ipcMain"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP"
+        ],
+        "emits": [
+          "SUP"
+        ]
+      }
+    },
+    "renderer/supervisor-ui/notifications": {
+      "file": "src/renderer/supervisor-ui/notifications.js",
+      "description": "Supervisor notifications detector (renderer) — Phase E.",
+      "exports": [
+        "start",
+        "stop"
+      ],
+      "depends": [
+        "path",
+        "electron",
+        "../shared/supervisor-ipc",
+        "header"
+      ],
+      "functions": {
+        "fetchJson": {
+          "line": 55,
+          "params": [
+            "p"
+          ]
+        },
+        "shouldNotify": {
+          "line": 61,
+          "params": [
+            "key"
+          ]
+        },
+        "notify": {
+          "line": 74,
+          "params": [
+            "payload"
+          ]
+        },
+        "applyHeartbeat": {
+          "line": 78,
+          "params": [
+            "hb"
+          ]
+        },
+        "checkStale": {
+          "line": 84
+        },
+        "pollWorkspace": {
+          "line": 118
+        },
+        "schedulePoll": {
+          "line": 173
+        },
+        "announceSupervisorRoot": {
+          "line": 181
+        },
+        "tryInit": {
+          "line": 200
+        },
+        "start": {
+          "line": 218,
+          "params": [
+            "opts"
+          ]
+        },
+        "stop": {
+          "line": 247
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP",
+          "SUP"
+        ],
+        "emits": [
+          "SUP"
+        ]
+      }
+    },
+    "renderer/supervisor-ui/homeCard": {
+      "file": "src/renderer/supervisor-ui/homeCard.js",
+      "description": "Supervisor home card — Phase G.",
+      "exports": [
+        "mount"
+      ],
+      "depends": [
+        "electron",
+        "../shared/supervisor-ipc",
+        "commandRegistry"
+      ],
+      "functions": {
+        "injectStylesOnce": {
+          "line": 25
+        },
+        "subscribeOnce": {
+          "line": 138
+        },
+        "refreshAll": {
+          "line": 151
+        },
+        "paint": {
+          "line": 158,
+          "params": [
+            "card"
+          ]
+        },
+        "mount": {
+          "line": 174,
+          "params": [
+            "host"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP"
+        ],
+        "emits": []
+      }
+    },
+    "renderer/supervisor-ui/sidebarEntry": {
+      "file": "src/renderer/supervisor-ui/sidebarEntry.js",
+      "description": "Supervisor projects-sidebar entry — Phase G.",
+      "exports": [
+        "mount"
+      ],
+      "depends": [
+        "electron",
+        "../shared/supervisor-ipc",
+        "commandRegistry"
+      ],
+      "functions": {
+        "injectStylesOnce": {
+          "line": 28
+        },
+        "setState": {
+          "line": 116,
+          "params": [
+            "kind"
+          ]
+        },
+        "applyHeartbeat": {
+          "line": 129,
+          "params": [
+            "hb"
+          ]
+        },
+        "armStaleTimer": {
+          "line": 137
+        },
+        "mount": {
+          "line": 144,
+          "params": [
+            "host"
+          ]
+        }
+      },
+      "ipc": {
+        "listens": [
+          "SUP"
+        ],
+        "emits": []
+      }
+    },
+    "main/supervisor-bridge/profileReader": {
+      "file": "src/main/supervisor-bridge/profileReader.js",
+      "description": "Supervisor profile reader (main) — Phase I.",
+      "exports": [
+        "read",
+        "readFrameJson",
+        "readSupervisorYaml"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "js-yaml"
+      ],
+      "functions": {
+        "loadYaml": {
+          "line": 37
+        },
+        "readFrameJson": {
+          "line": 53,
+          "params": [
+            "project_path"
+          ],
+          "purpose": "errors so the caller can decide whether to fall back to YAML."
+        },
+        "readSupervisorYaml": {
+          "line": 96,
+          "params": [
+            "supervisorRoot",
+            "project_id"
+          ],
+          "purpose": "something useful — the error field carries the parse message."
+        },
+        "read": {
+          "line": 182,
+          "params": [
+            "{ project_id",
+            "project_path",
+            "supervisorRoot } = {}"
+          ],
+          "purpose": "state without blowing up."
+        }
+      }
+    },
+    "renderer/supervisor-ui/profilePanel": {
+      "file": "src/renderer/supervisor-ui/profilePanel.js",
+      "description": "Supervisor profile panel — Phase I (read-only v1).",
+      "exports": [
+        "create",
+        "pickViewModel",
+        "formatBudgets",
+        "shortenHome",
+        "slugifyProjectName"
+      ],
+      "depends": [
+        "path",
+        "electron",
+        "../shared/supervisor-ipc"
+      ],
+      "functions": {
+        "esc": {
+          "line": 27,
+          "params": [
+            "s"
+          ]
+        },
+        "slugifyProjectName": {
+          "line": 38,
+          "params": [
+            "name"
+          ],
+          "purpose": "runs for callers that handed us a name-only project descriptor."
+        },
+        "pickViewModel": {
+          "line": 51,
+          "params": [
+            "profile",
+            "sourceCtx"
+          ],
+          "purpose": "`null` rather than throwing, which the render path treats as \"—\"."
+        },
+        "formatBudgets": {
+          "line": 115,
+          "params": [
+            "vm"
+          ]
+        },
+        "shortenHome": {
+          "line": 123,
+          "params": [
+            "p"
+          ]
+        },
+        "create": {
+          "line": 132,
+          "params": [
+            "root",
+            "opts = {}"
+          ]
+        }
+      }
+    },
+    "renderer/supervisor-ui/memoryPanel": {
+      "file": "src/renderer/supervisor-ui/memoryPanel.js",
+      "description": "Supervisor memory Q&A panel — Phase J.",
+      "exports": [
+        "create"
+      ],
+      "depends": [
+        "electron",
+        "marked",
+        "header",
+        "projectFilter",
+        "openFile"
+      ],
+      "functions": {
+        "esc": {
+          "line": 28,
+          "params": [
+            "s"
+          ]
+        },
+        "fetchJson": {
+          "line": 34,
+          "params": [
+            "p",
+            "init"
+          ]
+        },
+        "renderMarkdown": {
+          "line": 40,
+          "params": [
+            "text"
+          ]
+        },
+        "create": {
+          "line": 50,
+          "params": [
+            "root",
+            "opts = {}"
+          ]
+        }
+      }
+    },
+    "renderer/supervisor-ui/projectFilter": {
+      "file": "src/renderer/supervisor-ui/projectFilter.js",
+      "description": "Supervisor project filter — Phase M.",
+      "exports": [
+        "get",
+        "set",
+        "subscribe",
+        "matches"
+      ],
+      "depends": [],
+      "functions": {
+        "load": {
+          "line": 18
+        },
+        "get": {
+          "line": 28
+        },
+        "set": {
+          "line": 32,
+          "params": [
+            "name"
+          ]
+        },
+        "subscribe": {
+          "line": 47,
+          "params": [
+            "cb"
+          ]
+        },
+        "matches": {
+          "line": 58,
+          "params": [
+            "task",
+            "projectName"
+          ],
+          "purpose": "vs project name). Centralised here so kanban + tree agree."
+        }
+      }
+    },
+    "renderer/supervisor-ui/taskDetailModal": {
+      "file": "src/renderer/supervisor-ui/taskDetailModal.js",
+      "description": "Supervisor task detail modal — Phase M.",
+      "exports": [
+        "open",
+        "close",
+        "isOpen"
+      ],
+      "depends": [
+        "fs",
+        "path",
+        "electron",
+        "marked",
+        "../shared/supervisor-ipc",
+        "header",
+        "openFile"
+      ],
+      "functions": {
+        "esc": {
+          "line": 42,
+          "params": [
+            "s"
+          ]
+        },
+        "elapsedLabel": {
+          "line": 48,
+          "params": [
+            "t"
+          ]
+        },
+        "costLabel": {
+          "line": 56,
+          "params": [
+            "t",
+            "isActive"
+          ]
+        },
+        "resolveAbs": {
+          "line": 61,
+          "params": [
+            "p",
+            "supervisorRoot"
+          ]
+        },
+        "statusTag": {
+          "line": 68,
+          "params": [
+            "t"
+          ]
+        },
+        "ensureRoot": {
+          "line": 77
+        },
+        "_onKeydown": {
+          "line": 109,
+          "params": [
+            "e"
+          ]
+        },
+        "switchTab": {
+          "line": 117,
+          "params": [
+            "name"
+          ]
+        },
+        "renderOverview": {
+          "line": 130,
+          "purpose": "---- Body renderers -----------------------------------------------------"
+        },
+        "renderActivity": {
+          "line": 243
+        },
+        "renderRecentList": {
+          "line": 280,
+          "params": [
+            "t",
+            "events"
+          ]
+        },
+        "shortSummary": {
+          "line": 297,
+          "params": [
+            "e"
+          ]
+        },
+        "renderBriefMd": {
+          "line": 312,
+          "params": [
+            "text"
+          ]
+        },
+        "paintBriefBody": {
+          "line": 322,
+          "params": [
+            "body",
+            "raw"
+          ]
+        },
+        "loadBriefIntoBody": {
+          "line": 331
+        },
+        "loadAuditForActivity": {
+          "line": 353
+        },
+        "paintAudit": {
+          "line": 372,
+          "params": [
+            "events"
+          ]
+        },
+        "renderBody": {
+          "line": 378
+        },
+        "wireOverviewHandlers": {
+          "line": 392,
+          "params": [
+            "body"
+          ]
+        },
+        "renderHeader": {
+          "line": 426
+        },
+        "open": {
+          "line": 445,
+          "params": [
+            "task",
+            "ctx"
+          ],
+          "purpose": "clicks an Open button on a profile / brief / deliverable."
+        },
+        "close": {
+          "line": 473
+        },
+        "isOpen": {
+          "line": 481
+        },
+        "lookupLatest": {
+          "line": 491,
+          "params": [
+            "taskId"
+          ]
+        }
+      }
+    },
+    "renderer/supervisor-ui/openFile": {
+      "file": "src/renderer/supervisor-ui/openFile.js",
+      "description": "Extension-aware file opener for supervisor-ui surfaces — Phase P.",
+      "exports": [
+        "openFile",
+        "EDITOR_EXTS",
+        "SHELL_EXTS"
+      ],
+      "depends": [
+        "path",
+        "electron",
+        "editor"
+      ],
+      "functions": {
+        "openFile": {
+          "line": 55,
+          "params": [
+            "absPath"
+          ]
+        }
       }
     }
   },
@@ -8341,6 +9722,13 @@
         "description": "File Editor Module"
       }
     ],
+    "escalation-card": [
+      {
+        "module": "renderer/supervisor-ui/escalationCard",
+        "file": "src/renderer/supervisor-ui/escalationCard.js",
+        "description": "Supervisor escalation card — Phase D."
+      }
+    ],
     "file-editor": [
       {
         "module": "main/fileEditor",
@@ -8417,6 +9805,13 @@
         "description": "GitHub Panel Module"
       }
     ],
+    "header": [
+      {
+        "module": "renderer/supervisor-ui/header",
+        "file": "src/renderer/supervisor-ui/header.js",
+        "description": "Supervisor header — Phase C (reactive) + Phase M (project filter)."
+      }
+    ],
     "history": [
       {
         "module": "main/promptLogger",
@@ -8429,6 +9824,13 @@
         "description": "History Panel Module"
       }
     ],
+    "home-card": [
+      {
+        "module": "renderer/supervisor-ui/homeCard",
+        "file": "src/renderer/supervisor-ui/homeCard.js",
+        "description": "Supervisor home card — Phase G."
+      }
+    ],
     "index": [
       {
         "module": "main/index",
@@ -8436,9 +9838,19 @@
         "description": "Main Process Entry Point"
       },
       {
+        "module": "main/supervisor-bridge/index",
+        "file": "src/main/supervisor-bridge/index.js",
+        "description": "Supervisor bridge (main) — Phase A skeleton + Phase B handlers."
+      },
+      {
         "module": "renderer/index",
         "file": "src/renderer/index.js",
         "description": "Renderer Entry Point"
+      },
+      {
+        "module": "renderer/supervisor-ui/index",
+        "file": "src/renderer/supervisor-ui/index.js",
+        "description": "Supervisor UI (renderer) — Phase B composition."
       },
       {
         "module": "templates/sample-project/src/index",
@@ -8451,6 +9863,13 @@
         "module": "shared/ipcChannels",
         "file": "src/shared/ipcChannels.js",
         "description": "IPC Channel Constants"
+      }
+    ],
+    "kanban": [
+      {
+        "module": "renderer/supervisor-ui/kanban",
+        "file": "src/renderer/supervisor-ui/kanban.js",
+        "description": "Supervisor kanban — Phase C (reactive nudge + fallback poll)."
       }
     ],
     "lane-board": [
@@ -8481,6 +9900,20 @@
         "description": "Lane Status Module"
       }
     ],
+    "live-output-pane": [
+      {
+        "module": "renderer/supervisor-ui/liveOutputPane",
+        "file": "src/renderer/supervisor-ui/liveOutputPane.js",
+        "description": "Supervisor live output pane (renderer) — Phase C."
+      }
+    ],
+    "memory": [
+      {
+        "module": "renderer/supervisor-ui/memoryPanel",
+        "file": "src/renderer/supervisor-ui/memoryPanel.js",
+        "description": "Supervisor memory Q&A panel — Phase J."
+      }
+    ],
     "menu": [
       {
         "module": "main/menu",
@@ -8488,11 +9921,32 @@
         "description": "Application Menu Module"
       }
     ],
+    "notifications": [
+      {
+        "module": "renderer/supervisor-ui/notifications",
+        "file": "src/renderer/supervisor-ui/notifications.js",
+        "description": "Supervisor notifications detector (renderer) — Phase E."
+      }
+    ],
+    "notifier": [
+      {
+        "module": "main/supervisor-bridge/notifier",
+        "file": "src/main/supervisor-bridge/notifier.js",
+        "description": "Supervisor OS notifier (main) — Phase E."
+      }
+    ],
     "oauth": [
       {
         "module": "templates/sample-project/src/auth/oauth",
         "file": "src/templates/sample-project/src/auth/oauth.js",
         "description": "Google OAuth — Passport strategy + routes"
+      }
+    ],
+    "open-file": [
+      {
+        "module": "renderer/supervisor-ui/openFile",
+        "file": "src/renderer/supervisor-ui/openFile.js",
+        "description": "Extension-aware file opener for supervisor-ui surfaces — Phase P."
       }
     ],
     "open-project-modal": [
@@ -8547,6 +10001,34 @@
         "description": "Plugins Panel Module"
       }
     ],
+    "profile": [
+      {
+        "module": "renderer/supervisor-ui/profilePanel",
+        "file": "src/renderer/supervisor-ui/profilePanel.js",
+        "description": "Supervisor profile panel — Phase I (read-only v1)."
+      }
+    ],
+    "profile-reader": [
+      {
+        "module": "main/supervisor-bridge/profileReader",
+        "file": "src/main/supervisor-bridge/profileReader.js",
+        "description": "Supervisor profile reader (main) — Phase I."
+      }
+    ],
+    "profiles-lister": [
+      {
+        "module": "main/supervisor-bridge/profilesLister",
+        "file": "src/main/supervisor-bridge/profilesLister.js",
+        "description": "Supervisor profiles lister (main) — Phase D."
+      }
+    ],
+    "project-filter": [
+      {
+        "module": "renderer/supervisor-ui/projectFilter",
+        "file": "src/renderer/supervisor-ui/projectFilter.js",
+        "description": "Supervisor project filter — Phase M."
+      }
+    ],
     "project-section": [
       {
         "module": "renderer/projectSection",
@@ -8559,6 +10041,13 @@
         "module": "renderer/projectStatusBadges",
         "file": "src/renderer/projectStatusBadges.js",
         "description": "Project Status Badges"
+      }
+    ],
+    "project-tree": [
+      {
+        "module": "renderer/supervisor-ui/projectTree",
+        "file": "src/renderer/supervisor-ui/projectTree.js",
+        "description": "Supervisor project tree — Phase B + Phase M."
       }
     ],
     "prompts": [
@@ -8615,6 +10104,13 @@
         "description": "Sidebar Resize Module"
       }
     ],
+    "sidebar-entry": [
+      {
+        "module": "renderer/supervisor-ui/sidebarEntry",
+        "file": "src/renderer/supervisor-ui/sidebarEntry.js",
+        "description": "Supervisor projects-sidebar entry — Phase G."
+      }
+    ],
     "spec": [
       {
         "module": "main/specManager",
@@ -8662,6 +10158,13 @@
         "description": "Application State Module"
       }
     ],
+    "state-watcher": [
+      {
+        "module": "main/supervisor-bridge/stateWatcher",
+        "file": "src/main/supervisor-bridge/stateWatcher.js",
+        "description": "Supervisor state watcher (main) — Phase C reactive replacement for polling."
+      }
+    ],
     "structure": [
       {
         "module": "renderer/structureMap",
@@ -8676,11 +10179,46 @@
         "description": "Structure Bootstrap"
       }
     ],
+    "submit-task": [
+      {
+        "module": "renderer/supervisor-ui/submitTaskPanel",
+        "file": "src/renderer/supervisor-ui/submitTaskPanel.js",
+        "description": "Supervisor submit-task panel — Phase D + Phase O."
+      }
+    ],
+    "supervisor-ipc": [
+      {
+        "module": "shared/supervisor-ipc",
+        "file": "src/shared/supervisor-ipc.js",
+        "description": "SUPERVISOR-OWNED IPC channel names. All channels prefixed with SUPERVISOR_"
+      }
+    ],
+    "tail-reader": [
+      {
+        "module": "main/supervisor-bridge/tailReader",
+        "file": "src/main/supervisor-bridge/tailReader.js",
+        "description": "Supervisor tail reader (main) — Phase C live PTY-backed log stream."
+      }
+    ],
+    "task-card": [
+      {
+        "module": "renderer/supervisor-ui/taskCard",
+        "file": "src/renderer/supervisor-ui/taskCard.js",
+        "description": "Supervisor task card — Phase B (collapsed) + Phase M (slim + modal)."
+      }
+    ],
     "task-confirm-modal": [
       {
         "module": "renderer/taskConfirmModal",
         "file": "src/renderer/taskConfirmModal.js",
         "description": "Task Confirm-Delete Modal"
+      }
+    ],
+    "task-detail-modal": [
+      {
+        "module": "renderer/supervisor-ui/taskDetailModal",
+        "file": "src/renderer/supervisor-ui/taskDetailModal.js",
+        "description": "Supervisor task detail modal — Phase M."
       }
     ],
     "task-info-modal": [
@@ -8702,6 +10240,13 @@
         "module": "renderer/taskSection",
         "file": "src/renderer/taskSection.js",
         "description": "Task Section Module"
+      }
+    ],
+    "task-submitter": [
+      {
+        "module": "main/supervisor-bridge/taskSubmitter",
+        "file": "src/main/supervisor-bridge/taskSubmitter.js",
+        "description": "Supervisor task submitter (main) — Phase D."
       }
     ],
     "tasks": [

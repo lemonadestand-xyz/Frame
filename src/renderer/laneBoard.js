@@ -132,6 +132,8 @@ class LaneBoard {
       return;
     }
 
+    require('./supervisor-ui/homeCard').mount(this.boardEl); // supervisor-mod
+
     if (state.terminals.length === 0) {
       this.boardEl.appendChild(this._renderEmptyState());
     } else {
