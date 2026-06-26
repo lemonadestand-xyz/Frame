@@ -724,6 +724,7 @@ function loadBriefIntoBody() {
       if (!full) { paintBriefBody(body, ''); return; }
       const snippet = snippetOf(full);
       briefCache.set(t.id, { content: snippet, abs: briefAbs, full });
+      console.warn('[brief-diag]', { briefAbs, rawLen: raw.length, fullLen: full.length, snippetLen: snippet.length });
       paintBriefBody(body, snippet);
     })
     .catch((err) => {
