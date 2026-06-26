@@ -9025,39 +9025,45 @@
             "raw"
           ]
         },
+        "snippetOf": {
+          "line": 686,
+          "params": [
+            "full"
+          ]
+        },
         "loadBriefIntoBody": {
-          "line": 686
+          "line": 690
         },
         "loadAudit": {
-          "line": 722
+          "line": 735
         },
         "prefetchBriefForVerification": {
-          "line": 750,
+          "line": 763,
           "purpose": "used by the brief preview path would risk cutting the block off."
         },
         "paintAudit": {
-          "line": 775,
+          "line": 789,
           "params": [
             "events"
           ]
         },
         "repaintVerification": {
-          "line": 787
+          "line": 801
         },
         "renderBody": {
-          "line": 805
+          "line": 819
         },
         "wireOverviewHandlers": {
-          "line": 826,
+          "line": 840,
           "params": [
             "body"
           ]
         },
         "renderHeader": {
-          "line": 860
+          "line": 874
         },
         "open": {
-          "line": 879,
+          "line": 893,
           "params": [
             "task",
             "ctx"
@@ -9065,13 +9071,13 @@
           "purpose": "clicks an Open button on a profile / brief / deliverable."
         },
         "close": {
-          "line": 908
+          "line": 922
         },
         "isOpen": {
-          "line": 917
+          "line": 931
         },
         "lookupLatest": {
-          "line": 927,
+          "line": 941,
           "params": [
             "taskId"
           ]

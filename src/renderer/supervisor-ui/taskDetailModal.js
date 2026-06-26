@@ -677,10 +677,14 @@ function renderBriefMd(text) {
 function paintBriefBody(body, raw) {
   if (!body || !body.isConnected) return;
   if (!raw) {
-    body.innerHTML = '<div class="sup-brief-md muted">(empty brief)</div>';
+    body.innerHTML = '<div class="sup-brief-md muted">(empty response from /api/file — check supervisor monitor)</div>';
     return;
   }
   body.innerHTML = `<div class="sup-brief-md">${renderBriefMd(raw)}</div>`;
+}
+
+function snippetOf(full) {
+  return full.length > 4000 ? full.slice(0, 4000) + '\n\n…(truncated)' : full;
 }
 
 function loadBriefIntoBody() {
@@ -690,7 +694,15 @@ function loadBriefIntoBody() {
   if (!body) return;
   const briefAbs = resolveAbs(t.brief, (_state.ctx || {}).supervisorRoot);
   const cached = briefCache.get(t.id);
-  if (cached) { paintBriefBody(body, cached.content); return; }
+  if (cached && cached.content) { paintBriefBody(body, cached.content); return; }
+  // prefetchBriefForVerification may have populated {full, abs} without a
+  // `content` key. Hydrate the snippet from `full` instead of refetching.
+  if (cached && cached.full) {
+    const snippet = snippetOf(cached.full);
+    briefCache.set(t.id, { ...cached, content: snippet });
+    paintBriefBody(body, snippet);
+    return;
+  }
   fetch(`${SUPERVISOR_API}/api/file?path=${encodeURIComponent(briefAbs)}`)
     .then((r) => {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -709,7 +721,8 @@ function loadBriefIntoBody() {
       } catch {
         full = raw;
       }
-      const snippet = full.length > 4000 ? full.slice(0, 4000) + '\n\n…(truncated)' : full;
+      if (!full) { paintBriefBody(body, ''); return; }
+      const snippet = snippetOf(full);
       briefCache.set(t.id, { content: snippet, abs: briefAbs, full });
       paintBriefBody(body, snippet);
     })
@@ -765,6 +778,7 @@ function prefetchBriefForVerification() {
         const parsed = JSON.parse(raw);
         full = (parsed && typeof parsed.content === 'string') ? parsed.content : raw;
       } catch { full = raw; }
+      if (!full) return; // don't poison cache with empty content
       const prev = briefCache.get(t.id) || {};
       briefCache.set(t.id, { ...prev, full, abs: briefAbs });
       repaintVerification();
