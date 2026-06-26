@@ -9035,35 +9035,35 @@
           "line": 690
         },
         "loadAudit": {
-          "line": 736
+          "line": 735
         },
         "prefetchBriefForVerification": {
-          "line": 764,
+          "line": 763,
           "purpose": "used by the brief preview path would risk cutting the block off."
         },
         "paintAudit": {
-          "line": 790,
+          "line": 789,
           "params": [
             "events"
           ]
         },
         "repaintVerification": {
-          "line": 802
+          "line": 801
         },
         "renderBody": {
-          "line": 820
+          "line": 819
         },
         "wireOverviewHandlers": {
-          "line": 841,
+          "line": 840,
           "params": [
             "body"
           ]
         },
         "renderHeader": {
-          "line": 875
+          "line": 874
         },
         "open": {
-          "line": 894,
+          "line": 893,
           "params": [
             "task",
             "ctx"
@@ -9071,13 +9071,13 @@
           "purpose": "clicks an Open button on a profile / brief / deliverable."
         },
         "close": {
-          "line": 923
+          "line": 922
         },
         "isOpen": {
-          "line": 932
+          "line": 931
         },
         "lookupLatest": {
-          "line": 942,
+          "line": 941,
           "params": [
             "taskId"
           ]
