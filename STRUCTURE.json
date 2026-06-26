@@ -8858,212 +8858,207 @@
         "marked",
         "../shared/supervisor-ipc",
         "header",
-        "openFile"
+        "openFile",
+        "briefCache"
       ],
       "functions": {
         "esc": {
-          "line": 46,
+          "line": 47,
           "params": [
             "s"
           ]
         },
         "elapsedLabel": {
-          "line": 52,
+          "line": 53,
           "params": [
             "t"
           ]
         },
         "costLabel": {
-          "line": 60,
+          "line": 61,
           "params": [
             "t",
             "isActive"
           ]
         },
         "resolveAbs": {
-          "line": 65,
+          "line": 66,
           "params": [
             "p",
             "supervisorRoot"
           ]
         },
         "statusTag": {
-          "line": 72,
+          "line": 73,
           "params": [
             "t"
           ]
         },
         "ensureRoot": {
-          "line": 81
+          "line": 82
         },
         "_onKeydown": {
-          "line": 113,
+          "line": 114,
           "params": [
             "e"
           ]
         },
         "switchTab": {
-          "line": 121,
+          "line": 122,
           "params": [
             "name"
           ]
         },
         "renderOverview": {
-          "line": 134,
+          "line": 135,
           "purpose": "---- Body renderers -----------------------------------------------------"
         },
         "_isTerminalForDeliverables": {
-          "line": 239,
+          "line": 240,
           "params": [
             "t"
           ]
         },
         "_formatSize": {
-          "line": 245,
+          "line": 246,
           "params": [
             "n"
           ]
         },
         "_formatAgo": {
-          "line": 252,
+          "line": 253,
           "params": [
             "epochSec"
           ]
         },
         "renderDeliverables": {
-          "line": 266,
+          "line": 267,
           "params": [
             "t",
             "ctx"
           ]
         },
         "renderActivity": {
-          "line": 310
+          "line": 311
         },
         "_fmtTs": {
-          "line": 360,
+          "line": 361,
           "params": [
             "epochMs"
           ],
           "purpose": "---- Lifecycle (Phase R) ------------------------------------------------"
         },
         "_fmtDuration": {
-          "line": 370,
+          "line": 371,
           "params": [
             "ms"
           ]
         },
         "_eventTimestamp": {
-          "line": 382,
+          "line": 383,
           "params": [
             "e"
           ]
         },
         "deriveLifecycle": {
-          "line": 399,
+          "line": 400,
           "params": [
             "t",
             "events"
           ]
         },
         "renderLifecycleList": {
-          "line": 478,
+          "line": 479,
           "params": [
             "t",
             "events"
           ]
         },
         "parseAcceptanceItems": {
-          "line": 497,
+          "line": 498,
           "params": [
             "briefText"
           ],
           "purpose": "---- Verification recap (Phase R) ---------------------------------------"
         },
         "_lastCriticEvent": {
-          "line": 526,
+          "line": 527,
           "params": [
             "events"
           ]
         },
         "renderVerification": {
-          "line": 534,
+          "line": 535,
           "params": [
             "t"
           ]
         },
         "_classifyItemAgainstIssues": {
-          "line": 618,
+          "line": 619,
           "params": [
             "item",
             "issues"
           ]
         },
         "renderRecentList": {
-          "line": 635,
+          "line": 636,
           "params": [
             "t",
             "events"
           ]
         },
         "shortSummary": {
-          "line": 652,
+          "line": 653,
           "params": [
             "e"
           ]
         },
         "renderBriefMd": {
-          "line": 667,
+          "line": 668,
           "params": [
             "text"
           ]
         },
         "paintBriefBody": {
-          "line": 677,
+          "line": 678,
           "params": [
             "body",
             "raw"
           ]
         },
-        "snippetOf": {
-          "line": 686,
-          "params": [
-            "full"
-          ]
-        },
         "loadBriefIntoBody": {
-          "line": 690
+          "line": 687
         },
         "loadAudit": {
-          "line": 735
+          "line": 719
         },
         "prefetchBriefForVerification": {
-          "line": 763,
+          "line": 747,
           "purpose": "used by the brief preview path would risk cutting the block off."
         },
         "paintAudit": {
-          "line": 789,
+          "line": 769,
           "params": [
             "events"
           ]
         },
         "repaintVerification": {
-          "line": 801
+          "line": 781
         },
         "renderBody": {
-          "line": 819
+          "line": 799
         },
         "wireOverviewHandlers": {
-          "line": 840,
+          "line": 820,
           "params": [
             "body"
           ]
         },
         "renderHeader": {
-          "line": 874
+          "line": 854
         },
         "open": {
-          "line": 893,
+          "line": 873,
           "params": [
             "task",
             "ctx"
@@ -9071,13 +9066,13 @@
           "purpose": "clicks an Open button on a profile / brief / deliverable."
         },
         "close": {
-          "line": 922
+          "line": 902
         },
         "isOpen": {
-          "line": 931
+          "line": 911
         },
         "lookupLatest": {
-          "line": 941,
+          "line": 921,
           "params": [
             "taskId"
           ]
@@ -9139,6 +9134,39 @@
         },
         "clearAll": {
           "line": 74
+        }
+      }
+    },
+    "renderer/supervisor-ui/briefCache": {
+      "file": "src/renderer/supervisor-ui/briefCache.js",
+      "description": "Pure helpers extracted from taskDetailModal.js so the Phase R.1 brief",
+      "exports": [
+        "snippetOf",
+        "classifyBriefCache",
+        "parseBriefResponse"
+      ],
+      "depends": [],
+      "functions": {
+        "snippetOf": {
+          "line": 4,
+          "params": [
+            "full"
+          ],
+          "purpose": "cache-decision tree can be unit-tested without booting Electron."
+        },
+        "classifyBriefCache": {
+          "line": 12,
+          "params": [
+            "cached"
+          ],
+          "purpose": "undefined → \"(empty brief)\". Treat that as a hydratable hit, not a paint."
+        },
+        "parseBriefResponse": {
+          "line": 20,
+          "params": [
+            "raw"
+          ],
+          "purpose": "raw file body (older supervisor builds). Try JSON first, fall back."
         }
       }
     }
@@ -9821,6 +9849,13 @@
         "module": "renderer/appLoader",
         "file": "src/renderer/appLoader.js",
         "description": "App Loader"
+      }
+    ],
+    "brief-cache": [
+      {
+        "module": "renderer/supervisor-ui/briefCache",
+        "file": "src/renderer/supervisor-ui/briefCache.js",
+        "description": "Pure helpers extracted from taskDetailModal.js so the Phase R.1 brief"
       }
     ],
     "cheat-sheet": [
