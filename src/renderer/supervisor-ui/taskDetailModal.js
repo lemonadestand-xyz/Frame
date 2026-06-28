@@ -823,11 +823,11 @@ function wireOverviewHandlers(body) {
       e.stopPropagation();
       const target = el.dataset.open;
       if (!target) return;
-      // Phase P: close the modal first so the editor overlay (z-index 1000)
-      // isn't covered by the sup-modal-root (also z-index 1000, but later in
-      // DOM order so it wins the stacking competition). Then route through
-      // the shared helper — .md to Frame's markdown viewer, everything else
-      // to the OS default app.
+      // Close the modal first so the editor overlay (z-index 1000) isn't
+      // covered by the sup-modal-root (also z-index 1000, but later in DOM
+      // order so it wins the stacking competition). openFile() now also
+      // closes the modal internally; this call stays as belt-and-braces in
+      // case the helper's z-index logic ever changes.
       close();
       openFile(target);
     });
