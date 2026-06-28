@@ -17,7 +17,7 @@
 const path = require('path');
 
 const taskDetailModal = require('./taskDetailModal');
-const { openFile } = require('./openFile');
+const { openFile, openUrl, isUrl } = require('./openFile');
 
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => (
@@ -36,9 +36,25 @@ function statusTag(t) {
 
 function resolveDeliverable(p, supervisorRoot) {
   if (!p) return p;
+  // URLs pass through untouched; path.resolve would corrupt them.
+  if (isUrl(p)) return p;
   if (path.isAbsolute(p)) return p;
   if (!supervisorRoot) return p;
   return path.resolve(supervisorRoot, p);
+}
+
+function urlLabel(url) {
+  // For URL artifact chips, prefer "host/lastSegment" over path.basename
+  // which on URLs returns a meaningless trailing fragment when there's a
+  // query string or trailing slash.
+  try {
+    const u = new URL(url);
+    const segs = u.pathname.split('/').filter(Boolean);
+    const tail = segs.length ? segs[segs.length - 1] : '';
+    return tail ? `${u.hostname}/${tail}` : u.hostname;
+  } catch {
+    return url;
+  }
 }
 
 /**
@@ -158,14 +174,16 @@ function render(t, columnKey, ctx) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'sup-artifact';
-      const filename = path.basename(rel);
-      btn.textContent = `▸ ${filename}`;
+      const url = isUrl(rel);
+      const label = url ? urlLabel(rel) : path.basename(rel);
+      btn.textContent = url ? `↗ ${label}` : `▸ ${label}`;
       btn.title = abs || rel;
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         // Phase P: route through the shared helper directly so we don't
         // depend on the kanban context having a working onArtifactClick.
-        openFile(abs || rel);
+        if (url) openUrl(rel);
+        else openFile(abs || rel);
       });
       artifactsEl.appendChild(btn);
     });
