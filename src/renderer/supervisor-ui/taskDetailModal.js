@@ -24,7 +24,7 @@ const { ipcRenderer, shell } = require('electron');
 const { marked } = require('marked');
 const SUP = require('../../shared/supervisor-ipc');
 const { SUPERVISOR_API } = require('./header');
-const { openFile } = require('./openFile');
+const { openFile, openUrl, isUrl } = require('./openFile');
 const { snippetOf, classifyBriefCache, parseBriefResponse } = require('./briefCache');
 
 const AUDIT_TTL_MS = 10_000;
@@ -65,6 +65,9 @@ function costLabel(t, isActive) {
 
 function resolveAbs(p, supervisorRoot) {
   if (!p) return '';
+  // URL deliverables (e.g. ClickUp task links) are not filesystem paths —
+  // path.resolve would mangle them into "/root/https:/host/..." nonsense.
+  if (isUrl(p)) return p;
   if (path.isAbsolute(p)) return p;
   if (!supervisorRoot) return p;
   return path.resolve(supervisorRoot, p);
@@ -165,10 +168,13 @@ function renderOverview() {
   const briefAbs = resolveAbs(t.brief, ctx.supervisorRoot);
   const rowHtml = (label, val, absPath) => {
     if (!val) return '';
+    // URL values (rare on profile/brief rows but possible) get Open only —
+    // Finder doesn't apply to URLs.
+    const urlRow = isUrl(absPath || val);
     const actions = absPath ? `
       <span class="sup-modal-path-actions">
         <button type="button" class="sup-modal-pa" data-open="${esc(absPath)}">Open</button>
-        <button type="button" class="sup-modal-pa" data-reveal="${esc(absPath)}">Finder</button>
+        ${urlRow ? '' : `<button type="button" class="sup-modal-pa" data-reveal="${esc(absPath)}">Finder</button>`}
       </span>` : '';
     return `<div class="sup-modal-ctx-row">
       <span class="sup-modal-ctx-k">${esc(label)}:</span>
@@ -285,6 +291,21 @@ function renderDeliverables(t, ctx) {
       <h4>Deliverables (${deliverables.length})</h4>
       <ul class="sup-deliv-list">
         ${deliverables.map((p) => {
+          // URL deliverables (e.g. ClickUp task links written by the agent)
+          // bypass file metadata: no size, no mtime, no Finder button. The
+          // backend manifest reports them as missing files (info.exists ===
+          // false) which would disable Open; we override that here.
+          if (isUrl(p)) {
+            return `<li class="sup-deliv-row sup-deliv-url">
+              <div class="sup-deliv-pathwrap">
+                <span class="sup-deliv-bullet" title="External link">↗</span>
+                <code class="sup-deliv-path" title="${esc(p)}">${esc(p)}</code>
+              </div>
+              <div class="sup-deliv-actions">
+                <button type="button" class="sup-modal-pa" data-open-url="${esc(p)}">Open</button>
+              </div>
+            </li>`;
+          }
           const info = meta[p] || {};
           const abs = info.abs || resolveAbs(p, ctx.supervisorRoot);
           const exists = info.exists !== false;
@@ -823,6 +844,14 @@ function wireOverviewHandlers(body) {
       e.stopPropagation();
       const target = el.dataset.open;
       if (!target) return;
+      // URL deliverables can land on a [data-open] row via rowHtml (profile/
+      // brief rows that happen to be URLs). Route them through the browser
+      // instead of the editor — keeps the modal open since browsers don't
+      // cover the Electron window.
+      if (isUrl(target)) {
+        openUrl(target);
+        return;
+      }
       // Close the modal first so the editor overlay (z-index 1000) isn't
       // covered by the sup-modal-root (also z-index 1000, but later in DOM
       // order so it wins the stacking competition). openFile() now also
@@ -830,6 +859,13 @@ function wireOverviewHandlers(body) {
       // case the helper's z-index logic ever changes.
       close();
       openFile(target);
+    });
+  });
+  body.querySelectorAll('[data-open-url]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const target = el.dataset.openUrl;
+      if (target) openUrl(target);
     });
   });
   body.querySelectorAll('[data-reveal]').forEach((el) => {

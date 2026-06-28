@@ -7943,8 +7943,14 @@
             "supervisorRoot"
           ]
         },
+        "urlLabel": {
+          "line": 46,
+          "params": [
+            "url"
+          ]
+        },
         "render": {
-          "line": 51,
+          "line": 67,
           "params": [
             "t",
             "columnKey",
@@ -7952,7 +7958,7 @@
           ]
         },
         "resetExpansion": {
-          "line": 181,
+          "line": 199,
           "purpose": "resetExpansion is a no-op now but stays exported for API compatibility."
         }
       }
@@ -8889,176 +8895,176 @@
           ]
         },
         "statusTag": {
-          "line": 73,
+          "line": 76,
           "params": [
             "t"
           ]
         },
         "ensureRoot": {
-          "line": 82
+          "line": 85
         },
         "_onKeydown": {
-          "line": 114,
+          "line": 117,
           "params": [
             "e"
           ]
         },
         "switchTab": {
-          "line": 122,
+          "line": 125,
           "params": [
             "name"
           ]
         },
         "renderOverview": {
-          "line": 135,
+          "line": 138,
           "purpose": "---- Body renderers -----------------------------------------------------"
         },
         "_isTerminalForDeliverables": {
-          "line": 240,
+          "line": 246,
           "params": [
             "t"
           ]
         },
         "_formatSize": {
-          "line": 246,
+          "line": 252,
           "params": [
             "n"
           ]
         },
         "_formatAgo": {
-          "line": 253,
+          "line": 259,
           "params": [
             "epochSec"
           ]
         },
         "renderDeliverables": {
-          "line": 267,
+          "line": 273,
           "params": [
             "t",
             "ctx"
           ]
         },
         "renderActivity": {
-          "line": 311
+          "line": 332
         },
         "_fmtTs": {
-          "line": 361,
+          "line": 382,
           "params": [
             "epochMs"
           ],
           "purpose": "---- Lifecycle (Phase R) ------------------------------------------------"
         },
         "_fmtDuration": {
-          "line": 371,
+          "line": 392,
           "params": [
             "ms"
           ]
         },
         "_eventTimestamp": {
-          "line": 383,
+          "line": 404,
           "params": [
             "e"
           ]
         },
         "deriveLifecycle": {
-          "line": 400,
+          "line": 421,
           "params": [
             "t",
             "events"
           ]
         },
         "renderLifecycleList": {
-          "line": 479,
+          "line": 500,
           "params": [
             "t",
             "events"
           ]
         },
         "parseAcceptanceItems": {
-          "line": 498,
+          "line": 519,
           "params": [
             "briefText"
           ],
           "purpose": "---- Verification recap (Phase R) ---------------------------------------"
         },
         "_lastCriticEvent": {
-          "line": 527,
+          "line": 548,
           "params": [
             "events"
           ]
         },
         "renderVerification": {
-          "line": 535,
+          "line": 556,
           "params": [
             "t"
           ]
         },
         "_classifyItemAgainstIssues": {
-          "line": 619,
+          "line": 640,
           "params": [
             "item",
             "issues"
           ]
         },
         "renderRecentList": {
-          "line": 636,
+          "line": 657,
           "params": [
             "t",
             "events"
           ]
         },
         "shortSummary": {
-          "line": 653,
+          "line": 674,
           "params": [
             "e"
           ]
         },
         "renderBriefMd": {
-          "line": 668,
+          "line": 689,
           "params": [
             "text"
           ]
         },
         "paintBriefBody": {
-          "line": 678,
+          "line": 699,
           "params": [
             "body",
             "raw"
           ]
         },
         "loadBriefIntoBody": {
-          "line": 687
+          "line": 708
         },
         "loadAudit": {
-          "line": 719
+          "line": 740
         },
         "prefetchBriefForVerification": {
-          "line": 747,
+          "line": 768,
           "purpose": "used by the brief preview path would risk cutting the block off."
         },
         "paintAudit": {
-          "line": 769,
+          "line": 790,
           "params": [
             "events"
           ]
         },
         "repaintVerification": {
-          "line": 781
+          "line": 802
         },
         "renderBody": {
-          "line": 799
+          "line": 820
         },
         "wireOverviewHandlers": {
-          "line": 820,
+          "line": 841,
           "params": [
             "body"
           ]
         },
         "renderHeader": {
-          "line": 854
+          "line": 890
         },
         "open": {
-          "line": 873,
+          "line": 909,
           "params": [
             "task",
             "ctx"
@@ -9066,13 +9072,13 @@
           "purpose": "clicks an Open button on a profile / brief / deliverable."
         },
         "close": {
-          "line": 902
+          "line": 938
         },
         "isOpen": {
-          "line": 911
+          "line": 947
         },
         "lookupLatest": {
-          "line": 921,
+          "line": 957,
           "params": [
             "taskId"
           ]
@@ -9084,6 +9090,8 @@
       "description": "Extension-aware file opener for supervisor-ui surfaces.",
       "exports": [
         "openFile",
+        "openUrl",
+        "isUrl",
         "FRAME_EDITOR_EXTS",
         "MACDOWN_EXTS",
         "refuseXcodeRoute"
@@ -9091,27 +9099,28 @@
       "depends": [
         "path",
         "child_process",
+        "electron",
         "notificationToast",
         "taskDetailModal",
         "editor"
       ],
       "functions": {
         "showUnsupportedFileTypeNotice": {
-          "line": 59,
+          "line": 60,
           "params": [
             "absPath",
             "ext"
           ]
         },
         "showOpenFileErrorNotice": {
-          "line": 77,
+          "line": 78,
           "params": [
             "absPath",
             "err"
           ]
         },
         "refuseXcodeRoute": {
-          "line": 96,
+          "line": 97,
           "params": [
             "absPath",
             "reason"
@@ -9119,20 +9128,33 @@
           "purpose": "the regression we keep ripping out."
         },
         "closeSupervisorModalIfOpen": {
-          "line": 112,
+          "line": 113,
           "purpose": "fully loaded) sidesteps the partial-export hazard."
         },
         "openInMacDown": {
-          "line": 123,
+          "line": 124,
           "params": [
             "absPath"
           ]
         },
         "openFile": {
-          "line": 136,
+          "line": 137,
           "params": [
             "absPath",
             "opts = {}"
+          ]
+        },
+        "isUrl": {
+          "line": 163,
+          "params": [
+            "p"
+          ],
+          "purpose": "here so the URL opens in the user's default browser."
+        },
+        "openUrl": {
+          "line": 168,
+          "params": [
+            "url"
           ]
         }
       }

@@ -25,6 +25,7 @@
 
 const path = require('path');
 const { spawn } = require('child_process');
+const { shell } = require('electron');
 
 // Anything in this set opens in Frame's editor overlay. Monaco-style file
 // types, markdown, config formats, shell scripts — everything text-shaped a
@@ -154,8 +155,39 @@ function openFile(absPath, opts = {}) {
   }
 }
 
+// URL deliverables (e.g. https://app.clickup.com/t/<id>) come through the same
+// deliverables manifest as file paths. They must not flow through openFile —
+// path.extname strips them to '' which would match FRAME_EDITOR_EXTS and try
+// to load them via READ_FILE IPC. Callers detect with isUrl() and dispatch
+// here so the URL opens in the user's default browser.
+function isUrl(p) {
+  if (typeof p !== 'string') return false;
+  return /^https?:\/\//i.test(p);
+}
+
+function openUrl(url) {
+  if (!isUrl(url)) return;
+  try {
+    shell.openExternal(url);
+  } catch (err) {
+    console.warn('[supervisor] shell.openExternal failed:', err, 'url:', url);
+    try {
+      const toast = require('./notificationToast');
+      toast.show({
+        title: 'Couldn’t open link',
+        kind: 'error',
+        body: `${url} — ${err && err.message ? err.message : 'unknown error'}`,
+      });
+    } catch (toastErr) {
+      console.warn('[supervisor] openUrl toast failed:', toastErr);
+    }
+  }
+}
+
 module.exports = {
   openFile,
+  openUrl,
+  isUrl,
   FRAME_EDITOR_EXTS,
   MACDOWN_EXTS,
   refuseXcodeRoute,
