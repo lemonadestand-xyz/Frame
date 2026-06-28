@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Auto-generated module structure",
-  "lastUpdated": "2026-06-26",
+  "lastUpdated": "2026-06-28",
   "architecture": {},
   "modules": {
     "main/aiToolManager": {
@@ -9081,22 +9081,58 @@
     },
     "renderer/supervisor-ui/openFile": {
       "file": "src/renderer/supervisor-ui/openFile.js",
-      "description": "Extension-aware file opener for supervisor-ui surfaces — Phase P.",
+      "description": "Extension-aware file opener for supervisor-ui surfaces.",
       "exports": [
         "openFile",
-        "EDITOR_EXTS",
-        "SHELL_EXTS"
+        "FRAME_EDITOR_EXTS",
+        "MACDOWN_EXTS",
+        "refuseXcodeRoute"
       ],
       "depends": [
         "path",
-        "electron",
+        "child_process",
+        "notificationToast",
+        "taskDetailModal",
         "editor"
       ],
       "functions": {
-        "openFile": {
-          "line": 55,
+        "showUnsupportedFileTypeNotice": {
+          "line": 59,
+          "params": [
+            "absPath",
+            "ext"
+          ]
+        },
+        "showOpenFileErrorNotice": {
+          "line": 77,
+          "params": [
+            "absPath",
+            "err"
+          ]
+        },
+        "refuseXcodeRoute": {
+          "line": 96,
+          "params": [
+            "absPath",
+            "reason"
+          ],
+          "purpose": "the regression we keep ripping out."
+        },
+        "closeSupervisorModalIfOpen": {
+          "line": 112,
+          "purpose": "fully loaded) sidesteps the partial-export hazard."
+        },
+        "openInMacDown": {
+          "line": 123,
           "params": [
             "absPath"
+          ]
+        },
+        "openFile": {
+          "line": 136,
+          "params": [
+            "absPath",
+            "opts = {}"
           ]
         }
       }
@@ -10159,7 +10195,7 @@
       {
         "module": "renderer/supervisor-ui/openFile",
         "file": "src/renderer/supervisor-ui/openFile.js",
-        "description": "Extension-aware file opener for supervisor-ui surfaces — Phase P."
+        "description": "Extension-aware file opener for supervisor-ui surfaces."
       }
     ],
     "open-project-modal": [
